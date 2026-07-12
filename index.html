@@ -1,0 +1,1884 @@
+<!DOCTYPE html>
+<!--
+  ============================================================
+  PATCH "NUVENS DESLIGADAS" — 2025
+  ============================================================
+  Este arquivo é o seu Lider CRM ORIGINAL (1,2 MB / 917 funções /
+  16.031 linhas) com APENAS as nuvens desativadas, preservando 100%
+  das suas modificações (Painel ADM, Conversas, Automações, Kanban
+  restrito por cargo, hierarquia Gerente/Supervisor, etc).
+
+  O que mudou em relação ao seu arquivo original:
+   • SDKs do Firebase (4 tags <script defer>) — comentados.
+     => O app já tinha fallback via usarLocal() — funciona só com
+        localStorage.
+   • _uploadFileToCloudinary — agora tenta Cloudinary; em caso de
+     erro (ex.: conta expirada), salva o ARQUIVO como data: URL
+     inline no próprio lead/chat. Nada se perde.
+   • Service Worker / FCM push — já estava desativado por padrão
+     (window.LF_ENABLE_SW = false; na linha 4520).
+
+  COMO REATIVAR AS NUVENS DO ZERO:
+   1) Crie um novo projeto no console do Firebase e substitua o
+      FB_CONFIG (linha ~3520 do arquivo original).
+   2) Descomente as 4 tags <script src="https://www.gstatic.com/...">
+      (linhas 3504-3507).
+   3) Troque o CLOUDINARY_CLOUD_NAME/PRESET por valores novos (ou
+      ponha "COLE_AQUI" para desligar uploads de arquivo).
+   4) Suba no Netlify/Cloudflare e teste UMA nuvem por vez.
+  ============================================================
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data: https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; font-src 'self' data: https:; img-src 'self' data: blob: https:; media-src 'self' blob: data: https:; connect-src 'self' https: wss:; frame-src blob: https:; worker-src blob: https:; form-action 'self';">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0A0C10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lider CRM">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" id="pwa-manifest">
+<title>Lider CRM</title>
+<meta name="description" content="LIDER CRM — plataforma interna de gestão de leads, negócios e clientes da Líder Financeira e Investimentos.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/jpeg" href="data:image/jpeg;base64,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">
+<link rel="apple-touch-icon" id="apple-touch-icon">
+<script src="js/storage.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/usuarios.js"></script>
+<script src="js/configuracoes.js"></script>
+<script src="js/notificacoes.js"></script>
+<script src="js/agenda.js"></script>
+<script src="js/kanban.js"></script>
+<script src="js/leads.js"></script>
+<script src="js/clientes.js"></script>
+<script src="js/documentos.js"></script>
+<script src="js/whatsapp.js"></script>
+<script src="js/relatorios.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+
+<!-- BACKDROP 3D (decorativo, nao interativo) -->
+<div id="bg-orbs" aria-hidden="true"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
+
+<!-- SPLASH -->
+<noscript><style>body{display:flex;align-items:center;justify-content:center;height:100vh;height:100dvh;font-family:sans-serif;color:#EEE8D5;background:#0A0C10;text-align:center;padding:20px}</style><p>Este aplicativo requer JavaScript para funcionar. Por favor, ative o JavaScript no seu navegador.</p></noscript>
+<div id="splash">
+  <div class="splash-mon"><img src="" class="lf-logo-img" alt="Líder Financeira e Investimentos" style="width:100%;height:100%;object-fit:contain;border-radius:inherit"></div>
+  <div class="splash-txt crm-brand-name">LIDER CRM</div>
+  <div class="splash-sub">Líder Financeira e Investimentos</div>
+  <div class="spinner" id="sp-spin"></div>
+  <div class="splash-err" id="sp-err"></div>
+  <button class="splash-retry" id="sp-retry" onclick="initDB()">Tentar novamente</button>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="lbox">
+    <div class="lmon"><img src="" class="lf-logo-img" alt="Líder Financeira e Investimentos" style="width:100%;height:100%;object-fit:contain;border-radius:inherit"></div>
+    <div class="lbr crm-brand-name">LIDER CRM</div>
+    <div class="lsep"></div>
+    <div class="lf"><label for="le">E-mail</label>
+      <input type="email" id="le" placeholder="seu@email.com" autocomplete="email" inputmode="email">
+    </div>
+    <div class="lf"><label for="lp">Senha</label>
+      <div class="lf-pw">
+        <input type="password" id="lp" placeholder="Sua senha" autocomplete="current-password">
+        <button class="eye" type="button" onclick="toggleEye('lp',this)" aria-label="Mostrar ou ocultar senha">&#128065;</button>
+      </div>
+    </div>
+    <div class="lerr" id="lerr"></div>
+    <button class="btn-in" id="btn-login" onclick="doLogin()">Entrar</button>
+    <div class="sync-badge"><div class="sync-dot"></div>Dados sincronizados em todos os dispositivos</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <nav>
+    <div class="nbr">
+      <div class="nmo"><img src="" class="lf-logo-img" alt="Líder Financeira e Investimentos" style="width:100%;height:100%;object-fit:contain;border-radius:inherit"></div>
+      <div><div class="nmn crm-brand-name">LIDER CRM</div><div class="nsb">Líder Financeira</div></div>
+    </div>
+    <div class="ntabs" id="ntabs"></div>
+    <div class="nri">
+      <button id="nav-theme-btn" onclick="toggleAppTheme()" title="Alternar tema" aria-label="Alternar tema claro/escuro" style="background:rgba(195,154,45,.08);border:1.5px solid rgba(195,154,45,.2);border-radius:7px;color:var(--mu);font-size:.7rem;padding:4px 9px;cursor:pointer;font-family:Outfit,sans-serif;touch-action:manipulation">🎨</button>
+      <button onclick="openGSearch()" title="Busca global (Ctrl+K)" style="background:rgba(195,154,45,.08);border:1.5px solid rgba(195,154,45,.2);border-radius:7px;color:var(--mu);font-size:.7rem;padding:4px 9px;cursor:pointer;font-family:Outfit,sans-serif;touch-action:manipulation">🔍</button>
+      <div class="nav-sync" id="nav-sync" title="Sincronizado"></div>
+      <button class="act-bell" id="ntf-bell" onclick="toggleNotifPanel()" title="Notificações" aria-label="Notificações internas">
+        &#128276;<span class="act-badge" id="ntf-badge"></span>
+      </button>
+      <button class="act-bell" id="act-bell" onclick="toggleActPanel()" title="Atividades" aria-label="Atividades e lembretes">
+        &#9200;<span class="act-badge" id="act-badge"></span>
+      </button>
+      <div class="nav-av" id="nav-av">?</div>
+      <span class="nav-un" id="nav-un">-</span>
+      <button class="bsair" onclick="doLogout()">Sair</button>
+    </div>
+  </nav>
+
+  <!-- ===== INTERFACE MOBILE (estilo Bitrix24) — só aparece em telas até 768px ===== -->
+  <!-- Header mobile fixo no topo -->
+  <div id="mobile-top-bar">
+    <div class="mtb-logo"><img src="" class="lf-logo-img" alt="Líder Financeira e Investimentos" style="width:100%;height:100%;object-fit:contain;border-radius:inherit"></div>
+    <div class="mtb-title" id="mtb-title">Início</div>
+    <button class="mtb-bell" id="mtb-ntf-bell" onclick="toggleNotifPanel()" title="Notificações" aria-label="Notificações internas">
+      &#128276;<span class="act-badge" id="mtb-ntf-badge"></span>
+    </button>
+    <button class="mtb-bell" id="mtb-bell" onclick="toggleActPanel()" title="Atividades" aria-label="Atividades e lembretes">
+      &#9200;<span class="act-badge" id="mtb-act-badge"></span>
+    </button>
+    <div class="nav-av" id="mtb-av" onclick="toggleMobileMenu()" tabindex="0" role="button" aria-label="Abrir menu">?</div>
+  </div>
+
+  <!-- Nav inferior fixa (5 itens). Negócios e Agenda foram promovidos do menu ⋮ pra
+       cá porque são as duas telas mais usadas no dia a dia depois de Leads — antes
+       ficavam escondidas atrás do "Menu", e Negócios em especial não tinha NENHUM
+       jeito de ser aberta pelo celular (o board existia e renderizava certinho,
+       só faltava o botão). -->
+  <div id="mobile-bottom-nav">
+    <button class="mbn-item on" data-page="dash" onclick="mobileGoPage('dash',this)">
+      <span class="mbn-ic">🏠</span><span class="mbn-lbl">Início</span><span class="mbn-dot"></span>
+    </button>
+    <button class="mbn-item" data-page="crm" onclick="mobileGoPage(_crmLastTab||'leads',this)">
+      <span class="mbn-ic">🗂️</span><span class="mbn-lbl">CRM</span><span class="mbn-dot"></span>
+    </button>
+    <button class="mbn-item" data-page="agenda" onclick="mobileGoPage('agenda',this)">
+      <span class="mbn-ic">📅</span><span class="mbn-lbl">Agenda</span><span class="mbn-dot"></span>
+    </button>
+    <button class="mbn-item" data-page="menu" onclick="toggleMobileMenu()">
+      <span class="mbn-ic">☰</span><span class="mbn-lbl">Menu</span><span class="mbn-dot"></span>
+    </button>
+  </div>
+
+  <!-- Overlay + drawer lateral do menu mobile -->
+  <div id="mobile-menu-overlay" onclick="closeMobileMenu()"></div>
+  <div id="mobile-menu-drawer">
+    <div class="mmd-header">
+      <div class="nav-av" id="mmd-av" style="width:44px;height:44px;font-size:1rem">?</div>
+      <div class="mmd-user-name" id="mmd-name">-</div>
+      <div class="mmd-user-cargo" id="mmd-cargo">-</div>
+    </div>
+    <div class="mmd-links">
+      <button class="mmd-link" onclick="mobileGoPage('anal')">📊 Analytics</button>
+      <button class="mmd-link" onclick="mobileGoPage('dic')">📖 Dicionário</button>
+      <button class="mmd-link" id="mmd-time-link" style="display:none" onclick="mobileGoPage('time')">👥 Time</button>
+      <button class="mmd-link" id="mmd-adm-link" style="display:none" onclick="mobileGoPage('adm')">🛠 ADM</button>
+      <button class="mmd-link" onclick="mobileGoPage('config')">⚙️ Configurações</button>
+      <button class="mmd-link" id="mmd-theme-link" onclick="toggleAppTheme()">🎨 <span id="mmd-theme-label">Tema escuro/vermelho</span></button>
+    </div>
+    <button class="mmd-logout" onclick="doLogout()">🚪 Sair</button>
+  </div>
+
+  <!-- ALERTA DE ATIVIDADE -->
+  <div class="act-alert-bar" id="act-alert-bar">
+    <span style="font-size:1rem">&#128276;</span>
+    <div style="flex:1">
+      <div class="act-alert-txt" id="act-alert-txt">Atividade agendada</div>
+      <div class="act-alert-sub" id="act-alert-sub"></div>
+    </div>
+    <button class="act-alert-snooze" onclick="snoozeAlert()">+10min</button>
+    <button class="act-alert-close" type="button" aria-label="Fechar alerta" onclick="dismissAlert()">&#10005;</button>
+  </div>
+
+  <!-- PAINEL DE ATIVIDADES -->
+  <div class="act-panel" id="act-panel">
+    <div class="act-panel-hd">
+      <span class="act-panel-title">&#9200; Atividades</span>
+      <button class="act-panel-close" type="button" aria-label="Fechar painel de atividades" onclick="toggleActPanel()">&#10005;</button>
+    </div>
+    <div class="act-list" id="act-list"></div>
+    <div class="act-form">
+      <div class="act-type-row" id="act-type-row">
+        <button class="act-type-btn on" data-t="call"  onclick="selActType('call',this)">&#128222; Ligação</button>
+        <button class="act-type-btn"    data-t="meet"  onclick="selActType('meet',this)">&#128197; Reunião</button>
+        <button class="act-type-btn"    data-t="task"  onclick="selActType('task',this)">&#9989; Tarefa</button>
+        <button class="act-type-btn"    data-t="note"  onclick="selActType('note',this)">&#128203; Nota</button>
+      </div>
+      <div class="act-inp-row">
+        <input class="act-inp" id="act-inp" placeholder="Descrição da atividade..." autocomplete="off">
+        <button class="act-send" onclick="createActivity()">+ Criar</button>
+      </div>
+      <div style="margin-top:5px">
+        <input type="datetime-local" id="act-sched" style="padding:4px 8px;border-radius:7px;background:var(--bg3);border:1.5px solid var(--b1);color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;outline:none;width:100%;" title="Agendar para (opcional)">
+      </div>
+    </div>
+  </div>
+
+  <!-- PAINEL DE NOTIFICAÇÕES (Feature 2 — inbox interno: card transferido, atividade
+       atribuída por outro usuário, regra de automação disparada. Reaproveita o mesmo
+       "chrome" visual do painel de Atividades (.act-panel/.act-list/.act-item) pra manter
+       consistência sem precisar de CSS novo — só o conteúdo/dados é diferente. -->
+  <div class="act-panel" id="ntf-panel">
+    <div class="act-panel-hd">
+      <span class="act-panel-title">&#128276; Notificações</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="bc" style="padding:3px 8px;font-size:.62rem;width:auto;border-radius:6px" onclick="markAllNotifsRead()">Marcar todas como lidas</button>
+        <button class="act-panel-close" type="button" aria-label="Fechar painel de notificações" onclick="toggleNotifPanel()">&#10005;</button>
+      </div>
+    </div>
+    <div class="act-list" id="ntf-list"></div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="pg" id="pg-dash">
+    <!-- DASHBOARD MOBILE (Bitrix24-style) — escondido no desktop via CSS (max-width:768px) -->
+    <div id="mobile-dash">
+      <div class="mdash-greet" id="mdash-greet">Olá!</div>
+      <div class="mdash-kpis">
+        <div class="mdash-kpi"><div class="mdash-kpi-v" id="mdash-kpi-leads">0</div><div class="mdash-kpi-l">Total de Leads</div></div>
+        <div class="mdash-kpi"><div class="mdash-kpi-v" id="mdash-kpi-fech">0</div><div class="mdash-kpi-l">Fechamentos</div></div>
+        <div class="mdash-kpi"><div class="mdash-kpi-v" id="mdash-kpi-tx">0%</div><div class="mdash-kpi-l">Taxa de Conversão</div></div>
+        <div class="mdash-kpi"><div class="mdash-kpi-v" id="mdash-kpi-pend">0</div><div class="mdash-kpi-l">Atividades Pendentes</div></div>
+      </div>
+      <div class="mdash-section-title">Atividades Recentes</div>
+      <div id="mdash-recent"></div>
+    </div>
+    <button id="mdash-fab" onclick="openKBNew('leads')" title="Adicionar lead" aria-label="Adicionar lead">+</button>
+    <div class="ph"><h1 id="dh1" class="crm-brand-name">LIDER CRM</h1><div class="aline"></div><p>Seus clientes e etapas de venda</p></div>
+    <div class="cgr">
+      <div class="cc" onclick="openMyModal()" tabindex="0" role="button" aria-label="Ver detalhes do consultor">
+        <div class="cha"><div class="clb">Consultor</div><div class="cnm" id="mycnm">-</div><div class="cic">&#127919;</div></div>
+        <div class="cbd">
+          <div class="mr">
+            <div class="ms"><div class="msv" id="mytot">0</div><div class="msl">Clientes</div></div>
+            <div class="ms"><div class="msv" id="myfec">0</div><div class="msl">Fechados</div></div>
+            <div class="ms"><div class="msv" id="mytx">0%</div><div class="msl">Conversao</div></div>
+          </div>
+          <button class="bln" onclick="event.stopPropagation();openLancar()">+ Lancar Cliente</button>
+        </div>
+      </div>
+    </div>
+    <!-- SEARCH + FILTROS -->
+    <div class="srchw">
+      <span class="srch-ic">&#128269;</span>
+      <input class="srchi" id="srch-inp" type="text" placeholder="Buscar cliente..." oninput="var v=this.value;debounce('srch',function(){onSearch(v);})" autocomplete="off">
+      <button class="srch-cl" id="srch-cl" onclick="clearSearch()" style="display:none" aria-label="Limpar busca">&#10005;</button>
+    </div>
+    <div class="dash-filters" id="dash-filters">
+      <select class="dash-filter-sel" id="flt-nicho" onchange="applyDashFilters()" title="Filtrar por nicho">
+        <option value="">Todos os nichos</option>
+      </select>
+      <input class="dash-filter-sel" type="date" id="flt-date" onchange="applyDashFilters()" title="Filtrar por data de cadastro" placeholder="Data">
+      <button class="dash-filter-sel dash-filter-late" id="flt-late" onclick="toggleLateFilter(this)" title="Mostrar apenas atividades atrasadas" aria-pressed="false">⏰ Atrasadas</button>
+      <button class="dash-filter-sel" id="flt-clear" onclick="clearDashFilters()" style="display:none">✕ Limpar filtros</button>
+    </div>
+    <!-- ABAS -->
+    <div class="dtabs">
+      <button class="dtab on" id="dtab-normal" onclick="setDashTab('normal',this)">Agendados <span class="dtab-cnt" id="cnt-normal">0</span></button>
+      <button class="dtab atd" id="dtab-atendido" onclick="setDashTab('atendido',this)">Atendimentos <span class="dtab-cnt" id="cnt-atendido">0</span></button>
+      <button class="dtab rem" id="dtab-remarcar" onclick="setDashTab('remarcar',this)">Remarcar <span class="dtab-cnt" id="cnt-remarcar">0</span></button>
+      <button class="dtab nsh" id="dtab-noshow" onclick="setDashTab('noshow',this)">No-Show <span class="dtab-cnt" id="cnt-noshow">0</span></button>
+    </div>
+    <div class="tw">
+      <div class="twh"><div class="twt" id="twt-label">Clientes Ativos</div></div>
+      <div class="ts">
+        <table>
+          <thead><tr><th>Nome</th><th>Ag</th><th>30s</th><th>24h</th><th>2h</th><th>Reu</th><th>Fic</th><th>F</th><th></th></tr></thead>
+          <tbody id="tbody"><tr><td colspan="9" class="est">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL TIMELINE -->
+  <div class="mo" id="mo-tl" onclick="if(event.target===this)closeM('mo-tl')">
+    <div class="mb" style="max-width:480px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div>
+          <div style="font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.15rem;color:var(--al)" id="tl-nome"></div>
+          <div style="font-size:.63rem;color:var(--mu);margin-top:2px" id="tl-datacad"></div>
+        </div>
+        <div style="flex-shrink:0;text-align:right">
+          <div style="font-size:.6rem;color:var(--mu);margin-bottom:3px">Responsável</div>
+          <select id="tl-resp-sel" class="resp-sel" onchange="changeResponsible(this.value)"></select>
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin:8px 0" id="tl-status-btns"></div>
+      <!-- TABS -->
+      <div class="mo-tabs">
+        <button class="mo-tab on" onclick="switchMoTab('tl-pane-tl',this)">&#128336; Linha do Tempo</button>
+        <button class="mo-tab" onclick="switchMoTab('tl-pane-ativ',this)">&#127381; Atividades</button>
+        <button class="mo-tab" onclick="switchMoTab('tl-pane-obs',this)">&#128203; Anotações</button>
+        <button class="mo-tab" onclick="switchMoTab('tl-pane-rem',this)">&#128260; Remarcações</button>
+      </div>
+      <!-- PANE: LINHA DO TEMPO MELHORADA -->
+      <div class="mo-tab-pane on" id="tl-pane-tl">
+        <div id="tl-body"></div>
+      </div>
+      <!-- PANE: ATIVIDADES -->
+      <div class="mo-tab-pane" id="tl-pane-ativ">
+        <div id="tl-ativ-list" style="max-height:46vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;"></div>
+        <!-- Mini form -->
+        <button class="tl-add-act-btn" onclick="toggleTlActForm()">+ Adicionar atividade / nota</button>
+        <div class="tl-act-form" id="tl-act-form">
+          <div class="tl-act-types" id="tl-act-types">
+            <button class="tl-act-type-btn on" data-t="call" onclick="selTlActType('call',this)">&#128222; Ligação</button>
+            <button class="tl-act-type-btn" data-t="meet" onclick="selTlActType('meet',this)">&#128197; Reunião</button>
+            <button class="tl-act-type-btn" data-t="task" onclick="selTlActType('task',this)">&#9989; Tarefa</button>
+            <button class="tl-act-type-btn" data-t="note" onclick="selTlActType('note',this)">&#128203; Nota</button>
+          </div>
+          <textarea class="tl-act-ta" id="tl-act-ta" placeholder="Descreva a atividade..."></textarea>
+          <div class="tl-act-row">
+            <input type="datetime-local" class="tl-act-sched" id="tl-act-sched" title="Agendar para">
+            <button class="tl-act-save" onclick="saveTlActivity()">Salvar</button>
+            <button class="tl-act-cancel" onclick="toggleTlActForm()">Cancelar</button>
+          </div>
+        </div>
+      </div>
+      <!-- PANE: ANOTAÇÕES -->
+      <div class="mo-tab-pane" id="tl-pane-obs">
+        <textarea class="obs-box" id="tl-obs" placeholder="Escreva observações sobre este cliente... Ex: prefere ligar após 18h, marido vai junto, renda aproximada R$5k..." oninput="autoSaveObs()"></textarea>
+        <div class="obs-saved" id="obs-saved-msg"></div>
+        <div id="tl-obs-hist"></div>
+      </div>
+      <!-- PANE: HISTÓRICO DE REMARCAÇÕES -->
+      <div class="mo-tab-pane" id="tl-pane-rem">
+        <div id="tl-rem-body" class="rem-hist"><p style="color:var(--mu);font-size:.8rem">Nenhuma remarcação registrada.</p></div>
+      </div>
+      <div class="mbtns" style="margin-top:10px">
+        <button class="bc" style="flex:1" onclick="closeM('mo-tl')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS -->
+  <div class="pg" id="pg-anal">
+    <div class="ath1">Analytics</div><div class="aline"></div>
+    <div class="atb">
+      <div class="pg-b">
+        <button class="pb on" onclick="setPer('hoje',this)">Hoje</button>
+        <button class="pb" onclick="setPer('semana',this)">Semana</button>
+        <button class="pb" onclick="setPer('mes',this)">Mes</button>
+        <button class="pb" onclick="setPer('tudo',this)">Tudo</button>
+        <button class="pb" onclick="setPer('custom',this)">Periodo</button>
+      </div>
+      <div class="dr" id="dr" style="display:none">
+        <input type="date" class="di" id="d1" onchange="renderAnal()">
+        <span style="color:var(--mu);font-size:.76rem">ate</span>
+        <input type="date" class="di" id="d2" onchange="renderAnal()">
+      </div>
+    </div>
+    <div class="kr" id="krow"></div>
+    <div class="kr" style="margin-top:6px" id="krow2"></div>
+    <div class="cg">
+      <div class="gc"><div class="gt">Funil<span class="gts"> por etapa</span></div><div class="fn" id="funil"></div></div>
+      <div class="gc"><div class="gt">Distribuicao</div><div class="pw"><svg id="psvg" width="105" height="105" viewBox="0 0 105 105" style="flex-shrink:0"></svg><div class="pl" id="pleg"></div></div></div>
+      <div class="gc" style="grid-column:1/-1"><div class="gt">Metas</div><div class="mg" id="metas"></div></div>
+    </div>
+  </div>
+
+  <!-- ADM -->
+  <div class="pg" id="pg-adm">
+    <div style="background:rgba(195,154,45,.08);border:1px solid rgba(195,154,45,.2);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:.78rem;color:var(--mu)">
+      ⚡ Você está no <strong style="color:var(--al)">Painel ADM</strong>. Suas funções de consultor (Leads, Negócios) continuam normalmente nas outras abas.
+    </div>
+    <div class="ph">
+      <h1>ADM <span class="adb crm-brand-name">LIDER CRM</span></h1>
+      <div class="aline"></div><p>Gestão completa da equipe e métricas em tempo real</p>
+    </div>
+    <!-- ADM TABS -->
+    <div class="adm-tabs">
+      <button class="adm-tab on" onclick="admGoTab('usuarios',this)">👥 Usuários</button>
+      <button class="adm-tab" onclick="admGoTab('ativ',this)">⏰ Atividades</button>
+      <button class="adm-tab" onclick="admGoTab('metrics',this)">📊 Métricas</button>
+      <button class="adm-tab" onclick="admGoTab('clientes',this)">🗂 Clientes</button>
+      <button class="adm-tab" onclick="admGoTab('feed',this)">🔄 Feed</button>
+      <button class="adm-tab" onclick="admGoTab('docs',this)">📂 Documentos</button>
+    </div>
+
+    <!-- PANE: USUÁRIOS -->
+    <div class="adm-pane on" id="adm-pane-usuarios">
+      <div class="cf">
+        <h3>Cadastrar Novo Usuário</h3>
+        <p>Preencha os dados. A senha será enviada ao usuário.</p>
+        <div class="fr">
+          <div class="ff"><label for="nn">Nome Completo</label><input type="text" id="nn" placeholder="Ex: João Silva" autocomplete="off" maxlength="80"></div>
+          <div class="ff"><label for="ne">E-mail</label><input type="email" id="ne" placeholder="joao@lider.com" autocomplete="off" inputmode="email"></div>
+        </div>
+        <div class="fr">
+          <div class="ff">
+            <label for="nc">Cargo</label>
+            <select id="nc" onchange="toggleAdminNote('nc','nc-admin-note')">
+              <option value="Consultor">Consultor</option>
+              <option value="Orientador">Orientador</option>
+              <option value="Supervisor">Supervisor</option>
+              <option value="Gerente">Gerente</option>
+              <option value="Representante">Representante</option>
+              <option value="Master">Master</option>
+              <option value="Gestor">Gestor</option>
+              <option value="Funcionário">Funcionário</option>
+            </select>
+          </div>
+          <div class="ff">
+            <label for="np">Senha Inicial</label>
+            <div class="ff-pw">
+              <input type="password" id="np" placeholder="Em branco = gerar senha" autocomplete="off">
+              <button class="feye" type="button" onclick="toggleEye('np',this)" aria-label="Mostrar ou ocultar senha">&#128065;</button>
+            </div>
+          </div>
+        </div>
+        <div id="nc-admin-note" class="adm-note" style="display:none">&#128737; Cargo Gerente, Gestor, Representante e Master recebem automaticamente o mesmo acesso do Administrador.</div>
+        <div class="ff"><label for="nd">Data de Cadastro</label><input type="date" id="nd" autocomplete="off"></div>
+        <div class="ferr" id="ferr"></div>
+        <button class="bp" style="max-width:170px;margin-top:6px" onclick="createUser()">+ Criar Usuário</button>
+      </div>
+      <div class="ph" style="margin-bottom:12px"><h2 style="font-size:1.2rem">Usuários Cadastrados</h2><div class="aline"></div></div>
+      <div class="ug" id="ugrid"><div class="est">Carregando...</div></div>
+    </div>
+
+    <!-- PANE: ATIVIDADES (Tarefa 3) -->
+    <div class="adm-pane" id="adm-pane-ativ">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <p style="font-size:.75rem;color:var(--mu)">Atividades de todos os consultores, calculadas em tempo real a partir da data prevista.</p>
+        <button class="bc" style="padding:5px 10px;font-size:.68rem;white-space:nowrap" onclick="renderAdmAtividades()">↺ Atualizar</button>
+      </div>
+      <div class="ativ-kpi-grid" id="adm-ativ-kpis"><div class="est">Carregando...</div></div>
+      <div class="ph" style="margin-bottom:10px"><h2 style="font-size:1.1rem">Por Consultor</h2><div class="aline"></div></div>
+      <div id="adm-ativ-cons"></div>
+    </div>
+
+    <!-- PANE: MÉTRICAS -->
+    <div class="adm-pane" id="adm-pane-metrics">
+      <!-- KPIs globais -->
+      <div class="adm-kpi-grid" id="adm-kpi-global"></div>
+      <!-- Por usuário -->
+      <div class="ph" style="margin-bottom:10px"><h2 style="font-size:1.1rem">Por Consultor</h2><div class="aline"></div></div>
+      <div id="adm-per-user"></div>
+      <!-- Gráficos globais -->
+      <div class="ph" style="margin:14px 0 10px"><h2 style="font-size:1.1rem">Analytics Global</h2><div class="aline"></div></div>
+      <div class="kr" id="kadm"></div>
+      <div class="kr" style="margin-top:6px" id="kadm2"></div>
+      <div class="cg">
+        <div class="gc"><div class="gt">Funil Global</div><div class="fn" id="fadm"></div></div>
+        <div class="gc"><div class="gt">Pizza Global</div><div class="pw"><svg id="padm" width="105" height="105" viewBox="0 0 105 105" style="flex-shrink:0"></svg><div class="pl" id="ladm"></div></div></div>
+      </div>
+    </div>
+
+    <!-- PANE: CLIENTES (visão global de todos os consultores) -->
+    <div class="adm-pane" id="adm-pane-clientes">
+      <div class="twh">
+        <div class="twt">Visão Global de Clientes</div>
+        <div class="twf" id="aflt"></div>
+      </div>
+      <div id="adm-tabela-tabs"></div>
+      <div class="ts">
+        <table>
+          <thead><tr><th>Cliente</th><th>Consultor</th><th>Ag</th><th>30s</th><th>24h</th><th>2h</th><th>Reu</th><th>Fic</th><th>F</th></tr></thead>
+          <tbody id="atbody"><tr><td colspan="9" class="est">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PANE: FEED DE MOVIMENTAÇÕES -->
+    <div class="adm-pane" id="adm-pane-feed">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:.8rem;font-weight:600;color:var(--al)">📞 Ligações por Consultor (hoje)</span>
+        <button class="bc" style="padding:4px 10px;font-size:.68rem" onclick="renderAdmLigacoes()">↺ Atualizar</button>
+      </div>
+      <div id="adm-lig-list"><div class="act-empty">Carregando...</div></div>
+      <div style="height:1px;background:var(--b1);margin:16px 0"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:.8rem;font-weight:600;color:var(--al)">🔄 Movimentações da equipe</span>
+        <button class="bc" style="padding:4px 10px;font-size:.68rem" onclick="renderAdmFeed()">↺ Atualizar</button>
+      </div>
+      <!-- Busca + filtro de canal — útil sobretudo para achar rápido quando alguém
+           editou ou excluiu uma objeção do Dicionário (evento fica registrado aqui) -->
+      <div class="obj-bank-toolbar" style="margin-bottom:10px">
+        <div class="kb-search-wrap" style="flex:1;min-width:180px">
+          <span class="kb-search-ic">&#128269;</span>
+          <input class="kb-search" id="adm-feed-search" type="text" placeholder="Buscar objeção ou atividade..." oninput="debounce('admfeed',_admFeedRenderList)" autocomplete="off">
+        </div>
+        <div id="adm-feed-canal-filters" style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" class="canal-badge canal-filter on" onclick="admFeedFilterCanal(null,this)">Todas</button>
+          <button type="button" class="canal-badge canal-filter somente_ligacao" onclick="admFeedFilterCanal('chamada',this)">&#9742;&#65039; Ligação</button>
+          <button type="button" class="canal-badge canal-filter zap_ou_ligacao" onclick="admFeedFilterCanal('whatsapp',this)">&#128241; WhatsApp</button>
+          <button type="button" class="canal-badge canal-filter preferir_ligacao" onclick="admFeedFilterCanal('ambos',this)">&#128260; Ambos</button>
+        </div>
+      </div>
+      <div class="adm-feed" id="adm-feed-list"><div class="act-empty">Carregando...</div></div>
+    </div>
+
+    <!-- PANE: DOCUMENTOS (PDFs/imagens compartilhados entre ADM e Gerentes) -->
+    <div class="adm-pane" id="adm-pane-docs">
+      <div class="att-dropzone" id="adm-docs-dropzone" role="button" tabindex="0"
+        aria-label="Selecionar ou arrastar arquivo para adicionar documento"
+        onclick="document.getElementById('adm-docs-file-inp').click()"
+        onkeydown="dzKeyOpen(event,'adm-docs-file-inp')"
+        ondragover="admDocsDragOver(event)" ondragleave="admDocsDragLeave(event)" ondrop="admDocsDrop(event)">
+        <div class="att-dropzone-ic">📂</div>
+        <div class="att-dropzone-lbl">Arraste arquivos aqui ou clique para selecionar</div>
+        <div class="att-dropzone-sub">PDF · Imagens · Áudio · Vídeo · Máx 10MB (vídeos grandes podem falhar ao sincronizar — prefira até 3MB)</div>
+        <span class="att-dropzone-btn">Selecionar arquivo</span>
+      </div>
+      <input type="file" id="adm-docs-file-inp"
+        accept=".pdf,.jpg,.jpeg,.png,.webp,.mp3,.wav,.m4a,.ogg,.mp4,.mov,.webm,image/*,audio/*,video/*,application/pdf"
+        multiple style="display:none" onchange="handleAdmDocFiles(this)">
+
+      <div class="att-progress" id="adm-docs-progress">
+        <div class="att-progress-lbl" id="adm-docs-progress-lbl">Processando...</div>
+        <div class="att-progress-bar"><div class="att-progress-fill" id="adm-docs-progress-fill"></div></div>
+      </div>
+
+      <div class="adm-docs-toolbar">
+        <span class="att-count" id="adm-docs-count-lbl">0 documentos</span>
+        <div class="att-view-toggle">
+          <button class="att-vbtn on" id="adm-docs-vbtn-grid" onclick="setAdmDocsView('grid',this)" title="Grade">⊞</button>
+          <button class="att-vbtn" id="adm-docs-vbtn-list" onclick="setAdmDocsView('list',this)" title="Lista">☰</button>
+        </div>
+      </div>
+      <div id="adm-docs-container"></div>
+    </div>
+  </div>
+
+  <!-- DICIONÁRIO / TREINO -->
+  <div class="pg" id="pg-dic">
+    <div class="ph">
+      <h1>Dicionário de Vendas</h1>
+      <div class="aline"></div>
+      <p>Banco de objeções para consulta rápida</p>
+    </div>
+    <div class="dic-tabs">
+      <button class="dic-tab on" onclick="dicGoTab('banco',this)">&#128172; Banco de Objeções</button>
+      <button class="dic-tab" onclick="dicGoTab('equipe',this)">&#128101; Objeções da Equipe</button>
+      <button class="dic-tab" onclick="dicGoToEnd()" title="Ir direto para o fim da página" style="margin-left:auto">&#8615; Ir para o fim</button>
+    </div>
+
+    <!-- BANCO DE OBJEÇÕES -->
+    <div class="dic-pane on" id="dic-pane-banco">
+      <div class="obj-bank-toolbar">
+        <div class="kb-search-wrap" style="flex:1;min-width:180px">
+          <span class="kb-search-ic">&#128269;</span>
+          <input class="kb-search" id="obj-bank-search" type="text" placeholder="Buscar objeção..." oninput="debounce('objbank',renderObjBank)" autocomplete="off">
+        </div>
+        <button type="button" class="canal-badge canal-filter on" id="obj-filter-all" onclick="objBankFilterCanal(null,this)">Todas</button>
+        <button type="button" class="canal-badge canal-filter zap_ou_ligacao" onclick="objBankFilterCanal('zap_ou_ligacao',this)">&#128241; Zap e ligação</button>
+        <button type="button" class="canal-badge canal-filter preferir_ligacao" onclick="objBankFilterCanal('preferir_ligacao',this)">&#9742;&#65039; Prefere ligação</button>
+        <button type="button" class="canal-badge canal-filter somente_ligacao" onclick="objBankFilterCanal('somente_ligacao',this)">&#128274; Somente ligação</button>
+      </div>
+      <div id="obj-bank-list"></div>
+
+      <!-- ADICIONAR OBJEÇÃO (somente ADM) -->
+      <div id="adm-add-obj-section" style="display:none;margin-top:18px">
+        <div class="tw">
+          <div class="twh"><span class="twt">➕ Adicionar Nova Objeção</span><span style="font-size:.65rem;color:var(--mu);margin-left:6px">(apenas ADM)</span></div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+            <div class="mf"><label for="new-obj-texto">Objeção do Cliente</label><input type="text" id="new-obj-texto" placeholder="Ex: Não conheço a empresa" maxlength="200" style="width:100%;padding:10px 12px;border-radius:9px;background:var(--bg3);border:1.5px solid var(--b1);color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;outline:none"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div class="mf"><label for="new-obj-cat">Categoria</label><input type="text" id="new-obj-cat" placeholder="Ex: Confiança" maxlength="60" style="width:100%;padding:10px 12px;border-radius:9px;background:var(--bg3);border:1.5px solid var(--b1);color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;outline:none"></div>
+              <div class="mf"><label for="new-obj-canal">Canal</label><select id="new-obj-canal" style="width:100%;padding:10px 12px;border-radius:9px;background:var(--bg3);border:1.5px solid var(--b1);color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;outline:none;-webkit-appearance:none"><option value="zap_ou_ligacao">Zap e Ligação</option><option value="preferir_ligacao">Prefere Ligação</option><option value="somente_ligacao">Somente Ligação</option></select></div>
+            </div>
+            <div class="mf"><label for="new-obj-ini">Resposta Iniciante</label><textarea id="new-obj-ini" rows="2" placeholder="Resposta mais simples..." style="width:100%;background:var(--bg3);border:1.5px solid var(--b1);border-radius:9px;padding:9px 11px;color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;resize:vertical;outline:none"></textarea></div>
+            <div class="mf"><label for="new-obj-int">Resposta Intermediário</label><textarea id="new-obj-int" rows="2" placeholder="Resposta com mais contexto..." style="width:100%;background:var(--bg3);border:1.5px solid var(--b1);border-radius:9px;padding:9px 11px;color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;resize:vertical;outline:none"></textarea></div>
+            <div class="mf"><label for="new-obj-exp">Resposta Experiente</label><textarea id="new-obj-exp" rows="2" placeholder="Resposta mais estratégica..." style="width:100%;background:var(--bg3);border:1.5px solid var(--b1);border-radius:9px;padding:9px 11px;color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;resize:vertical;outline:none"></textarea></div>
+            <button class="bp" style="max-width:180px" onclick="admAddObjecao()">+ Salvar Objeção</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OBJEÇÕES DA EQUIPE (adicionadas por qualquer usuário, não-ADM) -->
+    <div class="dic-pane" id="dic-pane-equipe">
+      <div class="obj-user-toolbar obj-bank-toolbar">
+        <div class="kb-search-wrap" style="flex:1;min-width:180px">
+          <span class="kb-search-ic">&#128269;</span>
+          <input class="kb-search" id="user-obj-search" type="text" placeholder="Buscar objeção da equipe..." oninput="debounce('userobjbank',renderUserObjBank)" autocomplete="off">
+        </div>
+        <button type="button" class="canal-badge canal-filter on" id="user-obj-filter-all" onclick="userObjFilterCanal(null,this)">Todas</button>
+        <button type="button" class="canal-badge canal-filter whatsapp" onclick="userObjFilterCanal('whatsapp',this)">&#128241; WhatsApp</button>
+        <button type="button" class="canal-badge canal-filter ligacao" onclick="userObjFilterCanal('ligacao',this)">&#9742;&#65039; Ligação</button>
+        <button type="button" class="canal-badge canal-filter ambos" onclick="userObjFilterCanal('ambos',this)">&#128260; Ambos</button>
+      </div>
+      <div class="obj-user-toolbar" style="margin-top:-4px">
+        <span style="font-size:.68rem;color:var(--mu);letter-spacing:.04em">Mostrar:</span>
+        <button type="button" class="canal-badge canal-filter on" id="user-obj-filter-autor-all" onclick="userObjFilterAutor('todos',this)">Todos da equipe</button>
+        <button type="button" class="canal-badge canal-filter" id="user-obj-filter-autor-mine" onclick="userObjFilterAutor('minhas',this)">Somente as minhas</button>
+      </div>
+      <div id="user-obj-list"></div>
+
+      <!-- ADICIONAR OBJEÇÃO (todos os usuários) -->
+      <div style="margin-top:18px">
+        <div class="tw">
+          <div class="twh"><span class="twt">➕ Adicionar Nova Objeção</span><span style="font-size:.65rem;color:var(--mu);margin-left:6px">(qualquer usuário — fica visível separadamente, com seu nome e data)</span></div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+            <div class="mf"><label for="new-uobj-texto">Objeção do Cliente</label><input type="text" id="new-uobj-texto" placeholder="Ex: O cliente perguntou se pode usar FGTS" maxlength="200" style="width:100%;padding:10px 12px;border-radius:9px;background:var(--bg3);border:1.5px solid var(--b1);color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;outline:none"></div>
+            <div class="mf"><label for="new-uobj-canal">Essa resposta é pra:</label><select id="new-uobj-canal" style="width:100%;padding:10px 12px;border-radius:9px;background:var(--bg3);border:1.5px solid var(--b1);color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;outline:none;-webkit-appearance:none"><option value="whatsapp">📱 WhatsApp</option><option value="ligacao">☎️ Ligação</option><option value="ambos">🔁 Ambos</option></select></div>
+            <div class="mf"><label for="new-uobj-resposta">Sua resposta</label><textarea id="new-uobj-resposta" rows="3" placeholder="Como você respondeu ou responderia essa objeção..." style="width:100%;background:var(--bg3);border:1.5px solid var(--b1);border-radius:9px;padding:9px 11px;color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;resize:vertical;outline:none"></textarea></div>
+            <button class="bp" style="max-width:180px" onclick="userAddObjecao()">+ Adicionar Objeção</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOCUMENTOS PAGE (visível para todos os usuários — somente leitura; gestão restrita ao ADM) -->
+  <div class="pg" id="pg-docs">
+    <div class="ph">
+      <button class="bc" style="margin-bottom:10px" onclick="goPage('config')">← Voltar para Config</button>
+      <h1>📂 Documentos</h1>
+      <div class="aline"></div>
+      <p>Materiais e documentos compartilhados pela equipe</p>
+    </div>
+    <div id="user-docs-container"></div>
+  </div>
+
+  <!-- LEADS PAGE -->
+  <div class="pg" id="pg-leads">
+    <!-- MOBILE: abas internas "CRM" (Leads/Negócios) + resumo de etapa, estilo Bitrix24 -->
+    <div class="crm-toptabs">
+      <button class="ctt-btn on" data-board="leads" onclick="mobileGoPage('leads',this)">Leads</button>
+      <button class="ctt-btn" data-board="negocios" onclick="mobileGoPage('negocios',this)">Negócios</button>
+    </div>
+    <div class="stage-summary-bar" onclick="openStagePicker('leads')" tabindex="0" role="button" aria-label="Selecionar etapa de Leads">
+      <div class="ssb-col">
+        <div class="ssb-lbl">Etapa atual</div>
+        <div class="ssb-val" id="ssb-val-leads">Todas as etapas (0)</div>
+      </div>
+      <div class="ssb-col ssb-right">
+        <div class="ssb-lbl">Valor, R$</div>
+        <div class="ssb-val" id="ssb-money-leads">0</div>
+      </div>
+    </div>
+    <div class="kb-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div>
+          <div class="kb-title">Leads</div>
+          <div class="aline"></div>
+          <p style="color:var(--mu);font-size:.77rem;margin-top:2px">Pipeline de leads em aberto</p>
+        </div>
+        <!-- MINI JOGO VELHA / CONTADOR LIGAÇÕES -->
+        <button class="lig-fab v" id="lig-fab" onclick="toggleLigWidget(event)" title="Contador de Ligações">
+          📞<span class="lig-fab-count" id="lig-fab-count">0</span>
+        </button>
+      </div>
+      <div class="kb-actions">
+        <div class="kb-search-wrap kb-filter-btn-wrap" id="kb-filter-wrap-leads">
+          <button class="kb-search-ic" onclick="openKBAdvFilter('leads')" title="Digite para buscar — clique na lupa para filtros avançados" aria-label="Buscar e filtrar">&#128269;</button>
+          <input class="kb-search" id="lead-search" type="text" placeholder="Buscar lead..."
+            oninput="debounce('kbleads',function(){filterKB('leads');})" autocomplete="off">
+          <span class="kb-filter-active-dot"></span>
+        </div>
+        <button class="btn-kb-new" onclick="openKBNew('leads')">+ Criar Lead</button>
+        <button class="btn-kb-new" style="background:rgba(58,159,224,.15);color:var(--bl);border:1.5px solid rgba(58,159,224,.25)" onclick="openBatchImport()">📋 Importar em lote</button>
+        <button class="btn-kb-new" id="dup-scan-btn" style="background:rgba(224,138,58,.15);color:#e08a3a;border:1.5px solid rgba(224,138,58,.3)" onclick="openDuplicateScanner()">🔍 Duplicatas</button>
+        <div class="bulk-stage-wrap" id="bulk-stage-wrap-leads">
+          <button class="btn-kb-new bulk-stage-main" style="background:rgba(195,154,45,.1);color:var(--al);border:1.5px solid rgba(195,154,45,.3)" onclick="selectAllKBCardsByStage('leads',null)" title="Selecionar todos os leads visíveis">✅ Todos</button><button class="bulk-stage-arrow" onclick="toggleBulkStagePopover('leads')" title="Selecionar por etapa" aria-label="Selecionar por etapa">▾</button>
+          <div class="bulk-stage-popover" id="bulk-stage-pop-leads"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Filtro por consultor (visível para ADM) -->
+    <div class="kb-view-bar" id="leads-cons-bar"></div>
+    <div class="kb-scroll-wrap" id="leads-kanban-wrap">
+      <button class="kb-arrow left" onclick="kbScroll('leads-kanban',-1)" onmouseenter="kbScrollHoverStart('leads-kanban',-1)" onmouseleave="kbScrollHoverStop()" title="Scroll esquerda (segure para rolar sozinho)">&#8249;</button>
+      <div class="kb-wrap" id="leads-kanban"></div>
+      <button class="kb-arrow right" onclick="kbScroll('leads-kanban',1)" onmouseenter="kbScrollHoverStart('leads-kanban',1)" onmouseleave="kbScrollHoverStop()" title="Scroll direita (segure para rolar sozinho)">&#8250;</button>
+    </div>
+    <!-- MOBILE: chips de filtro por etapa + lista vertical estilo Bitrix24 -->
+    <div class="mb-filter-row" id="leads-mb-filter"><span class="kb-filter-btn-wrap" id="kb-filter-wrap-leads-mb"><button class="btn-kb-new" style="background:rgba(195,154,45,.1);color:var(--al);border:1.5px solid rgba(195,154,45,.3)" onclick="openKBAdvFilter('leads')">⚙️ Filtros</button><span class="kb-filter-active-dot"></span></span></div>
+    <div class="mb-chip-bar" id="leads-mb-chips"></div>
+    <div id="leads-mobile-list"></div>
+    <button id="leads-fab" onclick="openKBNew('leads')" title="Adicionar lead" aria-label="Adicionar lead">+</button>
+  </div><!-- /pg-leads -->
+
+  <!-- WIDGET CONTADOR LIGAÇÕES (draggable, fora do pg) -->
+  <div class="lig-widget" id="lig-widget">
+    <div class="lig-widget-hd lig-drag-handle" id="lig-drag-handle">
+      <span class="lig-widget-title">📞 Ligações</span>
+      <button class="lig-widget-close" aria-label="Fechar" onclick="toggleLigWidget(event)">✕</button>
+    </div>
+    <div class="lig-grid" id="lig-grid"></div>
+    <div class="lig-prog">Marcadas: <strong id="lig-count">0</strong> / 10</div>
+    <button class="lig-reset" onclick="resetLig()">↺ Reiniciar</button>
+  </div>
+
+  <!-- NEGOCIOS PAGE -->
+  <div class="pg" id="pg-negocios">
+    <!-- MOBILE: abas internas "CRM" (Leads/Negócios) + resumo de etapa, estilo Bitrix24 -->
+    <div class="crm-toptabs">
+      <button class="ctt-btn" data-board="leads" onclick="mobileGoPage('leads',this)">Leads</button>
+      <button class="ctt-btn on" data-board="negocios" onclick="mobileGoPage('negocios',this)">Negócios</button>
+    </div>
+    <div class="stage-summary-bar" onclick="openStagePicker('negocios')" tabindex="0" role="button" aria-label="Selecionar etapa de Negócios">
+      <div class="ssb-col">
+        <div class="ssb-lbl">Etapa atual</div>
+        <div class="ssb-val" id="ssb-val-negocios">Todas as etapas (0)</div>
+      </div>
+      <div class="ssb-col ssb-right">
+        <div class="ssb-lbl">Valor, R$</div>
+        <div class="ssb-val" id="ssb-money-negocios">0</div>
+      </div>
+    </div>
+    <div class="kb-header">
+      <div>
+        <div class="kb-title">Neg&#243;cios</div>
+        <div class="aline"></div>
+        <p style="color:var(--mu);font-size:.77rem;margin-top:2px">Acompanhe cada neg&#243;cio at&#233; o fechamento</p>
+      </div>
+      <div class="kb-actions">
+        <div class="kb-search-wrap kb-filter-btn-wrap" id="kb-filter-wrap-negocios">
+          <button class="kb-search-ic" onclick="openKBAdvFilter('negocios')" title="Digite para buscar — clique na lupa para filtros avançados" aria-label="Buscar e filtrar">&#128269;</button>
+          <input class="kb-search" id="neg-search" type="text" placeholder="Buscar neg&#243;cio..."
+            oninput="debounce('kbneg',function(){filterKB('negocios');})" autocomplete="off">
+          <span class="kb-filter-active-dot"></span>
+        </div>
+        <button class="btn-kb-new dash-filter-late" id="neg-flt-late" onclick="toggleKBLateFilter('negocios',this)" title="Mostrar somente negócios com atividades atrasadas" aria-pressed="false">⏰ Atrasadas</button>
+        <button class="btn-kb-new" onclick="openKBNew('negocios')">+ Criar Neg&#243;cio</button>
+        <div class="bulk-stage-wrap" id="bulk-stage-wrap-negocios">
+          <button class="btn-kb-new bulk-stage-main" style="background:rgba(195,154,45,.1);color:var(--al);border:1.5px solid rgba(195,154,45,.3)" onclick="selectAllKBCardsByStage('negocios',null)" title="Selecionar todos os negócios visíveis">✅ Todos</button><button class="bulk-stage-arrow" onclick="toggleBulkStagePopover('negocios')" title="Selecionar por etapa" aria-label="Selecionar por etapa">▾</button>
+          <div class="bulk-stage-popover" id="bulk-stage-pop-negocios"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Filtro por consultor (ADM) + permissões -->
+    <div class="kb-view-bar" id="negocios-cons-bar"></div>
+    <div class="kb-scroll-wrap" id="negocios-kanban-wrap">
+      <button class="kb-arrow left" onclick="kbScroll('negocios-kanban',-1)" onmouseenter="kbScrollHoverStart('negocios-kanban',-1)" onmouseleave="kbScrollHoverStop()" title="Scroll esquerda (segure para rolar sozinho)">&#8249;</button>
+      <div class="kb-wrap" id="negocios-kanban"></div>
+      <button class="kb-arrow right" onclick="kbScroll('negocios-kanban',1)" onmouseenter="kbScrollHoverStart('negocios-kanban',1)" onmouseleave="kbScrollHoverStop()" title="Scroll direita (segure para rolar sozinho)">&#8250;</button>
+    </div>
+    <!-- MOBILE: chips de filtro por etapa + lista vertical estilo Bitrix24 -->
+    <div class="mb-filter-row" id="negocios-mb-filter"><span class="kb-filter-btn-wrap" id="kb-filter-wrap-negocios-mb"><button class="btn-kb-new" style="background:rgba(195,154,45,.1);color:var(--al);border:1.5px solid rgba(195,154,45,.3)" onclick="openKBAdvFilter('negocios')">⚙️ Filtros</button><span class="kb-filter-active-dot"></span></span><button class="btn-kb-new dash-filter-late" id="neg-flt-late-mb" onclick="toggleKBLateFilter('negocios',this)" title="Mostrar somente negócios com atividades atrasadas" aria-pressed="false">⏰ Atrasadas</button></div>
+    <div class="mb-chip-bar" id="negocios-mb-chips"></div>
+    <div id="negocios-mobile-list"></div>
+    <button id="negocios-fab" onclick="openKBNew('negocios')" title="Adicionar negócio" aria-label="Adicionar negócio">+</button>
+  </div>
+
+  <!-- AGENDA PAGE (compartilhada entre todos os consultores, ao vivo) -->
+  <div class="pg" id="pg-agenda">
+    <div class="ph">
+      <h1>Agenda<span class="agd-live-dot" id="agd-live-dot" title="Status da sincronização ao vivo"></span></h1>
+      <div class="aline"></div>
+      <p style="color:var(--mu);font-size:.77rem;margin-top:2px" id="agd-live-label">Agendamentos de toda a equipe, em tempo real</p>
+    </div>
+
+    <div class="agd-kpis" id="agd-kpis"></div>
+
+    <div class="agd-head">
+      <div class="agd-datewrap">
+        <button class="agd-cal-btn" onclick="agdOpenMiniCal()" title="Abrir mini calendário" aria-label="Abrir mini calendário">🗓️</button>
+        <input type="date" id="agd-datepick" onchange="agdGoToDate(this.value)" aria-label="Escolher data">
+        <button class="agd-today-btn" onclick="agdGoToday()">Hoje</button>
+      </div>
+      <div class="agd-filterbar">
+        <select id="agd-filter-cons" onchange="agdRenderList();agdRenderFreeSlots()" aria-label="Filtrar por consultor"></select>
+        <select id="agd-filter-status" onchange="agdRenderList()" aria-label="Filtrar por status">
+          <option value="">Todos os status</option>
+          <option value="agendado">Agendado</option>
+          <option value="atendido">Atendido</option>
+          <option value="remarcar">Remarcar</option>
+          <option value="noshow">No-Show</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="agd-strip-wrap">
+      <div class="agd-strip" id="agd-strip"></div>
+    </div>
+
+    <div id="agd-slots-free-wrap"></div>
+
+    <div class="agd-list" id="agd-list"></div>
+
+    <button class="agd-fab" onclick="agdOpenNew()" title="Novo agendamento" aria-label="Novo agendamento">+</button>
+  </div><!-- /pg-agenda -->
+
+  <!-- TIME PAGE (Supervisor) — visão de leitura da equipe, sem painel ADM -->
+  <div class="pg" id="pg-time">
+    <div class="ph">
+      <h1>Time</h1>
+      <div class="aline"></div><p>Acompanhe os leads e negócios da equipe (somente leitura)</p>
+    </div>
+    <div class="kb-view-bar" id="time-cons-bar"></div>
+    <div class="adm-kpi-grid" id="time-kpis"></div>
+    <div class="ph" style="margin:14px 0 8px"><h2 style="font-size:1.05rem">📋 Leads</h2><div class="aline"></div></div>
+    <div class="kb-scroll-wrap" id="time-leads-kanban-wrap">
+      <button class="kb-arrow left" onclick="kbScroll('time-leads-kanban',-1)" onmouseenter="kbScrollHoverStart('time-leads-kanban',-1)" onmouseleave="kbScrollHoverStop()" title="Scroll esquerda (segure para rolar sozinho)">&#8249;</button>
+      <div class="kb-wrap" id="time-leads-kanban"></div>
+      <button class="kb-arrow right" onclick="kbScroll('time-leads-kanban',1)" onmouseenter="kbScrollHoverStart('time-leads-kanban',1)" onmouseleave="kbScrollHoverStop()" title="Scroll direita (segure para rolar sozinho)">&#8250;</button>
+    </div>
+    <div class="ph" style="margin:18px 0 8px"><h2 style="font-size:1.05rem">💼 Negócios</h2><div class="aline"></div></div>
+    <div class="kb-scroll-wrap" id="time-negocios-kanban-wrap">
+      <button class="kb-arrow left" onclick="kbScroll('time-negocios-kanban',-1)" onmouseenter="kbScrollHoverStart('time-negocios-kanban',-1)" onmouseleave="kbScrollHoverStop()" title="Scroll esquerda (segure para rolar sozinho)">&#8249;</button>
+      <div class="kb-wrap" id="time-negocios-kanban"></div>
+      <button class="kb-arrow right" onclick="kbScroll('time-negocios-kanban',1)" onmouseenter="kbScrollHoverStart('time-negocios-kanban',1)" onmouseleave="kbScrollHoverStop()" title="Scroll direita (segure para rolar sozinho)">&#8250;</button>
+    </div>
+  </div>
+
+  <div class="pg" id="pg-estrutura">
+    <div class="ph">
+      <button class="bc" style="margin-bottom:10px" onclick="goPage('config')">← Voltar para Config</button>
+      <h1>🏢 Estrutura da Empresa</h1>
+      <div class="aline"></div><p>Departamentos e hierarquia da equipe</p>
+    </div>
+    <div id="estrutura-adm-bar" style="display:none;margin-bottom:16px">
+      <button class="btn-kb-new" onclick="openDeptEditor(null)">+ Criar Departamento</button>
+    </div>
+    <div id="estrutura-empty" class="est" style="display:none;padding:50px 10px;text-align:center;color:var(--mu)">
+      Você ainda não faz parte de nenhum departamento.
+    </div>
+    <div id="estrutura-body" style="display:none;gap:22px;flex-wrap:wrap;align-items:flex-start">
+      <div id="estrutura-tree" class="estr-tree"></div>
+      <div id="estrutura-panel" class="estr-panel"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: CRIAR/EDITAR CARD -->
+  <div class="mo" id="mo-kb" onclick="if(event.target===this)closeM('mo-kb')">
+    <div class="mb" style="max-width:420px">
+      <h2 id="mo-kb-title">Novo Lead</h2><div class="mbs"></div>
+      <div class="mf"><label for="kb-name">Nome / Cliente</label>
+        <input type="text" id="kb-name" placeholder="Ex: Jo&#227;o Silva" autocomplete="off" maxlength="120">
+      </div>
+      <div class="mf"><label for="kb-tel">Telefone</label>
+        <input type="tel" id="kb-tel" placeholder="(65) 9 9999-9999" autocomplete="off" inputmode="tel" maxlength="20">
+      </div>
+      <div class="mf"><label for="kb-nicho">Nicho</label>
+        <select id="kb-nicho">
+          <option value="" disabled>Selecione o nicho</option>
+          <option value="imovel">Im&#243;vel</option>
+          <option value="caminhao">Caminh&#227;o</option>
+          <option value="carro">Carro / Moto</option>
+          <option value="pesados">Pesados</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="mf"><label for="kb-col">Etapa</label><select id="kb-col"></select></div>
+      <div class="mf"><label for="kb-obs">Observa&#231;&#227;o (opcional)</label>
+        <textarea class="obs-box" id="kb-obs" placeholder="Detalhes do lead..."
+          style="min-height:58px"></textarea>
+      </div>
+      <input type="hidden" id="kb-edit-id">
+      <input type="hidden" id="kb-board-type">
+      <div class="mbtns">
+        <button class="bc" onclick="closeM('mo-kb')">Cancelar</button>
+        <button class="bp" onclick="saveKBCard()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DETALHE CARD -->
+  <div class="mo" id="mo-kb-det" onclick="if(event.target===this)closeM('mo-kb-det')">
+    <div class="mb det-mb" style="max-width:480px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div class="det-name-h" id="det-name"></div>
+          <div class="det-meta-h" id="det-meta"></div>
+          <div id="det-contact-actions" style="margin-top:4px"></div>
+        </div>
+        <span id="det-nicho-badge" class="kb-card-nicho" style="margin-top:4px;flex-shrink:0"></span>
+      </div>
+      <!-- ATIVIDADE RÁPIDA -->
+      <button class="kb-act-btn" onclick="openQuickActivity()" style="margin-top:8px">
+        🔔 Adicionar Lembrete / Atividade
+      </button>
+
+      <!-- BARRA DE ETAPA — sempre visível acima das abas, como no Bitrix24 -->
+      <div class="det-stage-bar-wrap">
+        <div class="det-section-lbl">Etapa</div>
+        <div id="det-stages" class="det-stages-row"></div>
+      </div>
+
+      <!-- GRID: coluna de dados (Responsável / Valor) + coluna de conteúdo (Abas) -->
+      <div class="det-grid">
+        <div class="det-col-left">
+          <div id="det-transfer-wrap" style="display:none">
+            <div class="det-section-lbl">Responsável</div>
+            <select id="det-resp-sel" class="det-select"></select>
+            <div class="det-section-lbl" style="margin-top:10px">Continua como</div>
+            <div style="display:flex;gap:6px">
+              <select id="det-resp-board" class="det-select" onchange="onDetRespBoardChange()">
+                <option value="leads">Lead</option>
+                <option value="negocios">Negócio</option>
+              </select>
+              <select id="det-resp-col" class="det-select"></select>
+            </div>
+            <button class="bc" style="width:100%;margin-top:8px;padding:7px 12px;font-size:.7rem" onclick="applyRespStage()">Salvar Responsável / Etapa</button>
+          </div>
+          <div id="det-valor-wrap" style="display:none">
+            <div class="det-section-lbl">Valor da Venda (R$)</div>
+            <input type="number" class="obs-box" id="det-valor" placeholder="0,00" step="0.01" min="0" inputmode="decimal"
+              style="min-height:auto;padding:9px 12px" oninput="autoSaveKBValor()">
+          </div>
+        </div>
+
+        <div class="det-col-right">
+          <!-- ABAS: Detalhes / Anexos / Histórico -->
+          <div class="det-tabs">
+            <button class="det-tab on" id="det-tab-info" onclick="switchDetTab('info',this)">📋 Detalhes</button>
+            <button class="det-tab" id="det-tab-att" onclick="switchDetTab('att',this)">📎 Anexos <span id="det-att-badge" style="font-size:.58rem;background:rgba(195,154,45,.15);color:var(--al);padding:1px 5px;border-radius:20px;margin-left:2px;display:none"></span></button>
+            <button class="det-tab" id="det-tab-hist" onclick="switchDetTab('hist',this)">🕒 Histórico</button>
+          </div>
+
+          <!-- PANE: Detalhes (agora só Anotações — Etapa/Responsável/Valor já ficam sempre visíveis acima/ao lado) -->
+          <div class="det-tab-pane on" id="det-pane-info">
+            <div class="det-section-lbl">Anota&#231;&#245;es</div>
+            <textarea class="obs-box det-obs-lg" id="det-obs" placeholder="Escreva observa&#231;&#245;es..."
+              style="min-height:64px" oninput="autoSaveKBObs()"></textarea>
+            <div class="obs-saved" id="det-obs-saved"></div>
+            <div id="det-convert-wrap" style="margin-top:8px"></div>
+          </div>
+
+          <!-- PANE: Anexos -->
+          <div class="det-tab-pane" id="det-pane-att">
+            <!-- Drop Zone -->
+            <div class="att-dropzone" id="att-dropzone" role="button" tabindex="0"
+              aria-label="Selecionar ou arrastar arquivo para anexar"
+              onclick="document.getElementById('att-file-inp').click()"
+              onkeydown="dzKeyOpen(event,'att-file-inp')"
+              ondragover="attDragOver(event)" ondragleave="attDragLeave(event)" ondrop="attDrop(event)">
+              <div class="att-dropzone-ic">📎</div>
+              <div class="att-dropzone-lbl">Arraste arquivos aqui ou clique para selecionar</div>
+              <div class="att-dropzone-sub">PDF · Word · Excel · Imagens · Áudio · Vídeo · Máx 10MB (vídeos grandes podem falhar ao sincronizar — prefira até 3MB)</div>
+              <span class="att-dropzone-btn">Selecionar arquivo</span>
+            </div>
+            <input type="file" id="att-file-inp"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.jpg,.jpeg,.png,.webp,.mp3,.wav,.m4a,.ogg,.mp4,.mov,.webm,image/*,audio/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain"
+              multiple style="display:none" onchange="handleAttFiles(this)">
+
+            <!-- Progress bar -->
+            <div class="att-progress" id="att-progress">
+              <div class="att-progress-lbl" id="att-progress-lbl">Processando...</div>
+              <div class="att-progress-bar"><div class="att-progress-fill" id="att-progress-fill"></div></div>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="att-toolbar">
+              <div class="att-toolbar-left">
+                <span class="att-count" id="att-count-lbl">0 anexos</span>
+              </div>
+              <div class="att-view-toggle">
+                <button class="att-vbtn on" id="att-vbtn-grid" onclick="setAttView('grid',this)" title="Grade">⊞</button>
+                <button class="att-vbtn" id="att-vbtn-list" onclick="setAttView('list',this)" title="Lista">☰</button>
+              </div>
+            </div>
+
+            <!-- Lista de anexos -->
+            <div id="att-container"></div>
+          </div>
+
+          <!-- PANE: Histórico -->
+          <div class="det-tab-pane" id="det-pane-hist">
+            <div id="det-hist-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mbtns" style="margin-top:10px">
+        <button class="bc" onclick="closeM('mo-kb-det')">Fechar</button>
+        <button class="bstat rem" id="det-btn-edit" style="padding:8px 14px;border-radius:8px;
+          font-size:.8rem" onclick="editKBFromDet()">Editar</button>
+        <button class="bd" id="det-btn-discard" onclick="discardKBFromDet()">🗑 Descartar</button>
+        <button class="bd" id="det-btn-delete" style="background:rgba(194,32,38,.14);color:var(--rl);border-color:rgba(194,32,38,.3)" onclick="deleteKBCard(_kbDetId,_kbDetBoard,_kbDetOwnerUid||activeUID(_kbDetBoard))" title="Diferente de Descartar: remove o card de vez. Use para duplicados ou cadastro errado.">✕ Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONVERTER EM NEGOCIO (escolher etapa + detalhes na hora) -->
+  <div class="mo" id="mo-conv-neg" onclick="if(event.target===this)closeM('mo-conv-neg')">
+    <div class="mb" style="max-width:400px">
+      <h2>✨ Converter em Negócio</h2><div class="mbs"></div>
+      <div style="font-size:.75rem;color:var(--mu);margin-bottom:10px">Escolha a etapa inicial do negócio para <strong id="conv-neg-nome"></strong> e, se quiser, já preencha os detalhes.</div>
+      <div class="mf"><label for="conv-neg-col">Etapa do Negócio</label><select id="conv-neg-col"></select></div>
+      <div class="mf"><label for="conv-neg-valor">Valor da Venda (R$) (opcional)</label>
+        <input type="number" id="conv-neg-valor" placeholder="0,00" step="0.01" min="0" inputmode="decimal">
+      </div>
+      <div class="mf"><label for="conv-neg-obs">Observação (opcional)</label>
+        <textarea class="obs-box" id="conv-neg-obs" style="min-height:58px" placeholder="Detalhes do negócio..."></textarea>
+      </div>
+      <input type="hidden" id="conv-neg-card-id">
+      <input type="hidden" id="conv-neg-owner-uid">
+      <div class="mbtns">
+        <button class="bc" onclick="closeM('mo-conv-neg')">Cancelar</button>
+        <button class="bp" onclick="confirmConvertToNeg()">✨ Converter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTEXT MENU: ANEXO -->
+  <div id="att-ctx" class="att-ctx">
+    <button class="att-ctx-item" id="att-ctx-pin" onclick="attCtxTogglePin()">📌 Fixar</button>
+    <button class="att-ctx-item" onclick="attCtxView()">👁 Visualizar</button>
+    <button class="att-ctx-item" onclick="attCtxDownload()">⬇ Baixar</button>
+    <button class="att-ctx-item" onclick="attCtxRename()">✏️ Renomear</button>
+    <div class="att-ctx-sep"></div>
+    <button class="att-ctx-item danger" id="att-ctx-del" onclick="attCtxDelete()">🗑 Excluir</button>
+  </div>
+
+  <!-- CONTEXT MENU: ADM DOCUMENTOS -->
+  <div id="adm-doc-ctx" class="att-ctx">
+    <button class="att-ctx-item" id="adm-doc-ctx-pin" onclick="admDocCtxTogglePin()">📌 Fixar</button>
+    <button class="att-ctx-item" onclick="admDocCtxView()">👁 Visualizar</button>
+    <button class="att-ctx-item" onclick="admDocCtxDownload()">⬇ Baixar</button>
+    <button class="att-ctx-item" id="adm-doc-ctx-rename" onclick="admDocCtxRename()">✏️ Renomear</button>
+    <div class="att-ctx-sep"></div>
+    <button class="att-ctx-item danger" id="adm-doc-ctx-del" onclick="admDocCtxDelete()">🗑 Excluir</button>
+  </div>
+
+  <!-- CONTEXT MENU -->
+  <div id="kb-ctx" class="kb-ctx" style="display:none">
+    <button class="kb-ctx-item" onclick="ctxView()">&#128065; Ver detalhes</button>
+    <button class="kb-ctx-item" onclick="ctxEdit()">&#9998; Editar</button>
+    <button class="kb-ctx-item" onclick="ctxActivity()">🔔 Lembrete</button>
+    <div class="kb-ctx-sep"></div>
+    <button class="kb-ctx-item" id="ctx-convert"
+      onclick="ctxConvert()" style="display:none">&#10024; Converter em Neg&#243;cio</button>
+    <div class="kb-ctx-sep" id="ctx-conv-sep" style="display:none"></div>
+    <button class="kb-ctx-item danger" onclick="ctxDiscard()">&#128683; Descartar</button>
+    <button class="kb-ctx-item danger" onclick="ctxDel()">&#128465; Excluir</button>
+  </div>
+
+  <!-- MODAL: DESCARTAR COM MOTIVO -->
+  <div class="mo" id="mo-discard" onclick="if(event.target===this)closeM('mo-discard')">
+    <div class="mb" style="max-width:380px">
+      <h2 style="margin-bottom:4px">🗑 Descartar Lead/Negócio</h2>
+      <div style="font-size:.75rem;color:var(--mu);margin-bottom:12px">Selecione o motivo para <strong id="discard-nome"></strong></div>
+      <div class="discard-opts" id="discard-opts">
+        <button class="discard-opt" onclick="selDiscardOpt('noshow',this)">
+          <span class="do-label">🚫 No-Show</span>
+          <span class="do-sub">Cliente não compareceu ao agendamento</span>
+        </button>
+        <button class="discard-opt" onclick="selDiscardOpt('desistencia',this)">
+          <span class="do-label">❌ Desistência</span>
+          <span class="do-sub">Cliente desistiu do processo</span>
+        </button>
+        <button class="discard-opt" onclick="selDiscardOpt('sem_perfil',this)">
+          <span class="do-label">📋 Sem Perfil</span>
+          <span class="do-sub">Não atende os requisitos de crédito</span>
+        </button>
+        <button class="discard-opt" onclick="selDiscardOpt('contato_perdido',this)">
+          <span class="do-label">📵 Contato Perdido</span>
+          <span class="do-sub">Não atende mais as ligações</span>
+        </button>
+        <button class="discard-opt" onclick="selDiscardOpt('outro',this)">
+          <span class="do-label">💬 Outro motivo</span>
+          <span class="do-sub">Especifique abaixo</span>
+        </button>
+      </div>
+      <div id="discard-outro-wrap" style="display:none;margin-bottom:10px">
+        <textarea id="discard-outro-txt" class="obs-box" placeholder="Descreva o motivo..." style="min-height:52px"></textarea>
+      </div>
+      <div class="mbtns">
+        <button class="bc" onclick="closeM('mo-discard')">Cancelar</button>
+        <button class="bd" onclick="confirmDiscard()">Confirmar Descarte</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NO-SHOW MOTIVO -->
+  <div class="mo" id="mo-nsh" onclick="if(event.target===this)closeM('mo-nsh')">
+    <div class="mb" style="max-width:400px">
+      <h2 style="margin-bottom:4px">&#128683; Marcar No-Show</h2>
+      <div style="font-size:.75rem;color:var(--mu);margin-bottom:14px">Selecione o motivo do no-show de <strong id="nsh-nome-label"></strong></div>
+      <div class="nsh-opt">
+        <label class="nsh-radio" id="nsh-opt-1" onclick="selNshOpt(1)">
+          <input type="radio" name="nsh_motivo" value="sumiu">
+          <div><div class="nsh-radio-lbl">&#128123; Sumiu</div><div class="nsh-radio-sub">Deixei mensagem, nao respondeu</div></div>
+        </label>
+        <label class="nsh-radio" id="nsh-opt-2" onclick="selNshOpt(2)">
+          <input type="radio" name="nsh_motivo" value="cancelou">
+          <div><div class="nsh-radio-lbl">&#128197; Cancelou a reuniao</div><div class="nsh-radio-sub">Disse que sera longo prazo ou algo do tipo</div></div>
+        </label>
+      </div>
+      <div style="font-size:.72rem;color:var(--mu);margin-bottom:6px">Observacao (opcional)</div>
+      <textarea class="obs-box" id="nsh-obs" placeholder="Detalhe o que aconteceu..." style="min-height:56px"></textarea>
+      <div class="mbtns" style="margin-top:12px">
+        <button class="bc" onclick="closeM('mo-nsh')">Cancelar</button>
+        <button class="bp" id="nsh-confirm-btn" onclick="confirmNoShow()" disabled>Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+<!-- MODAL: LANCAR -->
+<div class="mo" id="mo-l" onclick="if(event.target===this)closeM('mo-l')">
+  <div class="mb">
+    <h2>Lancar Cliente</h2><div class="mbs"></div>
+    <div class="mf"><label for="in-n">Nome do Cliente</label><input type="text" id="in-n" placeholder="Ex: Marcos Oliveira" autocomplete="off" maxlength="120"></div>
+    <div class="mf"><label for="in-e">Etapa Atual</label>
+      <select id="in-e">
+        <option value="1">1 - Agendado</option>
+        <option value="2">2 - Confirmou audio 30s</option>
+        <option value="3">3 - Confirmou 24h antes</option>
+        <option value="4">4 - Confirmou 2h antes</option>
+        <option value="5">5 - Compareceu a reuniao</option>
+        <option value="6">6 - Virou ficha</option>
+        <option value="7">7 - Fechou</option>
+      </select>
+    </div>
+    <div class="mbtns"><button class="bc" onclick="closeM('mo-l')">Cancelar</button><button class="bp" onclick="saveC()">Salvar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: VER CLIENTES -->
+<div class="mo" id="mo-c" onclick="if(event.target===this)closeM('mo-c')">
+  <div class="mb" style="max-width:560px">
+    <h2 id="mch">Clientes</h2><div class="mbs"></div>
+    <div id="mcb"></div>
+    <div class="mbtns" style="margin-top:11px"><button class="bc" style="flex:1" onclick="closeM('mo-c')">Fechar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: DEL CLIENTE -->
+<div class="mo" id="mo-dc" onclick="if(event.target===this)closeDC()">
+  <div class="mb" style="max-width:320px;text-align:center">
+    <h2>Remover Cliente</h2><div class="mbs"></div>
+    <p id="dcmsg" style="color:var(--mu);font-size:.82rem"></p>
+    <div class="mbtns" style="margin-top:14px"><button class="bc" onclick="closeDC()">Cancelar</button><button class="bd" onclick="confirmDC()">Remover</button></div>
+  </div>
+</div>
+
+<!-- MODAL: DEL USUARIO -->
+<div class="mo" id="mo-du" onclick="if(event.target===this)closeDU()">
+  <div class="mb" style="max-width:320px;text-align:center">
+    <h2>Remover Usuario</h2><div class="mbs"></div>
+    <p id="dumsg" style="color:var(--mu);font-size:.82rem"></p>
+    <div class="mbtns" style="margin-top:14px"><button class="bc" onclick="closeDU()">Cancelar</button><button class="bd" onclick="confirmDU()">Remover</button></div>
+  </div>
+</div>
+
+<!-- MODAL: CREDENCIAIS -->
+<div class="mo" id="mo-k" onclick="if(event.target===this)closeM('mo-k')">
+  <div class="mb" style="max-width:420px">
+    <h2 id="mkh">Acesso do Usuario</h2><div class="mbs"></div>
+    <p style="font-size:.75rem;color:var(--mu);margin-bottom:13px;line-height:1.6">
+      Segure o texto abaixo, selecione tudo e copie para enviar no WhatsApp. O link ja abre direto na tela de login.
+    </p>
+    <div class="clbl2">E-mail</div>
+    <div class="cbox" id="k-email"></div>
+    <div class="clbl2">Senha</div>
+    <div class="cbox" id="k-senha"></div>
+    <div class="clbl2" style="margin-top:6px">&#128072; Segure e copie a mensagem abaixo</div>
+    <textarea id="k-msg" readonly onclick="this.select()" style="width:100%;background:rgba(27,138,94,.07);border:1.5px solid rgba(27,138,94,.3);border-radius:10px;padding:12px 13px;font-size:1rem;color:var(--tx);line-height:1.8;resize:none;height:210px;font-family:Outfit,sans-serif;outline:none;-webkit-user-select:text;user-select:text;margin-top:5px;"></textarea>
+    <div class="clbl2" style="margin-top:10px">Cargo</div>
+    <div style="display:flex;gap:6px">
+      <select id="k-cargo" style="flex:1;background:var(--bg3);border:1px solid var(--b1);border-radius:7px;color:var(--tx);padding:7px 8px;font-family:Outfit,sans-serif;font-size:1rem" onchange="toggleAdminNote('k-cargo','k-admin-note')">
+        <option value="Consultor">Consultor</option>
+        <option value="Orientador">Orientador</option>
+        <option value="Supervisor">Supervisor</option>
+        <option value="Gerente">Gerente</option>
+        <option value="Representante">Representante</option>
+        <option value="Master">Master</option>
+        <option value="Gestor">Gestor</option>
+        <option value="Funcionário">Funcionário</option>
+      </select>
+      <button class="bc" style="padding:7px 12px;font-size:.7rem;white-space:nowrap" onclick="saveCredCargo()">Salvar Cargo</button>
+    </div>
+    <div id="k-admin-note" class="adm-note" style="display:none">&#128737; Cargo Gerente, Gestor, Representante e Master recebem automaticamente o mesmo acesso do Administrador.</div>
+    <div id="k-admin-toggle" style="display:none;margin-top:8px;padding:10px;background:rgba(195,154,45,.06);border-radius:8px;border:1px solid rgba(195,154,45,.2)">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem">
+        <input type="checkbox" id="k-admin-check" style="width:16px;height:16px;accent-color:var(--amber)">
+        <span>Ativar acesso ao Painel ADM (métricas globais, gestão de usuários)</span>
+      </label>
+      <p style="font-size:.68rem;color:var(--mu);margin-top:4px">O usuário continua com todas as funções de consultor independentemente desta opção.</p>
+    </div>
+    <input type="hidden" id="k-uid">
+    <div class="mbtns" style="margin-top:12px">
+      <button class="bc" style="flex:1" onclick="closeM('mo-k')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR USUARIO (Tarefa 4) -->
+<div class="mo" id="mo-edit-user" onclick="if(event.target===this)closeM('mo-edit-user')">
+  <div class="mb" style="max-width:400px">
+    <h2>Editar Usuário</h2><div class="mbs"></div>
+    <div class="ff"><label for="eu-nome">Nome Completo</label><input type="text" id="eu-nome" autocomplete="off" maxlength="80"></div>
+    <div class="ff"><label for="eu-email">E-mail</label><input type="email" id="eu-email" autocomplete="off" inputmode="email"></div>
+    <div class="ff">
+      <label for="eu-cargo">Cargo</label>
+      <select id="eu-cargo" onchange="toggleAdminNote('eu-cargo','eu-admin-note')">
+        <option value="Consultor">Consultor</option>
+        <option value="Orientador">Orientador</option>
+        <option value="Supervisor">Supervisor</option>
+        <option value="Gerente">Gerente</option>
+        <option value="Representante">Representante</option>
+        <option value="Master">Master</option>
+        <option value="Gestor">Gestor</option>
+        <option value="Funcionário">Funcionário</option>
+      </select>
+    </div>
+    <div id="eu-admin-note" class="adm-note" style="display:none">&#128737; Cargo Gerente, Gestor, Representante e Master recebem automaticamente o mesmo acesso do Administrador.</div>
+    <div id="eu-admin-toggle" style="display:none;margin-top:8px;padding:10px;background:rgba(195,154,45,.06);border-radius:8px;border:1px solid rgba(195,154,45,.2)">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.8rem">
+        <input type="checkbox" id="eu-admin-check" style="width:16px;height:16px;accent-color:var(--amber)">
+        <span>Ativar acesso ao Painel ADM (métricas globais, gestão de usuários)</span>
+      </label>
+      <p style="font-size:.68rem;color:var(--mu);margin-top:4px">O usuário continua com todas as funções de consultor independentemente desta opção.</p>
+    </div>
+    <div class="ferr" id="eu-err"></div>
+    <input type="hidden" id="eu-id">
+    <div class="mbtns" style="margin-top:12px">
+      <button class="bc" onclick="closeM('mo-edit-user')">Cancelar</button>
+      <button class="bp" onclick="saveEditUser()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+  <!-- MODAL: LEMBRETE RÁPIDO (Atividade no card) -->
+  <div class="mo" id="mo-quick-act" onclick="if(event.target===this)closeM('mo-quick-act')">
+    <div class="mb" style="max-width:400px">
+      <h2 style="margin-bottom:4px">🔔 Adicionar Lembrete</h2>
+      <div style="font-size:.75rem;color:var(--mu);margin-bottom:12px">Para: <strong id="qa-nome"></strong></div>
+      <div class="qa-types" id="qa-types">
+        <button class="qa-type on" data-t="call" onclick="selQaType('call',this)">📞 Ligar</button>
+        <button class="qa-type" data-t="meet" onclick="selQaType('meet',this)">📅 Reunião</button>
+        <button class="qa-type" data-t="task" onclick="selQaType('task',this)">✅ Tarefa</button>
+        <button class="qa-type" data-t="note" onclick="selQaType('note',this)">📋 Nota</button>
+      </div>
+      <div class="mf"><label for="qa-desc">Descrição</label>
+        <input type="text" id="qa-desc" placeholder="Ex: Ligar às 14h para confirmar..." autocomplete="off" maxlength="200">
+      </div>
+      <div class="mf"><label for="qa-sched">🗓 Data e hora do lembrete</label>
+        <input type="datetime-local" id="qa-sched" style="width:100%;padding:10px 12px;border-radius:9px;background:var(--bg3);border:1.5px solid var(--b1);color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;outline:none;">
+      </div>
+      <div class="qa-notif-info" id="qa-notif-info">
+        🔔 Você receberá uma notificação no horário agendado
+      </div>
+      <div class="mbtns" style="margin-top:12px">
+        <button class="bc" onclick="closeM('mo-quick-act')">Cancelar</button>
+        <button class="bp" onclick="saveQuickActivity()">💾 Salvar Lembrete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REGRA DE AUTOMAÇÃO (Feature 1 — SE / ENTÃO) -->
+  <div class="mo" id="mo-auto-edit" onclick="if(event.target===this)closeM('mo-auto-edit')">
+    <div class="mb" style="max-width:430px">
+      <h2 id="auto-edit-title" style="margin-bottom:12px">🤖 Nova Regra de Automação</h2>
+      <input type="hidden" id="auto-edit-id">
+      <div class="mf"><label for="auto-nome">Nome da regra</label><input type="text" id="auto-nome" placeholder="Ex: Avisar lead parado" maxlength="80"></div>
+      <div class="mf"><label for="auto-board">Quadro</label>
+        <select id="auto-board" onchange="onAutoBoardChange()">
+          <option value="leads">Leads</option>
+          <option value="negocios">Negócios</option>
+        </select>
+      </div>
+      <div class="mf"><label for="auto-trigger-tipo">Gatilho — SE</label>
+        <select id="auto-trigger-tipo" onchange="onAutoTriggerChange()">
+          <option value="stale">Card parado há X dias</option>
+          <option value="col_enter">Card movido para uma etapa</option>
+          <option value="card_created">Card criado</option>
+        </select>
+      </div>
+      <div class="mf" id="auto-trigger-dias-wrap"><label for="auto-trigger-dias">Dias parado</label><input type="number" id="auto-trigger-dias" min="1" value="7" inputmode="numeric"></div>
+      <div class="mf" id="auto-trigger-col-wrap" style="display:none"><label for="auto-trigger-col">Etapa</label><select id="auto-trigger-col"></select></div>
+      <div class="mf"><label for="auto-action-tipo">Ação — ENTÃO</label>
+        <select id="auto-action-tipo" onchange="onAutoActionChange()">
+          <option value="notify">Notificar usuário</option>
+          <option value="move">Mover automaticamente</option>
+          <option value="create_activity">Criar atividade</option>
+        </select>
+      </div>
+      <div class="mf" id="auto-action-notify-wrap"><label for="auto-action-notify-target">Notificar</label>
+        <select id="auto-action-notify-target" onchange="onAutoNotifyTargetChange()">
+          <option value="owner">Responsável do card</option>
+          <option value="specific">Usuário específico</option>
+        </select>
+        <select id="auto-action-notify-uid" style="display:none;margin-top:6px"></select>
+      </div>
+      <div class="mf" id="auto-action-move-wrap" style="display:none"><label for="auto-action-col">Mover para etapa</label><select id="auto-action-col"></select></div>
+      <div class="mf" id="auto-action-act-wrap" style="display:none">
+        <label for="auto-action-act-tipo">Tipo de atividade</label>
+        <select id="auto-action-act-tipo"><option value="call">Ligação</option><option value="meet">Reunião</option><option value="task">Tarefa</option><option value="note">Nota</option></select>
+        <label style="margin-top:6px" for="auto-action-act-desc">Descrição</label><input type="text" id="auto-action-act-desc" placeholder="Ex: Retornar contato" maxlength="120">
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--mu);margin:10px 0 4px;cursor:pointer">
+        <input type="checkbox" id="auto-ativo" checked style="width:16px;height:16px;accent-color:var(--amber)"> Regra ativa
+      </label>
+      <div class="mbtns" style="margin-top:10px">
+        <button class="bc" onclick="closeM('mo-auto-edit')">Cancelar</button>
+        <button class="bp" onclick="saveAutoRule()">💾 Salvar Regra</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: VISUALIZAR ANEXO -->
+  <div class="mo" id="mo-att-view" onclick="if(event.target===this)closeM('mo-att-view')" style="z-index:3000">
+    <div class="mb" style="max-width:540px;padding:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px">
+        <span style="font-size:.8rem;color:var(--al);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="att-view-name"></span>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="bp" style="padding:4px 11px;font-size:.72rem" onclick="if(_attViewId){if(_attViewSource==='admdoc')downloadAdmDoc(_attViewId);else downloadAttachment(_attViewId);}" title="Baixar">⬇ Baixar</button>
+          <button class="bc" aria-label="Fechar" style="padding:4px 10px" onclick="closeM('mo-att-view')">✕</button>
+        </div>
+      </div>
+      <div style="font-size:.62rem;color:var(--mu);margin-bottom:8px" id="att-view-meta"></div>
+      <div id="att-view-body" style="text-align:center;max-height:70vh;overflow:auto"></div>
+    </div>
+  </div>
+
+    <!-- BULK ACTION BAR (flutuante, aparece ao selecionar cards) -->
+  <div class="bulk-bar" id="bulk-bar">
+    <span class="bulk-count" id="bulk-count">0 selecionados</span>
+    <button class="bulk-btn" onclick="bulkMove()">↔ Mover Etapa</button>
+    <button class="bulk-btn" onclick="bulkConvert()" id="bulk-conv-btn">✨ → Negócio</button>
+    <button class="bulk-btn" onclick="bulkResp()">👤 Responsável</button>
+    <button class="bulk-btn danger" onclick="bulkDiscard()">🗑 Descartar</button>
+    <button class="bulk-btn danger" onclick="bulkDelete()">🗑 Excluir</button>
+    <button class="bulk-cancel" onclick="clearBulk()">✕ Cancelar</button>
+  </div>
+
+  <!-- MODAL: BULK MOVE (mover vários para uma etapa) -->
+  <div class="mo" id="mo-bulk-move" onclick="if(event.target===this)closeM('mo-bulk-move')">
+    <div class="mb" style="max-width:360px">
+      <h2>↔ Mover para Etapa</h2>
+      <div style="font-size:.75rem;color:var(--mu);margin-bottom:10px" id="bulk-move-info"></div>
+      <div class="bulk-col-opts" id="bulk-col-opts"></div>
+      <div class="mbtns" style="margin-top:10px">
+        <button class="bc" onclick="closeM('mo-bulk-move')">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: BULK RESPONSÁVEL -->
+  <div class="mo" id="mo-bulk-resp" onclick="if(event.target===this)closeM('mo-bulk-resp')">
+    <div class="mb" style="max-width:360px">
+      <h2>👤 Transferir Responsável</h2>
+      <div style="font-size:.75rem;color:var(--mu);margin-bottom:10px" id="bulk-resp-info"></div>
+      <div class="bulk-col-opts" id="bulk-resp-opts"></div>
+      <div class="mbtns" style="margin-top:10px">
+        <button class="bc" onclick="closeM('mo-bulk-resp')">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: IMPORTAR LEADS EM CADEIA -->
+  <div class="mo" id="mo-batch-import" onclick="if(event.target===this)closeM('mo-batch-import')">
+    <div class="mb" style="max-width:460px">
+      <h2>📋 Importar Leads em Cadeia</h2>
+      <p style="font-size:.76rem;color:var(--mu);margin-bottom:10px">
+        Cole aqui uma lista com nomes e telefones (um por linha ou separados por vírgula).<br>
+        <span style="color:var(--al)">Ex: João Silva 11 99999-1234 / Maria 21988887777</span>
+      </p>
+      <textarea class="import-textarea" id="import-txt"
+        placeholder="João Silva 11 99999-1234&#10;Maria Souza, 21 98888-7777&#10;Pedro 31 97777-6666&#10;..."
+        oninput="parseImport()"></textarea>
+      <div class="import-count" id="import-count"></div>
+      <div class="import-preview" id="import-preview" style="display:none"></div>
+      <div class="mf" style="margin-top:10px"><label for="import-nicho">Nicho para todos</label>
+        <select id="import-nicho">
+          <option value="imovel">Imóvel</option>
+          <option value="caminhao">Caminhão</option>
+          <option value="carro">Carro / Moto</option>
+          <option value="pesados">Pesados</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="mf"><label for="import-col">Etapa inicial</label>
+        <select id="import-col"></select>
+      </div>
+      <div class="mbtns" style="margin-top:10px">
+        <button class="bc" onclick="closeM('mo-batch-import')">Cancelar</button>
+        <button class="bp" onclick="confirmBatchImport()" id="import-btn">📥 Importar todos</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SCANNER DE DUPLICATAS -->
+  <div class="mo" id="mo-duplicates" onclick="if(event.target===this)closeM('mo-duplicates')">
+    <div class="mb" style="max-width:520px">
+      <h2>🔍 Leads Duplicados</h2>
+      <p style="font-size:.76rem;color:var(--mu);margin-bottom:10px">Registros (Leads e Negócios, de todos os consultores) que compartilham o mesmo número de telefone.</p>
+      <div id="dup-results" style="max-height:60vh;overflow-y:auto;overscroll-behavior:contain"></div>
+      <div class="mbtns" style="margin-top:10px">
+        <button class="bc" onclick="closeM('mo-duplicates')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDITAR ATIVIDADES EM LOTE -->
+  <div class="mo" id="mo-act-bulk" onclick="if(event.target===this)closeM('mo-act-bulk')">
+    <div class="mb" style="max-width:460px">
+      <h2>🔔 Editar Atividades em Lote</h2>
+      <div class="act-bulk-filters">
+        <div class="act-bulk-filters-row">
+          <select id="act-bulk-board-filter" onchange="_actBulkOnBoardChange()">
+            <option value="">Todos os quadros</option>
+            <option value="leads">Leads</option>
+            <option value="negocios">Negócios</option>
+          </select>
+          <label class="act-bulk-only-late"><input type="checkbox" id="act-bulk-only-late" onchange="_actBulkOnLateChange()"> Somente atrasadas</label>
+        </div>
+        <div class="act-bulk-stage-wrap" id="act-bulk-stage-wrap"></div>
+      </div>
+      <div class="act-bulk-bar" id="act-bulk-bar" style="display:none">
+        <span class="act-bulk-count" id="act-bulk-count">0 selecionadas</span>
+        <input type="datetime-local" id="act-bulk-dt" style="padding:5px 8px;border-radius:7px;background:var(--bg2);border:1.5px solid var(--b1);color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;outline:none;">
+        <button class="bp" style="padding:6px 12px;font-size:.72rem" onclick="applyActBulkDate()">✓ Aplicar data</button>
+        <div class="act-bulk-desc-row">
+          <input type="text" id="act-bulk-desc" placeholder="Nova especificação (ex: Dar bom dia)">
+          <button class="bp" style="padding:6px 12px;font-size:.72rem" onclick="applyActBulkDesc()">✓ Aplicar texto</button>
+        </div>
+        <button class="bulk-btn ok2" onclick="applyActBulkDone()">✔ Concluir selecionadas</button>
+        <button class="bulk-btn danger" onclick="deleteActBulk()">🗑 Excluir</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:.72rem;color:var(--mu)">Selecione as atividades:</span>
+        <button class="bc" style="padding:3px 9px;font-size:.68rem" onclick="selectAllActs()">Sel. todas</button>
+      </div>
+      <div id="act-bulk-list" style="max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:5px;overscroll-behavior:contain"></div>
+      <div class="mbtns" style="margin-top:10px">
+        <button class="bc" onclick="closeM('mo-act-bulk')">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PÁGINA: CONFIGURAÇÕES -->
+  <div class="pg" id="pg-config">
+    <div class="ph"><h1>⚙️ Configurações</h1><div class="aline"></div><p>Personalize seu perfil e o sistema</p></div>
+
+    <div class="settings-section">
+      <h3>🧩 Ferramentas</h3>
+      <p style="font-size:.7rem;color:var(--mu);margin-bottom:10px">Documentos, Estrutura da Empresa e Dispositivos conectados agora ficam aqui dentro.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="bc" onclick="goPage('docs')">📂 Documentos</button>
+        <button class="bc" onclick="goPage('estrutura')">🏢 Estrutura da Empresa</button>
+        <button class="bc" onclick="openSessionsPanel()">📱 Dispositivos conectados</button>
+      </div>
+    </div>
+
+    <div class="settings-section" id="cfg-identidade-section" style="display:none">
+      <h3>🎨 Identidade Visual</h3>
+      <p style="font-size:.7rem;color:var(--mu);margin-bottom:10px">Logo exibida no CRM para toda a equipe. Imagens grandes são otimizadas automaticamente ao enviar.</p>
+      <div class="mf"><label for="adm-logo-input">Logo do CRM (PNG/SVG/JPG)</label>
+        <input type="file" id="adm-logo-input" accept="image/*" onchange="admChangeLogo(this)" style="background:var(--bg3);border:1px solid var(--b1);border-radius:9px;padding:8px;color:var(--tx);width:100%;font-size:1rem">
+      </div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:12px">
+        <div id="adm-logo-preview" style="width:52px;height:52px;border-radius:12px;background:var(--bg3);border:1px solid var(--b1);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:.65rem;color:var(--mu);flex-shrink:0">Atual</div>
+        <button class="bc" onclick="admResetLogo()" style="font-size:.78rem">↺ Resetar Logo</button>
+      </div>
+
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--b1)">
+        <h4 style="font-size:.85rem;margin:0 0 6px">✏️ Nome do CRM</h4>
+        <p style="font-size:.7rem;color:var(--mu);margin-bottom:10px">Troque o nome exibido no sistema (hoje "LIDER CRM") para toda a equipe. Escolha uma das duas opções abaixo:</p>
+
+        <div class="mf"><label for="cfg-crm-name-input">Opção 1 — Digitar o novo nome (usa a fonte já existente do sistema)</label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="cfg-crm-name-input" class="mi" placeholder="Ex: MEGA CRM" maxlength="40" style="flex:1">
+            <button class="bc" onclick="admChangeCRMNameText()" style="white-space:nowrap">💾 Salvar nome</button>
+          </div>
+        </div>
+
+        <div class="mf" style="margin-top:10px"><label for="adm-crm-name-img-input">Opção 2 — Colar/enviar uma imagem PNG já pronta (com a cor, fonte e nome que você quiser — sem limite de tamanho)</label>
+          <input type="file" id="adm-crm-name-img-input" accept="image/png,image/*" onchange="admChangeCRMNameImage(this)" style="background:var(--bg3);border:1px solid var(--b1);border-radius:9px;padding:8px;color:var(--tx);width:100%;font-size:1rem">
+        </div>
+
+        <div style="margin-top:10px;display:flex;align-items:center;gap:12px">
+          <div id="adm-crm-name-preview" style="min-width:120px;height:40px;border-radius:10px;background:var(--bg3);border:1px solid var(--b1);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:.7rem;color:var(--mu);flex-shrink:0;padding:0 10px">LIDER CRM</div>
+          <button class="bc" onclick="admResetCRMName()" style="font-size:.78rem">↺ Resetar Nome</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section" id="cfg-automacoes-section" style="display:none">
+      <h3>🤖 Automações</h3>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <p style="font-size:.75rem;color:var(--mu);max-width:480px;margin:0">Crie regras automáticas: "se isso, então aquilo". O motor roda nos cards do próprio consultor sempre que o Kanban dele é aberto/atualizado — sem precisar de servidor.</p>
+        <button class="bp" style="max-width:160px" onclick="openAutoRuleEditor()">+ Nova Regra</button>
+      </div>
+      <div id="auto-rules-list"><div class="est">Carregando...</div></div>
+    </div>
+
+    <div class="settings-section" id="cfg-manutencao-section" style="display:none">
+      <h3>🔄 Manutenção</h3>
+      <p style="font-size:.77rem;color:var(--mu);margin-bottom:10px">Reset de interface corrige travamentos e bugs visuais sem apagar leads, negócios, configurações ou preferências visuais.</p>
+      <button class="bln" style="max-width:220px" onclick="resetInterface()">🔄 Resetar Interface</button>
+      <p style="font-size:.68rem;color:var(--mu);margin-top:8px">⚠️ Nada é apagado — apenas o cache do app é limpo e a tela é recarregada.</p>
+    </div>
+
+    <div class="settings-section">
+      <h3>👤 Foto de Perfil</h3>
+      <div class="profile-pic-wrap">
+        <div class="profile-pic" id="cfg-pic-preview">?</div>
+        <div>
+          <button class="profile-pic-btn" onclick="document.getElementById('cfg-pic-inp').click()">📷 Alterar foto</button>
+          <button class="profile-pic-btn" onclick="removePic()" style="margin-top:5px">Remover</button>
+        </div>
+      </div>
+      <input type="file" id="cfg-pic-inp" accept="image/*" style="display:none" onchange="handlePicUpload(this)">
+    </div>
+
+    <div class="settings-section">
+      <h3>✏️ Meus Dados</h3>
+      <div class="mf"><label for="cfg-nome">Nome</label><input type="text" id="cfg-nome" autocomplete="off" maxlength="80"></div>
+      <div class="mf"><label for="cfg-email">E-mail</label><input type="email" id="cfg-email" autocomplete="off" inputmode="email"></div>
+      <button class="bp" style="max-width:160px" onclick="saveProfileData()">💾 Salvar dados</button>
+    </div>
+
+    <div class="settings-section">
+      <h3>🔑 Alterar Senha</h3>
+      <div class="mf"><label for="cfg-pw-old">Senha atual</label>
+        <div class="ff-pw"><input type="password" id="cfg-pw-old" autocomplete="off"><button class="feye" type="button" aria-label="Mostrar/ocultar senha" onclick="toggleEye('cfg-pw-old',this)">👁</button></div>
+      </div>
+      <div class="mf"><label for="cfg-pw-new">Nova senha</label>
+        <div class="ff-pw"><input type="password" id="cfg-pw-new" autocomplete="new-password"><button class="feye" type="button" aria-label="Mostrar/ocultar senha" onclick="toggleEye('cfg-pw-new',this)">👁</button></div>
+      </div>
+      <div class="mf"><label for="cfg-pw-confirm">Confirmar nova senha</label>
+        <div class="ff-pw"><input type="password" id="cfg-pw-confirm" autocomplete="new-password"><button class="feye" type="button" aria-label="Mostrar/ocultar senha" onclick="toggleEye('cfg-pw-confirm',this)">👁</button></div>
+      </div>
+      <div class="ferr" id="cfg-pw-err"></div>
+      <button class="bp" style="max-width:160px" onclick="changeMyPassword()">🔑 Alterar senha</button>
+    </div>
+
+    <div class="settings-section">
+      <h3>🖼 Foto de Fundo</h3>
+      <p style="font-size:.74rem;color:var(--mu);margin-bottom:8px">Escolha uma cor/gradiente de fundo ou envie uma foto do seu dispositivo:</p>
+      <div class="bg-thumbs" id="bg-thumbs"></div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <button class="profile-pic-btn" onclick="document.getElementById('cfg-bg-inp').click()">📷 Usar foto do dispositivo</button>
+        <button class="profile-pic-btn" id="cfg-bg-remove-btn" style="display:none" onclick="removeBGPhoto()">Remover foto de fundo</button>
+      </div>
+      <input type="file" id="cfg-bg-inp" accept="image/*" style="display:none" onchange="handleBGPhotoUpload(this)">
+    </div>
+
+    <div class="settings-section" id="cfg-notif-section">
+      <h3>🔔 Notificações</h3>
+      <p style="font-size:.7rem;color:var(--mu);margin-bottom:8px">Avisa no PC e no celular (como uma mensagem chegando) quando uma atividade atrasa ou quando você recebe um aviso — transferência de card, atribuição ou automação. Precisa estar com o LIDER CRM aberto no navegador (mesmo em segundo plano).</p>
+      <button class="notif-req-btn" onclick="requestNotifPermission();toast('Permissão solicitada!')">🔔 Habilitar notificações do sistema</button>
+      <p style="font-size:.7rem;color:var(--mu);margin-top:7px" id="cfg-notif-status"></p>
+    </div>
+
+    <div class="settings-section">
+      <h3>🤖 Automação de Lembretes</h3>
+      <p style="font-size:.74rem;color:var(--mu);margin-bottom:10px">Quando ligada, a tela de "Adicionar Lembrete/Atividade" abre sozinha em 2 situações: (1) um card de Negócios entra na etapa <strong>AG Vídeo</strong> ou <strong>Presencial</strong>; (2) um Lead vira Negócio, em qualquer etapa. Desligue aqui se preferir adicionar os lembretes manualmente.</p>
+      <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:pointer;user-select:none">
+        <input type="checkbox" id="cfg-auto-reminder" style="width:17px;height:17px;accent-color:var(--amber);flex-shrink:0" onchange="setAutoReminderOn(this.checked);toast(this.checked?'Automação de lembrete ativada!':'Automação de lembrete desativada')">
+        <span id="cfg-auto-reminder-lbl">Ativar automação de lembrete</span>
+      </label>
+    </div>
+  </div>
+</div>
+
+<!-- INSTALL -->
+<div id="ibar">
+  <div class="ibt"><strong>Instalar App</strong><br>Adicione na tela inicial</div>
+  <div class="ibb">
+    <button class="bskp" onclick="skipInst()">Agora nao</button>
+    <button class="bins" onclick="doInst()">Instalar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"><span id="tmsg"></span></div>
+<div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
+
+<!-- FIREBASE SDK -->
+<!-- NOTA SEGURANÇA: os 3 scripts abaixo vêm de CDN sem Subresource Integrity — se o CDN
+     for comprometido, o script servido pode ser trocado sem que o navegador rejeite.
+     Adicione integrity="sha512-..." em cada um (gere o hash em https://www.srihash.org/)
+     quando as versões forem travadas em produção. -->
+<!-- ===== FIREBASE SDKs DESATIVADOS NESTE PATCH ===== -->
+<!-- O código já tem fallback automático: se firebase for undefined,
+     a função initDB() cai em usarLocal() e o app roda 100% em
+     localStorage. Para religar, descomente as 4 linhas abaixo. -->
+<!-- <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" crossorigin="anonymous" defer></script> -->
+<!-- <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js" crossorigin="anonymous" defer></script> -->
+<!-- <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js" crossorigin="anonymous" defer></script> -->
+<!-- <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js" crossorigin="anonymous" defer></script> -->
+<!-- Removido no build de compatibilidade para deploy estático: o módulo de Firebase Messaging/Web Push não é necessário para o boot do CRM e adiciona mais uma dependência remota que pode atrasar o carregamento inicial. Se quiser reativar push depois, publique um service worker real (ex.: /firebase-messaging-sw.js) e recoloque este script. -->
+<!-- CORREÇÃO (auditoria): a biblioteca SheetJS/xlsx (xlsx.full.min.js, ~700KB) era
+     carregada em toda abertura do app, mas nenhuma função do código chama a API dela
+     (XLSX.read/utils/write etc.) — confirmado por busca no arquivo inteiro. É peso morto
+     no carregamento inicial (e mais um CDN externo sem necessidade). Removida; se um
+     recurso de exportar/importar .xlsx for implementado no futuro, basta recolocar este
+     script src. -->
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- MODAL: FILTROS AVANÇADOS KANBAN -->
+<!-- MODAL: SELETOR DE ETAPA ESTILO BITRIX24 (tela cheia, etapas em forma de seta colorida).
+     Reaproveitado em dois modos: (1) filtro da tela — abre a partir da stage-summary-bar,
+     sem cardId; (2) troca de etapa de um card — abre a partir do chevron colorido do
+     próprio card, com cardId. Ver openStagePicker()/_spSelect() no script mobile. -->
+<div class="mo" id="mo-stage-picker" onclick="if(event.target===this)closeM('mo-stage-picker')">
+  <div class="mb" style="max-width:420px">
+    <div class="mh"><div class="mht" id="sp-title">Selecionar etapa</div><button class="mcl" aria-label="Fechar" onclick="closeM('mo-stage-picker')">✕</button></div>
+    <div style="font-size:.7rem;color:var(--mu);margin:-6px 0 12px" id="sp-subtitle">Selecionar etapa</div>
+    <div id="sp-list" style="display:flex;flex-direction:column;gap:10px;max-height:70vh;overflow-y:auto;overscroll-behavior:contain"></div>
+  </div>
+</div>
+
+<div class="mo" id="mo-kb-adv-filter" onclick="if(event.target===this)closeM('mo-kb-adv-filter')">
+  <div class="mb" style="max-width:360px">
+    <div class="mh"><div class="mht">🔍 Buscar e Filtrar</div><button class="mcl" aria-label="Fechar" onclick="closeM('mo-kb-adv-filter')">✕</button></div>
+    <div class="mbs"></div>
+    <input type="hidden" id="adv-filter-board">
+    <div class="mf"><label for="adv-f-nome">Nome ou telefone</label>
+      <input type="text" id="adv-f-nome" class="mi" placeholder="Buscar por nome/telefone..." autocomplete="off">
+    </div>
+    <div class="mf"><label for="adv-f-nicho">Nicho / Produto</label>
+      <select id="adv-f-nicho" class="ms">
+        <option value="">Todos</option>
+        <option value="imovel">Imóvel</option>
+        <option value="caminhao">Caminhão</option>
+        <option value="carro">Carro / Moto</option>
+        <option value="pesados">Pesados</option>
+        <option value="outro">Outro</option>
+      </select>
+    </div>
+    <div class="mf" id="adv-f-valor-wrap">
+      <label for="adv-f-valor-min">Valor (R$)</label>
+      <div style="display:flex;gap:8px">
+        <input type="number" id="adv-f-valor-min" class="mi" placeholder="Mín" min="0" step="1" style="flex:1" inputmode="numeric">
+        <input type="number" id="adv-f-valor-max" class="mi" placeholder="Máx" min="0" step="1" style="flex:1" inputmode="numeric">
+      </div>
+    </div>
+    <div class="mf"><label for="adv-f-dias">Criado há mais de (dias)</label>
+      <input type="number" id="adv-f-dias" class="mi" placeholder="Ex: 7" min="0" step="1" inputmode="numeric">
+    </div>
+    <div class="mbtns">
+      <button class="bc" onclick="clearKBAdvFilter()">Limpar</button>
+      <button class="bp" onclick="applyKBAdvFilter()">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: AGENDAMENTO (Agenda ao vivo) -->
+<div class="mo" id="mo-agd" onclick="if(event.target===this)closeM('mo-agd')">
+  <div class="mb" style="max-width:420px">
+    <div class="mh"><div class="mht" id="mo-agd-title">Novo Agendamento</div><button class="mcl" aria-label="Fechar" onclick="closeM('mo-agd')">✕</button></div>
+    <div class="mf"><label for="agd-f-data">Data</label>
+      <input type="date" id="agd-f-data" onchange="agdCheckConflictLive()">
+    </div>
+    <div class="mf"><label for="agd-f-hora">Horário</label>
+      <input type="time" id="agd-f-hora" step="300" oninput="agdCheckConflictLive()">
+    </div>
+    <div class="mf"><label for="agd-f-cons">Consultor</label>
+      <select id="agd-f-cons" onchange="agdCheckConflictLive()"></select>
+    </div>
+    <div class="agd-modal-help" id="agd-quick-help">Toque em um horário sugerido para preencher mais rápido.</div>
+    <div class="agd-modal-slots" id="agd-quick-slots" aria-label="Sugestões de horário"></div>
+    <div class="agd-conflict-warn" id="agd-conflict-warn">⚠️ Já existe um agendamento nesse horário para esse consultor. Você poderá confirmar mesmo assim ao salvar.</div>
+    <div class="mf"><label for="agd-f-cli">Nome do cliente</label>
+      <input type="text" id="agd-f-cli" placeholder="Ex: Maria Camily" autocomplete="off" maxlength="120">
+    </div>
+    <div class="mf"><label for="agd-f-nicho">Nicho</label>
+      <select id="agd-f-nicho">
+        <option value="" disabled selected>Selecione o nicho</option>
+        <option value="imovel">Imóvel</option>
+        <option value="caminhao">Caminhão</option>
+        <option value="carro">Carro / Moto</option>
+        <option value="pesados">Pesados</option>
+        <option value="outro">Outro</option>
+      </select>
+    </div>
+    <div class="mf"><label for="agd-f-status">Status</label>
+      <select id="agd-f-status">
+        <option value="agendado">Agendado</option>
+        <option value="atendido">Atendido</option>
+        <option value="remarcar">Remarcar</option>
+        <option value="noshow">No-Show</option>
+      </select>
+    </div>
+    <div class="mf"><label for="agd-f-obs">Observação (opcional)</label>
+      <textarea class="obs-box" id="agd-f-obs" placeholder="Detalhes do agendamento..." style="min-height:52px"></textarea>
+    </div>
+    <input type="hidden" id="agd-edit-id">
+    <div class="mbtns">
+      <button class="bc" id="agd-del-btn" style="display:none;color:var(--rl);border-color:rgba(194,32,38,.3)" onclick="agdDelete()">🗑 Excluir</button>
+      <button class="bc" onclick="closeM('mo-agd')">Cancelar</button>
+      <button class="bp" onclick="agdSave()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CRIAR/EDITAR DEPARTAMENTO (Estrutura da Empresa) -->
+<div class="mo" id="mo-dept" onclick="if(event.target===this)closeM('mo-dept')">
+  <div class="mb" style="max-width:420px">
+    <div class="mh"><div class="mht" id="dept-mo-title">Novo Departamento</div><button class="mcl" aria-label="Fechar" onclick="closeM('mo-dept')">✕</button></div>
+    <div class="mbs"></div>
+    <input type="hidden" id="dept-id">
+    <div class="mf"><label for="dept-nome">Nome do departamento</label>
+      <input type="text" id="dept-nome" class="mi" placeholder="Ex: Vendas, Suporte..." maxlength="60">
+    </div>
+    <div class="mf"><label for="dept-parent">Departamento pai (opcional)</label>
+      <select id="dept-parent" class="ms"><option value="">Nenhum — departamento raiz</option></select>
+    </div>
+    <div class="mf"><label for="dept-sup">Supervisor</label>
+      <select id="dept-sup" class="ms"><option value="">Selecione...</option></select>
+    </div>
+    <div class="mf"><label for="dept-sup-adj">Supervisor adjunto (opcional)</label>
+      <select id="dept-sup-adj" class="ms"><option value="">Nenhum</option></select>
+    </div>
+    <div class="mf"><label>Colaboradores</label>
+      <div id="dept-members-list" style="max-height:180px;overflow-y:auto;border:1.5px solid var(--b1);border-radius:8px;padding:6px;overscroll-behavior:contain"></div>
+    </div>
+    <div class="mbtns">
+      <button class="bc" id="dept-del-btn" style="display:none;color:var(--rl);border-color:rgba(196,68,68,.35)" onclick="deleteDept()">🗑 Excluir</button>
+      <button class="bp" onclick="saveDept()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: DISPOSITIVOS CONECTADOS -->
+<div class="mo" id="mo-sessions" onclick="if(event.target===this)closeM('mo-sessions')">
+  <div class="mb" style="max-width:420px">
+    <div class="mh"><div class="mht">📱 Dispositivos conectados (<span id="sessions-count">0</span>)</div><button class="mcl" aria-label="Fechar" onclick="closeM('mo-sessions')">✕</button></div>
+    <div style="font-size:.72rem;color:var(--mu);margin:-6px 0 12px">Aparelhos onde sua conta está com login ativo. Desconecte qualquer um que você não reconheça.</div>
+    <div id="sessions-list" style="display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow-y:auto;overscroll-behavior:contain"></div>
+    <div class="mbtns"><button class="bc" onclick="renderSessionsPanel()">🔄 Atualizar</button><button class="bc" onclick="closeM('mo-sessions')">Fechar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: MINI CALENDÁRIO DA AGENDA (ícone 🗓️) -->
+<div class="mo" id="mo-agd-cal" onclick="if(event.target===this)closeM('mo-agd-cal')">
+  <div class="mb" style="max-width:340px">
+    <div class="mh"><div class="mht">🗓️ Calendário</div><button class="mcl" aria-label="Fechar" onclick="closeM('mo-agd-cal')">✕</button></div>
+    <div class="agd-mc-nav">
+      <button class="agd-mc-navbtn" onclick="agdMiniCalNav(-1)" aria-label="Mês anterior">&#8249;</button>
+      <div class="agd-mc-label" id="agd-minical-label"></div>
+      <button class="agd-mc-navbtn" onclick="agdMiniCalNav(1)" aria-label="Próximo mês">&#8250;</button>
+    </div>
+    <div class="agd-mc-grid" id="agd-minical-grid"></div>
+    <div class="mbtns"><button class="bc" onclick="agdMiniCalPick(today())">Hoje</button><button class="bc" onclick="closeM('mo-agd-cal')">Fechar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: BUSCA GLOBAL -->
+<div class="mo" id="mo-gsearch" onclick="if(event.target===this)closeM('mo-gsearch')" style="align-items:flex-start;padding-top:60px">
+  <div class="mb" style="max-width:520px;width:100%">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <span style="font-size:1.1rem">🔍</span>
+      <input type="text" id="gsearch-inp" class="mi" placeholder="Buscar em leads, negócios, clientes..." style="flex:1;font-size:1rem" oninput="debounce('gsearch',runGSearch)" autocomplete="off">
+      <button class="mcl" aria-label="Fechar" onclick="closeM('mo-gsearch')" style="flex-shrink:0">✕</button>
+    </div>
+    <div id="gsearch-results" style="max-height:60vh;overflow-y:auto;overscroll-behavior:contain"></div>
+  </div>
+</div>
+
+<div class="mo" id="mo-confirm-del" onclick="if(event.target===this)closeM('mo-confirm-del')">
+  <div class="mb" style="max-width:340px">
+    <h2 id="confirm-del-title" style="color:var(--rl)">🗑 Excluir permanentemente?</h2>
+    <div class="mbs"></div>
+    <p id="confirm-del-msg" style="font-size:.84rem;color:var(--tx);line-height:1.5;margin-bottom:14px"></p>
+    <div class="mbtns">
+      <button class="bc" onclick="closeM('mo-confirm-del');_confirmDelCb=null">Cancelar</button>
+      <button id="confirm-del-ok" class="bd" onclick="if(_confirmDelCb){_confirmDelCb();}_confirmDelCb=null;closeM('mo-confirm-del')">✕ Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: RENOMEAR DOCUMENTO ADM -->
+<div class="mo" id="mo-rename-doc" onclick="if(event.target===this)closeM('mo-rename-doc')">
+  <div class="mb" style="max-width:380px">
+    <div class="mh"><div class="mht">✏️ Renomear documento</div><button class="mcl" aria-label="Fechar" onclick="closeM('mo-rename-doc')">✕</button></div>
+    <div style="padding:14px 0 4px">
+      <label style="font-size:.68rem;color:var(--mu);letter-spacing:.1em;text-transform:uppercase" for="rename-doc-inp">Novo nome</label>
+      <input id="rename-doc-inp" type="text" maxlength="120" style="width:100%;padding:10px 12px;border-radius:9px;background:var(--bg3);border:1.5px solid var(--b1);color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;outline:none;margin-top:5px" placeholder="Nome do arquivo">
+    </div>
+    <div class="mbtns" style="margin-top:12px">
+      <button class="bc" onclick="closeM('mo-rename-doc')">Cancelar</button>
+      <button class="bp" onclick="_confirmRenameAdmDoc()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR OBJEÇÃO DO BANCO (fixas ou criadas pelo ADM) — somente ADM -->
+<div class="mo" id="mo-obj-edit" onclick="if(event.target===this)closeM('mo-obj-edit')">
+  <div class="mb" style="max-width:460px">
+    <div class="mh"><div class="mht">✏️ Editar Objeção</div><button class="mcl" aria-label="Fechar" onclick="closeM('mo-obj-edit')">✕</button></div>
+    <input type="hidden" id="edit-obj-id">
+    <div style="padding:14px 0 4px;display:flex;flex-direction:column;gap:10px">
+      <div class="mf"><label for="edit-obj-texto">Objeção do Cliente</label><input type="text" id="edit-obj-texto" maxlength="200" style="width:100%;padding:10px 12px;border-radius:9px;background:var(--bg3);border:1.5px solid var(--b1);color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;outline:none"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="mf"><label for="edit-obj-cat">Categoria</label><input type="text" id="edit-obj-cat" maxlength="60" style="width:100%;padding:10px 12px;border-radius:9px;background:var(--bg3);border:1.5px solid var(--b1);color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;outline:none"></div>
+        <div class="mf"><label for="edit-obj-canal">Canal</label><select id="edit-obj-canal" style="width:100%;padding:10px 12px;border-radius:9px;background:var(--bg3);border:1.5px solid var(--b1);color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;outline:none;-webkit-appearance:none"><option value="zap_ou_ligacao">Zap e Ligação</option><option value="preferir_ligacao">Prefere Ligação</option><option value="somente_ligacao">Somente Ligação</option></select></div>
+      </div>
+      <div class="mf"><label for="edit-obj-ini">Resposta Iniciante</label><textarea id="edit-obj-ini" rows="2" style="width:100%;background:var(--bg3);border:1.5px solid var(--b1);border-radius:9px;padding:9px 11px;color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;resize:vertical;outline:none"></textarea></div>
+      <div class="mf"><label for="edit-obj-int">Resposta Intermediário</label><textarea id="edit-obj-int" rows="2" style="width:100%;background:var(--bg3);border:1.5px solid var(--b1);border-radius:9px;padding:9px 11px;color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;resize:vertical;outline:none"></textarea></div>
+      <div class="mf"><label for="edit-obj-exp">Resposta Experiente</label><textarea id="edit-obj-exp" rows="2" style="width:100%;background:var(--bg3);border:1.5px solid var(--b1);border-radius:9px;padding:9px 11px;color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;resize:vertical;outline:none"></textarea></div>
+    </div>
+    <div class="mbtns" style="margin-top:12px">
+      <button class="bc" onclick="closeM('mo-obj-edit')">Cancelar</button>
+      <button class="bp" onclick="admSaveEditObjecao()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR OBJEÇÃO DA EQUIPE (autor ou ADM) -->
+<div class="mo" id="mo-user-obj-edit" onclick="if(event.target===this)closeM('mo-user-obj-edit')">
+  <div class="mb" style="max-width:440px">
+    <div class="mh"><div class="mht">✏️ Editar Objeção da Equipe</div><button class="mcl" aria-label="Fechar" onclick="closeM('mo-user-obj-edit')">✕</button></div>
+    <input type="hidden" id="edit-uobj-id">
+    <div style="padding:14px 0 4px;display:flex;flex-direction:column;gap:10px">
+      <div class="mf"><label for="edit-uobj-texto">Objeção do Cliente</label><input type="text" id="edit-uobj-texto" maxlength="200" style="width:100%;padding:10px 12px;border-radius:9px;background:var(--bg3);border:1.5px solid var(--b1);color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;outline:none"></div>
+      <div class="mf"><label for="edit-uobj-canal">Essa resposta é pra:</label><select id="edit-uobj-canal" style="width:100%;padding:10px 12px;border-radius:9px;background:var(--bg3);border:1.5px solid var(--b1);color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;outline:none;-webkit-appearance:none"><option value="whatsapp">📱 WhatsApp</option><option value="ligacao">☎️ Ligação</option><option value="ambos">🔁 Ambos</option></select></div>
+      <div class="mf"><label for="edit-uobj-resposta">Resposta</label><textarea id="edit-uobj-resposta" rows="3" style="width:100%;background:var(--bg3);border:1.5px solid var(--b1);border-radius:9px;padding:9px 11px;color:var(--tx);font-family:Outfit,sans-serif;font-size:1rem;resize:vertical;outline:none"></textarea></div>
+    </div>
+    <div class="mbtns" style="margin-top:12px">
+      <button class="bc" onclick="closeM('mo-user-obj-edit')">Cancelar</button>
+      <button class="bp" onclick="userSaveEditObjecao()">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+
+
+<script src="js/patches/chat-v3-patch.js"></script>
+
+<script src="js/patches/crm-lead-comment-wa-patch.js"></script>
+
+
+<script src="js/patches/lf-auditoria-v4-guardrails-20260710.js"></script>
+<script src="js/patches/lf-final-boot-20260710.js"></script>
+
+
+<script src="js/patches/chat-bitrix-mobile-patch-20260711.js"></script>
+
+<script src="js/patches/chat-bitrix-mobile-refine-20260711b.js"></script>
+
+
+<script src="js/patches/chat-mainpager-surgical-refine-20260711c.js"></script>
+
+
+<script src="js/patches/chat-mainpager-pixel-refine-20260711d.js"></script>
+
+
+
+<!-- ============================================================
+     LF ARMOR v1 — Blindagem de produção (Firebase + Messenger + UI)
+     Cola este bloco como ÚLTIMO script antes de fechar o body.
+     ============================================================ -->
+<script src="js/patches/chat-messenger-cleanup-20260711-final.js"></script>
+
+
+<script src="js/patches/chat-userfix-20260711-requested-by-user.js"></script>
+
+<!-- ============================================================
+     Não requer alteração em nenhuma função existente.
+     ============================================================ -->
+<script src="js/patches/lf-final-armor-20260716.js"></script>
+
+
+
+<!-- ============================================================
+     LF ROBUSTNESS ARMOR v2 — listeners / Firestore / tela branca / race conditions
+     Rodada 13: patch cirúrgico final, sem reescrever funções base.
+     ============================================================ -->
+<script src="js/patches/lf-robustness-armor-20260711b.js"></script>
+
+
+<script src="js/patches/lf-profile-click-open-config-20260711.js"></script>
+
+</body>
+</html>
+
