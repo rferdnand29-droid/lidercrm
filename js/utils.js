@@ -9,7 +9,7 @@
 
 // Reaproveita o mesmo base64 do favicon acima em vez de repeti-lo mais 5 vezes no arquivo
 // (economiza ~115KB no download inicial) — ver relatório de auditoria (performance).
-var LF_LOGO_B64=document.querySelector('link[rel="icon"]').href;
+var LF_LOGO_B64=(document.querySelector('link[rel="icon"]')||{href:''}).href;
 
 // Helper global mínimo de DOM: applyThemeUI() e outros pontos de bootstrap podem rodar
 // antes dos patches mais abaixo que declaram helpers locais com o mesmo nome dentro de IIFEs.
@@ -39,6 +39,47 @@ function _parseLocalDate(v){
     if(m)return new Date(+m[1],+m[2]-1,+m[3]);
   }
   return new Date(v);
+}
+
+/* Datas de atividades podem vir tanto em ISO UTC (toISOString) quanto em
+   strings locais de <input type="datetime-local"> (YYYY-MM-DDTHH:mm). Em alguns
+   navegadores Android/WebView, confiar só em new Date(string) gera diferenças de
+   fuso/interpretação e acaba pintando atividade futura como atrasada. */
+function _parseScheduledAt(v){
+  if(!v)return null;
+  if(v instanceof Date)return isNaN(v.getTime())?null:v;
+  if(typeof v==='string'){
+    var m=v.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d{1,3}))?$/);
+    if(m){
+      var ms=m[7]?String(m[7]).padEnd(3,'0').slice(0,3):'0';
+      return new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0),+ms);
+    }
+  }
+  var d=new Date(v);
+  return isNaN(d.getTime())?null:d;
+}
+
+function _scheduledAtTs(v){
+  var d=_parseScheduledAt(v);
+  return d?d.getTime():NaN;
+}
+
+function _isScheduledExpired(v,nowTs){
+  var ts=_scheduledAtTs(v);
+  var now=(typeof nowTs==='number')?nowTs:Date.now();
+  return isFinite(ts)&&ts<now;
+}
+
+function _formatScheduledAt(v,opts){
+  var d=_parseScheduledAt(v);
+  return d?d.toLocaleString('pt-BR',opts):'';
+}
+
+function _toDateTimeLocalValue(v){
+  var d=v instanceof Date?v:_parseScheduledAt(v);
+  if(!d||isNaN(d.getTime()))return '';
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
+    +'T'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
 }
 
 function eH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -150,6 +191,7 @@ function closeM(id){
   if(id==='mo-tl'){_tlOwnerUid=null;_tlCid=null;}
   if(id==='mo-kb-det'){_kbDetId=null;_kbDetBoard=null;_kbDetOwnerUid=null;}
   if(id==='mo-kb'){_kbEditId=null;_kbEditBoard=null;_kbEditOwnerUid=null;}
+  if(id==='mo-nsh'&&typeof _resetNoShowModalState==='function')_resetNoShowModalState();
   if(id==='mo-att-view'&&typeof _releaseAttViewBlobUrl==='function')_releaseAttViewBlobUrl();
   var anyOpen=document.querySelector('.mo.open');
   if(!anyOpen){
@@ -222,12 +264,32 @@ var MOBILE_BREAKPOINT=768;
 function isMobileView(){return window.innerWidth<=MOBILE_BREAKPOINT;}
 
 /* Mapa de página -> título exibido no header mobile e -> item ativo da nav inferior. */
-var MOBILE_PAGE_TITLES={dash:'Início',leads:'CRM',negocios:'CRM',agenda:'Agenda',anal:'Analytics',dic:'Dicionário',config:'Configurações',adm:'ADM',time:'Time',docs:'Documentos',estrutura:'Estrutura'}
+var MOBILE_PAGE_TITLES={dash:'Início',leads:'CRM',negocios:'CRM',agenda:'Agenda',anal:'Analytics',dic:'Dicionário',config:'Configurações',adm:'ADM',time:'Time',docs:'Documentos',estrutura:'Estrutura',chat:'Papo da Empresa'}
+
+function _safeWindowScrollTo(x,y){
+  try{
+    if(typeof window.scrollTo==='function')window.scrollTo(x,y);
+  }catch(e){}
+}
 
 function mobileGoPage(p){
   closeMobileMenu();
-  goPage(p);
-  if(isMobileView())requestAnimationFrame(function(){window.scrollTo(0,0);});
+  if(p==='crm')p=_crmLastTab||'leads';
+  try{goPage(p);}catch(e){
+    console.warn('[mobile] goPage falhou',p,e);
+    try{goPage('dash');}catch(_e){}
+  }
+  if(isMobileView())requestAnimationFrame(function(){_safeWindowScrollTo(0,0);});
+}
+
+function openConfigToolPage(p){
+  try{goPage(p);}catch(e){console.warn('[mobile] openConfigToolPage falhou',p,e);}
+  if(isMobileView())requestAnimationFrame(function(){_safeWindowScrollTo(0,0);});
+}
+
+function openConfigSessions(){
+  if(isMobileView())requestAnimationFrame(function(){_safeWindowScrollTo(0,0);});
+  openSessionsPanel();
 }
 
 /* Atualiza o título do header mobile e qual item da nav inferior fica "on", sem
@@ -278,7 +340,7 @@ function toggleMobileMenu(){
     // Restaura scroll do body
     document.body.style.overflow='';document.body.style.position='';document.body.style.width='';document.body.style.top='';
     document.body.classList.remove('mobile-menu-open');
-    window.scrollTo(0,document.body._drawerScrollY||0);
+    _safeWindowScrollTo(0,document.body._drawerScrollY||0);
     setTimeout(function(){
       if(!d.classList.contains('open')){d.style.display='';}
       if(o&&!o.classList.contains('open')){o.style.display='';}
@@ -293,7 +355,7 @@ function closeMobileMenu(){
   // Restaura scroll do body travado pelo toggleMobileMenu
   document.body.style.overflow='';document.body.style.position='';document.body.style.width='';document.body.style.top='';
   document.body.classList.remove('mobile-menu-open');
-  window.scrollTo(0,document.body._drawerScrollY||0);
+  _safeWindowScrollTo(0,document.body._drawerScrollY||0);
 }
 
 _syncViewportMetrics();

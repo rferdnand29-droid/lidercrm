@@ -12,6 +12,7 @@
 // ============================================================
 function renderDash(){
   if(!S)return;
+  if(typeof loadCli!=='function'||typeof getKB!=='function'){setTimeout(renderDash,200);return;}
   // Popula filtro de nicho com opcoes do NICHO_LABELS
   var ns=document.getElementById('flt-nicho');
   if(ns&&ns.options.length<=1){Object.keys(NICHO_LABELS).forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=NICHO_LABELS[k];ns.appendChild(o);});}
@@ -47,6 +48,7 @@ function applyDashFilters(){
   _fltNicho=(document.getElementById('flt-nicho')||{}).value||'';
   _fltDate=(document.getElementById('flt-date')||{}).value||'';
   _updateFltClearBtn();
+  try{saveSavedFiltersRemote();}catch(e){}
   loadCli(S.userId,function(l){renderTable(l);});
 }
 
@@ -54,6 +56,7 @@ function toggleLateFilter(btn){
   _fltLate=!_fltLate;
   if(btn){btn.classList.toggle('on',_fltLate);btn.setAttribute('aria-pressed',_fltLate?'true':'false');}
   _updateFltClearBtn();
+  try{saveSavedFiltersRemote();}catch(e){}
   loadCli(S.userId,function(l){renderTable(l);});
 }
 
@@ -63,6 +66,7 @@ function clearDashFilters(){
   var fd=document.getElementById('flt-date');if(fd)fd.value='';
   var fl=document.getElementById('flt-late');if(fl){fl.classList.remove('on');fl.setAttribute('aria-pressed','false');}
   _updateFltClearBtn();
+  try{saveSavedFiltersRemote();}catch(e){}
   loadCli(S.userId,function(l){renderTable(l);});
 }
 
@@ -72,7 +76,7 @@ function _isOverdue(c){
   // "Atrasada": tem atividade agendada no passado que ainda nao foi concluida
   if(!c.activities&&!c.obs)return false;
   var now=Date.now();
-  if(c.activities)return c.activities.some(function(a){return !a.done&&a.scheduledAt&&new Date(a.scheduledAt).getTime()<now;});
+  if(c.activities)return c.activities.some(function(a){return !a.done&&a.scheduledAt&&_isScheduledExpired(a.scheduledAt,now);});
   return false;
 }
 
@@ -95,7 +99,7 @@ function drawAnal(list,kid,fid,svid,lgid,mgid){
     if(_per==='hoje')return d.toDateString()===now.toDateString();
     if(_per==='semana'){var s=new Date(now);s.setDate(now.getDate()-7);return d>=s;}
     if(_per==='mes')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
-    if(_per==='custom'){var d1=document.getElementById('d1'),d2=document.getElementById('d2');if(d1&&d2&&d1.value&&d2.value)return c.data>=d1.value&&c.data<=d2.value;return false;}
+    if(_per==='custom'){var d1=document.getElementById('d1'),d2=document.getElementById('d2');if(d1&&d2&&d1.value&&d2.value){var _d1v=d1.value,_d2v=d2.value;if(!_parseLocalDate(_d1v).getTime||isNaN(_parseLocalDate(_d1v).getTime())||isNaN(_parseLocalDate(_d2v).getTime())){toast('Data inválida no filtro.');return true;}if(_d1v>_d2v){toast('Data inicial maior que final. Ajustando automaticamente.');d1.value=_d2v;d2.value=_d1v;_d1v=d1.value;_d2v=d2.value;}return c.data>=_d1v&&c.data<=_d2v;}return false;}
     return true;
   });
   var tot=filtered.length;
@@ -116,7 +120,8 @@ function renderAnalWithList(list,kid,fid,svid,lgid,mgid){drawAnal(list,kid,fid,s
 
 function drawNegKPIs(uid,elId){
   var el=document.getElementById(elId||'krow2');if(!el)return;
-  var arr=getKBFor('negocios',uid);
+  if(!uid){console.warn('[dash] drawNegKPIs: uid inválido');return;}
+  var arr=(typeof getKBFor==='function'?getKBFor('negocios',uid):[]);
   var fechado=arr.filter(function(c){return c.col==='fechado';}).length;
   var noshow=arr.filter(function(c){return c.col==='noshow'||c.col==='desist';}).length;
   var emAndamento=arr.filter(function(c){return c.col!=='fechado'&&c.col!=='noshow'&&c.col!=='desist';}).length;
@@ -135,7 +140,9 @@ function openGSearch(){
 }
 
 function runGSearch(){
-  var q=(document.getElementById('gsearch-inp').value||'').trim().toLowerCase();
+  if(typeof getKBFor!=='function'||typeof getKB!=='function'){toast('Carregando... tente novamente em instantes.');return;}
+  var _gsi=document.getElementById('gsearch-inp');
+  var q=(_gsi?_gsi.value||'':'').trim().toLowerCase();
   var res=document.getElementById('gsearch-results');if(!res)return;
   if(q.length<2){res.innerHTML='<div style="color:var(--mu);font-size:.78rem;text-align:center;padding:16px">Digite ao menos 2 caracteres</div>';return;}
   var hits=[];
@@ -207,7 +214,9 @@ function renderMobileMenu(){
   var nm=document.getElementById('mmd-name');if(nm)nm.textContent=u?u.nome:S.nome;
   var cg=document.getElementById('mmd-cargo');if(cg)cg.textContent=u?(u.cargo||''):'';
   var admLink=document.getElementById('mmd-adm-link');if(admLink)admLink.style.display=hasAdminAccess()?'':'none';
-  var timeLink=document.getElementById('mmd-time-link');if(timeLink)timeLink.style.display=(hasSupervisorAccess()&&!hasAdminAccess())?'':'none';
+  // Mantém o menu mobile alinhado com a navegação desktop: ADM também precisa do atalho
+  // para "Time", já que possui acesso de supervisor e no celular não existe a barra superior.
+  var timeLink=document.getElementById('mmd-time-link');if(timeLink)timeLink.style.display=hasSupervisorAccess()?'':'none';
 }
 
 /* Espelha avatar/badge de atividades do header desktop para os elementos mobile
@@ -221,14 +230,28 @@ function syncMobileHeaderFromDesktop(){
 
 // Observa mudanças no avatar/badge desktop pra manter os espelhos mobile sincronizados,
 // sem precisar caçar todo lugar do código que já atualiza nav-av/act-badge.
+// CORREÇÃO (2026-07-14): esses observers escrevem em elementos diferentes dos
+// que observam (nav-av/act-badge -> mtb-av/mtb-act-badge), então hoje não
+// causam auto-disparo. Mesmo assim, adicionamos a mesma trava usada no
+// Messenger como proteção contra regressão futura (ex.: se algum dia esses
+// elementos passarem a ficar aninhados).
 (function(){
+  var syncScheduled=false;
+  function syncGuarded(){
+    if(syncScheduled)return;
+    syncScheduled=true;
+    (window.requestAnimationFrame||function(cb){setTimeout(cb,16);})(function(){
+      syncScheduled=false;
+      syncMobileHeaderFromDesktop();
+    });
+  }
   var navAv=document.getElementById('nav-av');
   if(navAv&&window.MutationObserver){
-    new MutationObserver(syncMobileHeaderFromDesktop).observe(navAv,{childList:true,characterData:true,subtree:true,attributes:true});
+    new MutationObserver(syncGuarded).observe(navAv,{childList:true,characterData:true,subtree:true,attributes:true});
   }
   var actBadge=document.getElementById('act-badge');
   if(actBadge&&window.MutationObserver){
-    new MutationObserver(syncMobileHeaderFromDesktop).observe(actBadge,{childList:true,characterData:true,subtree:true,attributes:true});
+    new MutationObserver(syncGuarded).observe(actBadge,{childList:true,characterData:true,subtree:true,attributes:true});
   }
 })();
 
@@ -240,7 +263,7 @@ function renderMobileDash(){
   if(greet){
     var h=new Date().getHours();
     var saud=h<12?'Bom dia':(h<18?'Boa tarde':'Boa noite');
-    greet.textContent=saud+', '+(u?u.nome.split(' ')[0]:S.nome.split(' ')[0])+'!';
+    greet.textContent=saud+', '+((u&&u.nome)?(u.nome.split(' ')[0]):(S&&S.nome?S.nome.split(' ')[0]:'Usuário'))+'!';
   }
   /* Fonte unica: reconcilia o cadastro legado 'cli/steps' (usado no desktop, ver renderDash/
      renderAdmMetrics) com o kanban 'kb leads/negocios' (unica fonte usada aqui antes desta
@@ -265,11 +288,11 @@ function renderMobileDash(){
   });
   var recEl=document.getElementById('mdash-recent');
   if(recEl){
-    var feed=getFeed().slice(0,5);
+    var feed=(typeof getFeed==='function'?getFeed():[]).slice(0,5);
     if(!feed.length)recEl.innerHTML='<div class="act-empty">Nenhuma atividade recente.</div>';
     else recEl.innerHTML=feed.map(function(f){
       var dt=new Date(f.ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-      return '<div class="mdash-recent-item"><strong>'+eH(f.byName.split(' ')[0])+'</strong> &middot; '+eH(f.itemName)+(f.detail?' &mdash; '+eH(f.detail):'')+'<div class="mr-time">'+dt+'</div></div>';
+      return '<div class="mdash-recent-item"><strong>'+eH((f.byName||'?').split(' ')[0])+'</strong> &middot; '+eH(f.itemName||'')+(f.detail?' &mdash; '+eH(f.detail):'')+'<div class="mr-time">'+dt+'</div></div>';
     }).join('');
   }
 }
@@ -277,11 +300,20 @@ function renderMobileDash(){
 /* Hook não-invasivo: depois que goPage() termina de rotear, sincroniza o "chrome" mobile
    (título do header, item ativo da nav inferior) e atualiza o dashboard mobile.
    A lista mobile de Leads/Negócios já é tratada dentro do próprio renderKB(). */
-if(!goPage._mobileHooked){
-  var _origGoPage=goPage;
-  goPage=function(p){_origGoPage(p);if(p==='dash')renderMobileDash();};
-  goPage._mobileHooked=true;
+function hookMobileGoPage() {
+  if (typeof goPage === 'function' && !goPage._mobileHooked) {
+    var _origGoPage = goPage;
+    goPage = function(p) {
+      _origGoPage(p);
+      if (p === 'dash') renderMobileDash();
+    };
+    goPage._mobileHooked = true;
+  } else if (typeof goPage === 'undefined') {
+    // Se goPage ainda não existe (race condition), tenta novamente em breve
+    setTimeout(hookMobileGoPage, 50);
+  }
 }
+hookMobileGoPage();
 
 window.addEventListener('resize',function(){
   if(_mbResizeTimer)clearTimeout(_mbResizeTimer);
@@ -302,7 +334,7 @@ window.addEventListener('resize',function(){
   // na próxima abertura).
   var _lw=document.getElementById('lig-widget');
   if(_lw&&_lw.style.left){
-    var _lwL=parseFloat(_lw.style.left)||0,_lwT=parseFloat(_lw.style.top)||0;
+    var _lwL=parseFloat(_lw.style.left)||0,_lwT=parseFloat(_lw.style.top)||0;if(!isFinite(_lwL))_lwL=0;if(!isFinite(_lwT))_lwT=0;
     _lw.style.left=Math.max(0,Math.min(window.innerWidth-_lw.offsetWidth,_lwL))+'px';
     _lw.style.top=Math.max(56,Math.min(window.innerHeight-_lw.offsetHeight,_lwT))+'px';
   }

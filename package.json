@@ -1,0 +1,16 @@
+{
+  "name": "lidercrm",
+  "version": "1.0.0",
+  "description": "Lider CRM — Cloudflare Pages + Supabase + Backblaze",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx --yes wrangler pages dev . --port 8788",
+    "dev": "npm run start",
+    "build": "echo 'Static site — no build step needed. Cloudflare Pages serves files as-is.'",
+    "preview": "npx --yes wrangler pages dev ."
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

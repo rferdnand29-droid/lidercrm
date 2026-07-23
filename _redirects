@@ -1,0 +1,14 @@
+# =====================================================================
+# LIDER CRM — Cloudflare Pages redirects (2026-07-19)
+# ---------------------------------------------------------------------
+# IMPORTANTE:
+#   • /api/*  NÃO tem redirect. Rotas /api/* são interceptadas pela
+#     Pages Function em functions/[[path]].js (catch-all), que chama
+#     _worker_src/worker/api-handler.js.
+#   • SPA fallback: qualquer rota que não seja um arquivo real (.html,
+#     .js, .css, .png, .jpg, .json, .svg, etc.) cai em /index.html
+#     com status 200 (o app SPA se auto-roteia via hash / history).
+# =====================================================================
+
+# Fallback SPA: rotas "bonitas" (/kanban, /leads, /agenda…) servem index.html
+/*    /index.html   200

@@ -1,0 +1,87 @@
+# =====================================================================
+# LIDER CRM — Cloudflare Pages headers (2026-07-19)
+# ---------------------------------------------------------------------
+# Migração para Cloudflare Pages:
+#   • Sintaxe idêntica à antiga (Workers Assets), mas o Pages EXPANDE
+#     globs (/src/**/*.js funciona). Mantemos ambos por segurança.
+#   • X-Content-Type-Options: nosniff (evita MIME sniffing).
+#   • Access-Control-Allow-Origin: * nos assets p/ o Capacitor (origin
+#     capacitor://localhost) consumir os arquivos sem CORS.
+#   • CSP fica só no <meta> do index.html (evita conflito header vs meta).
+#
+# ATUALIZAÇÃO (2026-07-21) — cache longo para js/css/src:
+#   • Antes: no-cache/must-revalidate em TODOS os JS/CSS → toda vez que o
+#     app carrega do zero (aba nova, refresh, F5) o navegador tinha que
+#     revalidar (round-trip) ~65 arquivos com o servidor antes de usar o
+#     cache. Isso deixava "abrir em nova guia" e recarregamentos lentos.
+#   • Agora: cache público de 1 ano + immutable, pois TODOS os arquivos já
+#     são referenciados no index.html/app.html com query string de versão
+#     (ex: js/kanban.js?v=cf20260721fix2). Isso é seguro porque:
+#       - Se o conteúdo do arquivo muda, você DEVE trocar o ?v=... dele no
+#         index.html/app.html (isso já era prática do projeto).
+#       - URL com ?v= diferente = "arquivo novo" para o navegador → nunca
+#         serve o antigo por engano.
+#   • ⚠️ IMPORTANTE: ao editar qualquer .js/.css, troque o ?v=... daquele
+#     arquivo em TODAS as páginas que o referenciam (index.html e
+#     app.html). Se esquecer, o navegador vai continuar servindo a versão
+#     antiga em cache por até 1 ano.
+#   • index.html, app.html e "/" continuam no-store (sempre frescos), pois
+#     é neles que vivem as query strings de versão — precisam sempre vir
+#     direto do servidor.
+# =====================================================================
+
+/*
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: geolocation=(), microphone=(self), camera=()
+  Access-Control-Allow-Origin: *
+
+/
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/index.html
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/app.html
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/js/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/css/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/js/vendor/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/assets/*
+  Cache-Control: public, max-age=86400
+  Access-Control-Allow-Origin: *
+
+# Content-Type correto para JavaScript modules
+/*.js
+  Content-Type: application/javascript; charset=UTF-8
+
+/src/*
+  Content-Type: application/javascript; charset=UTF-8
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=31536000, immutable
+
+/src/**/*.js
+  Content-Type: application/javascript; charset=UTF-8
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=31536000, immutable
+
+/js/patches/*
+  Content-Type: application/javascript; charset=UTF-8
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=31536000, immutable
+
+# API não recebe cache
+/api/*
+  Cache-Control: no-store, no-cache, must-revalidate
+  Access-Control-Allow-Origin: *

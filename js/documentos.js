@@ -17,57 +17,15 @@ var _attCtxId=null;
 
   // id do anexo no ctx menu
 
-/* Ícone por tipo de arquivo */
-function attIcon(type,name){
-  var n=(name||'').toLowerCase();
-  if(type&&type.startsWith('image/'))return{ic:'🖼',cls:'img'};
-  if(type&&type.startsWith('audio/'))return{ic:'🎵',cls:'audio'};
-  if(type&&type.startsWith('video/'))return{ic:'🎬',cls:'video'};
-  if(type==='application/pdf'||n.endsWith('.pdf'))return{ic:'📄',cls:'pdf'};
-  if(n.endsWith('.doc')||n.endsWith('.docx'))return{ic:'📝',cls:'doc'};
-  if(n.endsWith('.xls')||n.endsWith('.xlsx'))return{ic:'📊',cls:'xls'};
-  if(n.endsWith('.csv'))return{ic:'📋',cls:'csv'};
-  if(n.endsWith('.txt'))return{ic:'📃',cls:'txt'};
-  return{ic:'📁',cls:''};
-}
-
-/* Formata bytes */
-function fmtBytes(b){
-  if(!b)return'';
-  if(b<1024)return b+'B';
-  if(b<1024*1024)return(b/1024).toFixed(1)+'KB';
-  return(b/(1024*1024)).toFixed(1)+'MB';
-}
-
-/* Troca aba no modal det */
-function switchDetTab(tab,btn){
-  document.querySelectorAll('#mo-kb-det .det-tab').forEach(function(b){b.classList.remove('on');});
-  document.querySelectorAll('#mo-kb-det .det-tab-pane').forEach(function(p){p.classList.remove('on');});
-  if(btn)btn.classList.add('on');
-  var pane=document.getElementById('det-pane-'+tab);if(pane)pane.classList.add('on');
-  if(tab==='att')reRenderAtt();
-}
-
-/* Histórico do card (Tarefa: "tudo que acontece de movimentos desse lead/negócio fica
-   registrado"): criação, mudanças de etapa, conversão Lead<->Negócio e troca de
-   responsável — mais recente primeiro. */
-function renderDetHistorico(c){
-  var el=document.getElementById('det-hist-list');if(!el)return;
-  // Sempre relê o card do storage usando o _kbDetId/_kbDetBoard atuais — evita usar um
-  // objeto "c" que ficou desatualizado caso o modal tenha sido reaberto com outro card.
-  var board=_kbDetBoard,id=_kbDetId;
-  if(board&&id){
-    var uid=(_kbDetOwnerUid||activeUID(board));var arr=getKBFor(board,uid);
-    var fresh=arr.find(function(x){return x.id===id;});
-    if(fresh)c=fresh;
-  }
-  var h=(c&&c.historico)||[];
-  if(!h.length){el.innerHTML='<div class="act-empty">Nenhuma movimentação registrada ainda.</div>';return;}
-  el.innerHTML=h.map(function(ev){
-    var dt=ev.ts?new Date(ev.ts).toLocaleString('pt-BR'):'';
-    return '<div class="hist-item"><div class="hist-txt">'+eH(ev.texto)+'</div><div class="hist-meta">'+eH(ev.by||'')+(dt?' · '+dt:'')+'</div></div>';
-  }).join('');
-}
+var __documentosRuntime=(((window.LiderCRM||{}).modules||{}).documentos||{}).runtime||{};
+var attIcon=__documentosRuntime.attIcon||function(){};
+var fmtBytes=__documentosRuntime.fmtBytes||function(){};
+var switchDetTab=__documentosRuntime.switchDetTab||function(){};
+var renderDetHistorico=__documentosRuntime.renderDetHistorico||function(){};
+var DOC_ALLOWED_EXT=__documentosRuntime.DOC_ALLOWED_EXT||function(){};
+var _docFileTypeAllowed=__documentosRuntime._docFileTypeAllowed||function(){};
+var _safeStorageName=__documentosRuntime._safeStorageName||function(){};
+var _attMediaSrc=__documentosRuntime._attMediaSrc||function(){};
 
 /* Troca visualização grade/lista */
 function setAttView(v,btn){
@@ -93,36 +51,39 @@ function renderDetAttachments(c,board,uid){
 
 /* Re-renderiza o container de anexos (chamado ao abrir aba ou após mudanças) */
 function reRenderAtt(){
-  var board=_kbDetBoard,id=_kbDetId;if(!board||!id)return;
-  var uid=(_kbDetOwnerUid||activeUID(board));
-  var arr=getKBFor(board,uid);
+  var board=(typeof _kbDetBoard!=='undefined'?_kbDetBoard:null),id=(typeof _kbDetId!=='undefined'?_kbDetId:null);if(!board||!id)return;
+  var uid=((typeof _kbDetOwnerUid!=='undefined'?_kbDetOwnerUid:null)||(typeof activeUID==='function'?activeUID(board):null));
+  var arr=(typeof getKBFor==='function'?getKBFor(board,uid):[]);
   var c=arr.find(function(x){return x.id===id;});
   if(!c)return;
   var atts=c.attachments||[];
   var cont=document.getElementById('att-container');if(!cont)return;
+  var canEdit=(typeof _attCanEditCurrentCard==='function')?_attCanEditCurrentCard():true;
+  var dz=document.getElementById('att-dropzone');if(dz)dz.style.display=canEdit?'':'none';
+  var fileInp=document.getElementById('att-file-inp');if(fileInp)fileInp.disabled=!canEdit;
   var lbl=document.getElementById('att-count-lbl');
   if(lbl)lbl.textContent=atts.length+' anexo'+(atts.length!==1?'s':'');
   updateAttBadge(atts.length);
   if(!atts.length){
-    cont.innerHTML='<div class="att-empty"><div class="att-empty-ic">📂</div><div class="att-empty-lbl">Nenhum anexo ainda</div><div class="att-empty-sub">Arraste arquivos ou clique para adicionar</div></div>';
+    cont.innerHTML='<div class="att-empty"><div class="att-empty-ic">📂</div><div class="att-empty-lbl">Nenhum anexo ainda</div><div class="att-empty-sub">'+(canEdit?'Arraste arquivos ou clique para adicionar':'Somente visualização em Vídeo/Loja.')+'</div></div>';
     return;
   }
-  var canDel=hasAdminAccess();
+  var canDel=hasAdminAccess()&&canEdit;
   var pinned=atts.filter(function(a){return a.pinned;});
   var others=atts.filter(function(a){return !a.pinned;});
   var html='';
   // Destaque: anexos fixados sempre aparecem em grade no topo, independente do modo de visualizacao escolhido.
-  if(pinned.length)html+='<div class="att-pin-section"><div class="att-pin-lbl">📌 Fixados ('+pinned.length+')</div><div class="att-grid">'+pinned.map(function(a){return _attCardHTML(a,true);}).join('')+'</div></div>';
+  if(pinned.length)html+='<div class="att-pin-section"><div class="att-pin-lbl">📌 Fixados ('+pinned.length+')</div><div class="att-grid">'+pinned.map(function(a){return _attCardHTML(a,true,canEdit);}).join('')+'</div></div>';
   if(_attView==='grid'){
-    if(others.length)html+='<div class="att-grid">'+others.map(function(a){return _attCardHTML(a,false);}).join('')+'</div>';
+    if(others.length)html+='<div class="att-grid">'+others.map(function(a){return _attCardHTML(a,false,canEdit);}).join('')+'</div>';
   } else {
-    if(others.length)html+='<div class="att-list-mode">'+others.map(function(a){return _attRowHTML(a,canDel);}).join('')+'</div>';
+    if(others.length)html+='<div class="att-list-mode">'+others.map(function(a){return _attRowHTML(a,canDel,canEdit);}).join('')+'</div>';
   }
   cont.innerHTML=html;
 }
 
 /* Card de anexo (modo grade). isPinned controla o estilo de destaque e o icone de fixado. */
-function _attCardHTML(a,isPinned){
+function _attCardHTML(a,isPinned,canEdit){
   var ico=attIcon(a.type,a.name);
   var isImg=a.type&&a.type.startsWith('image/');
   var mediaSrc=_attMediaSrc(a);
@@ -131,14 +92,14 @@ function _attCardHTML(a,isPinned){
   var attIdJs=_jsSq(a.id);
   return '<div class="att-card'+(isPinned?' pinned':'')+'" onclick="viewAttachment(\''+attIdJs+'\')" oncontextmenu="attCtxOpen(event,\''+attIdJs+'\')" tabindex="0" role="button">'
     +'<div class="att-card-thumb">'+(isPinned?'<span class="att-pin-flag">📌</span>':'')+thumb
-    +'<button class="att-card-pinbtn" onclick="event.stopPropagation();togglePinAttachment(\''+attIdJs+'\')" title="'+(isPinned?'Desafixar':'Fixar')+'">📌</button>'
-    +'<button class="att-card-menu" onclick="event.stopPropagation();attCtxOpen(event,\''+attIdJs+'\')" title="Opções">⋮</button></div>'
+    +(canEdit?'<button class="att-card-pinbtn" onclick="event.stopPropagation();togglePinAttachment(\''+attIdJs+'\')" title="'+(isPinned?'Desafixar':'Fixar')+'">📌</button>':'')
+    +(canEdit?'<button class="att-card-menu" onclick="event.stopPropagation();attCtxOpen(event,\''+attIdJs+'\')" title="Opções">⋮</button>':'')+'</div>'
     +'<div class="att-card-body"><div class="att-card-name" title="'+eH(a.name)+'">'+eH(a.name)+'</div>'
     +'<div class="att-card-meta">'+fmtBytes(a.size)+(dt?' · '+dt:'')+'</div></div></div>';
 }
 
 /* Linha de anexo (modo lista). */
-function _attRowHTML(a,canDel){
+function _attRowHTML(a,canDel,canEdit){
   var ico=attIcon(a.type,a.name);
   var dt=a.uploadedAt?new Date(a.uploadedAt).toLocaleString('pt-BR'):'';
   var by=a.uploadedBy?eH(a.uploadedBy):'';
@@ -148,18 +109,19 @@ function _attRowHTML(a,canDel){
     +'<div class="att-row-body"><div class="att-row-name">'+eH(a.name)+'</div>'
     +'<div class="att-row-meta">'+fmtBytes(a.size)+(by?' · '+by:'')+(dt?' · '+dt:'')+'</div></div>'
     +'<div class="att-row-actions" onclick="event.stopPropagation()">'
-    +'<button class="att-row-btn" onclick="togglePinAttachment(\''+attIdJs+'\')" title="'+(a.pinned?'Desafixar':'Fixar')+'">📌</button>'
+    +(canEdit?'<button class="att-row-btn" onclick="togglePinAttachment(\''+attIdJs+'\')" title="'+(a.pinned?'Desafixar':'Fixar')+'">📌</button>':'')
     +'<button class="att-row-btn" onclick="viewAttachment(\''+attIdJs+'\')" title="Visualizar">👁</button>'
     +'<button class="att-row-btn" onclick="downloadAttachment(\''+attIdJs+'\')" title="Baixar">⬇</button>'
-    +'<button class="att-row-btn" onclick="renameAttachment(\''+attIdJs+'\')" title="Renomear">✏️</button>'
+    +(canEdit?'<button class="att-row-btn" onclick="renameAttachment(\''+attIdJs+'\')" title="Renomear">✏️</button>':'')
     +(canDel?'<button class="att-row-btn danger" onclick="delAttachment(\''+attIdJs+'\')" title="Excluir">🗑</button>':'')
     +'</div></div>';
 }
 
 /* Fixa/desafixa um anexo no topo do registro (Tarefa 5). Qualquer consultor pode fixar/desafixar. */
 function togglePinAttachment(attId){
-  var board=_kbDetBoard,id=_kbDetId;if(!board||!id)return;
-  var uid=(_kbDetOwnerUid||activeUID(board));var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
+  if(typeof _attCanEditCurrentCard==='function'&&!_attCanEditCurrentCard()){toast('Somente visualização em Vídeo/Loja.');return;}
+  var board=(typeof _kbDetBoard!=='undefined'?_kbDetBoard:null),id=(typeof _kbDetId!=='undefined'?_kbDetId:null);if(!board||!id)return;
+  var uid=((typeof _kbDetOwnerUid!=='undefined'?_kbDetOwnerUid:null)||(typeof activeUID==='function'?activeUID(board):null));var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
   if(!c.attachments)c.attachments=[];
   var a=c.attachments.find(function(x){return x.id===attId;});if(!a)return;
   a.pinned=!a.pinned;a.pinnedAt=a.pinned?new Date().toISOString():null;
@@ -170,60 +132,72 @@ function togglePinAttachment(attId){
 
 /* Upload de arquivos (botão e drop) */
 function handleAttFiles(inp){
-  var board=_kbDetBoard,id=_kbDetId;if(!board||!id)return;
-  var uid=(_kbDetOwnerUid||activeUID(board));var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
+  if(typeof _attCanEditCurrentCard==='function'&&!_attCanEditCurrentCard()){toast('Somente visualização em Vídeo/Loja.');if(inp)inp.value='';return;}
+  var board=(typeof _kbDetBoard!=='undefined'?_kbDetBoard:null),id=(typeof _kbDetId!=='undefined'?_kbDetId:null);if(!board||!id)return;
+  var uid=((typeof _kbDetOwnerUid!=='undefined'?_kbDetOwnerUid:null)||(typeof activeUID==='function'?activeUID(board):null));var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
   if(!c.attachments)c.attachments=[];
   var files=Array.from(inp.files);if(!files.length)return;
   processAttFiles(files,c,arr,board,uid);
   inp.value='';
 }
 
-var ATT_ALLOWED_EXT=['pdf','doc','docx','xls','xlsx','csv','txt','jpg','jpeg','png','webp','mp3','wav','m4a','ogg','mp4','mov','webm'];
-
-/* Valida tipo de arquivo. O atributo accept= do input so vale para quem usa o seletor de
-   arquivos — quem arrasta e solta (drag&drop) passava direto sem checagem, por isso a
-   validacao precisa acontecer aqui tambem (corrigido). */
 function _attTypeAllowed(f){
-  if(f.type&&f.type.indexOf('image/')===0)return true;
-  if(f.type&&f.type.indexOf('audio/')===0)return true;
-  if(f.type&&f.type.indexOf('video/')===0)return true;
-  var ext=(f.name||'').split('.').pop().toLowerCase();
-  return ATT_ALLOWED_EXT.indexOf(ext)>=0;
+  return _docFileTypeAllowed(f, DOC_ALLOWED_EXT);
 }
 
 /* Upload de um arquivo bruto para o Firebase Storage (sem limite prático de
    tamanho — ao contrário de guardar base64 dentro do documento do Firestore,
    que tem teto de ~1MB). Retorna {url, path} pelo callback. */
+function _storageGateway(){
+  var root=window.LiderCRM||{};
+  return {
+    service:(root.services&&root.services.storage)||null,
+    repo:(root.repositories&&root.repositories.storage)||null
+  };
+}
+
+function _canUseManagedStorage(){
+  var gw=_storageGateway();
+  if(gw.repo&&typeof gw.repo.canUpload==='function')return !!gw.repo.canUpload();
+  return !!(gw.service&&typeof gw.service.upload==='function');
+}
+
+/* Upload de um arquivo bruto para a camada de storage centralizada. */
 function _uploadFileToStorage(file,path,cb){
-  if(!fbStorage){cb('sem-storage');return;}
-  try{
-    var ref=fbStorage.ref().child(path);
-    ref.put(file).then(function(snap){return snap.ref.getDownloadURL();})
-      .then(function(url){cb(null,{url:url,path:path});})
-      .catch(function(err){cb(err);});
-  }catch(e){cb(e);}
+  /* R18-01: tentar Backblaze B2 primeiro, fallback para storage legado */
+  if(typeof b2UploadFile==='function'&&b2IsAvailable&&b2IsAvailable()){
+    return b2UploadFile(file,path,function(err,res){
+      if(err){
+        console.warn('[storage] B2 falhou, tentando legado:',err.message);
+        _uploadFileToStorageLegacy(file,path,cb);
+      }else{
+        if(cb)cb(null,res);
+      }
+    }).catch(function(){
+      _uploadFileToStorageLegacy(file,path,cb);
+    });
+  }
+  return _uploadFileToStorageLegacy(file,path,cb);
+}
+function _uploadFileToStorageLegacy(file,path,cb){
+  var gw=_storageGateway();
+  var uploader=(gw.service&&typeof gw.service.upload==='function')?gw.service:gw.repo;
+  if(!uploader||typeof uploader.upload!=='function'){cb&&cb(new Error('sem-storage'));return Promise.reject(new Error('sem-storage'));}
+  return uploader.upload(file,path,cb);
 }
 
-function _deleteFromStorage(path){
-  if(!fbStorage||!path)return;
-  fbStorage.ref().child(path).delete().catch(function(){});
-}
-
-/* Nome de arquivo seguro para usar como parte do caminho no Storage. */
-function _safeStorageName(name){
-  return (name||'arquivo').replace(/[^a-zA-Z0-9._-]/g,'_');
-}
-
-/* Fonte utilizável em src="" de <img>/<audio>/<video>: tanto a URL do Firebase
-   Storage (https) quanto a data URL local (base64) funcionam direto. */
-function _attMediaSrc(a){
-  var raw=String((a&&(a.url||a.data))||'').trim();
-  if(!raw)return '';
-  if(/^blob:/i.test(raw))return raw;
-  if(/^data:(image|audio|video|application\/pdf)(;|,)/i.test(raw))return raw;
-  if(/^https?:\/\//i.test(raw))return raw;
-  if(raw.charAt(0)==='/')return raw;
-  return '';
+function _deleteFromStorage(path,cb){
+  /* R18-02: tentar deletar no B2, fallback para legado */
+  if(typeof b2DeleteFile==='function'&&b2IsAvailable&&b2IsAvailable()){
+    return b2DeleteFile(path,null,function(err){
+      if(err)console.warn('[storage] B2 delete falhou:',err.message);
+      if(cb)cb(err);
+    }).catch(function(){ if(cb)cb(); });
+  }
+  var gw=_storageGateway();
+  var remover=(gw.service&&typeof gw.service.remove==='function')?gw.service:gw.repo;
+  if(!remover||typeof remover.remove!=='function'){cb&&cb(new Error('sem-storage'));return Promise.resolve();}
+  return remover.remove(path,cb);
 }
 
 /* Resolve um href pronto para forçar o download com o nome certo do arquivo.
@@ -253,7 +227,11 @@ function _attPreviewPdf(a,ab,attId,downloadFn){
   }
   if(a.url){
     ab.innerHTML='<div style="padding:40px;text-align:center;color:var(--mu);font-size:.8rem"><div class="spinner-sm" style="margin:0 auto 10px"></div>Carregando pré-visualização...</div>';
-    fetch(a.url).then(function(r){return r.blob();}).then(function(blob){
+    fetch(a.url).then(function(r){
+      // FIX (2026-07-22): erros HTTP (404/500) não disparam catch — verificar r.ok explicitamente
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.blob();
+    }).then(function(blob){
       var bUrl=URL.createObjectURL(blob);
       _attViewBlobUrl=bUrl;
       ab.innerHTML='<iframe src="'+bUrl+'" style="width:100%;height:65vh;border:none;border-radius:8px"></iframe>';
@@ -267,6 +245,7 @@ function _attPreviewPdf(a,ab,attId,downloadFn){
 }
 
 function processAttFiles(files,c,arr,board,uid){
+  if(typeof _attCanEditCurrentCard==='function'&&!_attCanEditCurrentCard()){toast('Somente visualização em Vídeo/Loja.');return;}
   // Limite de tamanho removido a pedido do usuário. No modo Firebase os arquivos
   // vão para o Firebase Storage (sem teto de ~1MB, que só existe para dados
   // guardados direto dentro de um documento do Firestore); no modo local
@@ -298,7 +277,7 @@ function processAttFiles(files,c,arr,board,uid){
   }
   valid.forEach(function(file){
     var attId='att_'+Date.now()+'_'+Math.random().toString(36).slice(2,5);
-    if(DB_MODE==='firebase'&&fbStorage){
+    if(DB_MODE==='firebase'&&_canUseManagedStorage()){
       var path='attachments/'+board+'/'+uid+'/'+c.id+'/'+attId+'_'+_safeStorageName(file.name);
       _uploadFileToStorage(file,path,function(err,res){
         if(err){
@@ -310,7 +289,7 @@ function processAttFiles(files,c,arr,board,uid){
           url:res.url,storagePath:res.path,
           size:file.size,
           uploadedAt:new Date().toISOString(),
-          uploadedBy:S.nome,uploadedById:S.userId
+          uploadedBy:(S&&S.nome)||'?',uploadedById:(S&&S.userId)||null
         });
         ok++;finishOne();
       });
@@ -322,7 +301,7 @@ function processAttFiles(files,c,arr,board,uid){
           data:e.target.result,
           size:file.size,
           uploadedAt:new Date().toISOString(),
-          uploadedBy:S.nome,uploadedById:S.userId
+          uploadedBy:(S&&S.nome)||'?',uploadedById:(S&&S.userId)||null
         });
         ok++;finishOne();
       };
@@ -344,10 +323,11 @@ function dzKeyOpen(e,inputId){if(e.key==='Enter'||e.key===' '||e.key==='Spacebar
 
 function attDrop(e){
   e.preventDefault();e.stopPropagation();
+  if(typeof _attCanEditCurrentCard==='function'&&!_attCanEditCurrentCard()){toast('Somente visualização em Vídeo/Loja.');return;}
   var dz=document.getElementById('att-dropzone');if(dz)dz.classList.remove('drag-over');
   var files=Array.from(e.dataTransfer.files);if(!files.length)return;
-  var board=_kbDetBoard,id=_kbDetId;if(!board||!id)return;
-  var uid=(_kbDetOwnerUid||activeUID(board));var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
+  var board=(typeof _kbDetBoard!=='undefined'?_kbDetBoard:null),id=(typeof _kbDetId!=='undefined'?_kbDetId:null);if(!board||!id)return;
+  var uid=((typeof _kbDetOwnerUid!=='undefined'?_kbDetOwnerUid:null)||(typeof activeUID==='function'?activeUID(board):null));var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
   if(!c.attachments)c.attachments=[];
   processAttFiles(files,c,arr,board,uid);
   // Muda automaticamente para a aba de anexos se não estiver nela
@@ -386,8 +366,8 @@ function _releaseAttViewBlobUrl(){
 }
 
 function viewAttachment(attId){
-  var board=_kbDetBoard,id=_kbDetId;if(!board||!id)return;
-  var uid=(_kbDetOwnerUid||activeUID(board));var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
+  var board=(typeof _kbDetBoard!=='undefined'?_kbDetBoard:null),id=(typeof _kbDetId!=='undefined'?_kbDetId:null);if(!board||!id)return;
+  var uid=((typeof _kbDetOwnerUid!=='undefined'?_kbDetOwnerUid:null)||(typeof activeUID==='function'?activeUID(board):null));var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
   var a=(c.attachments||[]).find(function(x){return x.id===attId;});if(!a)return;
   _attViewId=attId;_attViewSource='card';
   var an=document.getElementById('att-view-name');if(an)an.textContent=a.name;
@@ -415,8 +395,8 @@ function viewAttachment(attId){
 /* Download */
 function downloadAttachment(attId){
   if(!attId)return;
-  var board=_kbDetBoard,id=_kbDetId;if(!board||!id)return;
-  var uid=(_kbDetOwnerUid||activeUID(board));var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
+  var board=(typeof _kbDetBoard!=='undefined'?_kbDetBoard:null),id=(typeof _kbDetId!=='undefined'?_kbDetId:null);if(!board||!id)return;
+  var uid=((typeof _kbDetOwnerUid!=='undefined'?_kbDetOwnerUid:null)||(typeof activeUID==='function'?activeUID(board):null));var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
   var a=(c.attachments||[]).find(function(x){return x.id===attId;});if(!a)return;
   _attDownloadHref(a,function(href){
     if(!href){toast('❌ Não foi possível baixar este arquivo.');return;}
@@ -429,8 +409,9 @@ function downloadAttachment(attId){
 var _renameAttId=null;
 
 function renameAttachment(attId){
-  var board=_kbDetBoard,id=_kbDetId;if(!board||!id)return;
-  var uid=(_kbDetOwnerUid||activeUID(board));var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
+  if(typeof _attCanEditCurrentCard==='function'&&!_attCanEditCurrentCard()){toast('Somente visualização em Vídeo/Loja.');return;}
+  var board=(typeof _kbDetBoard!=='undefined'?_kbDetBoard:null),id=(typeof _kbDetId!=='undefined'?_kbDetId:null);if(!board||!id)return;
+  var uid=((typeof _kbDetOwnerUid!=='undefined'?_kbDetOwnerUid:null)||(typeof activeUID==='function'?activeUID(board):null));var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
   var a=(c.attachments||[]).find(function(x){return x.id===attId;});if(!a)return;
   _renameAttId=attId;
   _renameDocId=null;
@@ -443,6 +424,7 @@ function renameAttachment(attId){
 }
 
 function _confirmRenameAttachment(){
+  if(typeof _attCanEditCurrentCard==='function'&&!_attCanEditCurrentCard()){toast('Somente visualização em Vídeo/Loja.');closeM('mo-rename-doc');_renameAttId=null;return;}
   if(!_renameAttId)return;
   var inp=document.getElementById('rename-doc-inp');
   var novo=(inp?inp.value:'').trim();
@@ -453,7 +435,7 @@ function _confirmRenameAttachment(){
   if(!a){_renameAttId=null;closeM('mo-rename-doc');return;}
   if(novo===a.name){closeM('mo-rename-doc');_renameAttId=null;return;}
   var nomeAntigo=a.name;
-  a.name=novo;a.renamedAt=new Date().toISOString();a.renamedBy=S.nome;
+  a.name=novo;a.renamedAt=new Date().toISOString();a.renamedBy=(S&&S.nome)||'?';
   saveKBFor(board,uid,arr);
   logAttEvent('rename',c.name,nomeAntigo+' → '+novo,board);
   reRenderAtt();closeM('mo-rename-doc');_renameAttId=null;_setRenameDocModalMode('document');toast('✏️ Renomeado!');
@@ -465,9 +447,12 @@ var _attCtxOutsideH=null;
 function attCtxOpen(e,attId){
   e.preventDefault();e.stopPropagation();
   _attCtxId=attId;
-  var canDel=hasAdminAccess();
+  var canEdit=(typeof _attCanEditCurrentCard==='function')?_attCanEditCurrentCard():true;
+  var canDel=hasAdminAccess()&&canEdit;
   var delBtn=document.getElementById('att-ctx-del');
   if(delBtn)delBtn.style.display=canDel?'':'none';
+  var renameBtn=document.getElementById('att-ctx-rename');
+  if(renameBtn)renameBtn.style.display=canEdit?'':'none';
   var pinBtn=document.getElementById('att-ctx-pin');
   if(pinBtn){
     var board=_kbDetBoard,id=_kbDetId;var uid=(_kbDetOwnerUid||activeUID(board));var arr=getKBFor(board,uid);
@@ -508,16 +493,27 @@ var _admDocsView='grid',_admDocCtxId=null;
 
 function getAdmDocs(){return sg(ADM_DOCS_KEY)||[];}
 
-function saveAdmDocs(list){var localOk=ss(ADM_DOCS_KEY,list);if(DB_MODE==='firebase'&&db){syncBusy();db.collection('config').doc('adm_docs').set({list:list,ts:Date.now()}).then(syncOk).catch(syncErr);}return localOk;}
+function _docsRepo(){return window.LiderCRM&&window.LiderCRM.repositories&&window.LiderCRM.repositories.documentos||null;}
+
+function saveAdmDocs(list){
+  var localOk=ss(ADM_DOCS_KEY,list);
+  var repo=_docsRepo();
+  if(DB_MODE==='firebase'&&repo&&typeof repo.saveAdmDocs==='function'){
+    syncBusy();
+    Promise.resolve(repo.saveAdmDocs(list)).then(syncOk).catch(syncErr);
+  }
+  return localOk;
+}
 
 /* Local-first: desenha na hora com o cache local e só then atualiza em segundo plano. */
 function loadAdmDocs(cb){
   cb(getAdmDocs());
-  if(DB_MODE==='firebase'&&db){
-    db.collection('config').doc('adm_docs').get().then(function(d){
-      var list=(d.exists&&d.data().list)?d.data().list:getAdmDocs();
+  var repo=_docsRepo();
+  if(DB_MODE==='firebase'&&repo&&typeof repo.getAdmDocs==='function'){
+    Promise.resolve(repo.getAdmDocs()).then(function(list){
+      list=Array.isArray(list)?list:getAdmDocs();
       ss(ADM_DOCS_KEY,list);cb(list);
-    }).catch(function(){});
+    }).catch(function(e){console.warn("[docs] loadAdmDocs falhou",e);});
   }
 }
 
@@ -632,14 +628,8 @@ function handleAdmDocFiles(inp){
   inp.value='';
 }
 
-var ADM_DOC_ALLOWED_EXT=['pdf','doc','docx','xls','xlsx','csv','txt','jpg','jpeg','png','webp','mp3','wav','m4a','ogg','mp4','mov','webm'];
-
 function _admDocTypeAllowed(f){
-  if(f.type&&f.type.indexOf('image/')===0)return true;
-  if(f.type&&f.type.indexOf('audio/')===0)return true;
-  if(f.type&&f.type.indexOf('video/')===0)return true;
-  var ext=(f.name||'').split('.').pop().toLowerCase();
-  return ADM_DOC_ALLOWED_EXT.indexOf(ext)>=0;
+  return _docFileTypeAllowed(f, DOC_ALLOWED_EXT);
 }
 
 function processAdmDocFiles(files){
@@ -674,14 +664,14 @@ function processAdmDocFiles(files){
   }
   valid.forEach(function(file){
     var docId='admdoc_'+Date.now()+'_'+Math.random().toString(36).slice(2,5);
-    if(DB_MODE==='firebase'&&fbStorage){
+    if(DB_MODE==='firebase'&&_canUseManagedStorage()){
       var path='adm_docs/'+docId+'_'+_safeStorageName(file.name);
       _uploadFileToStorage(file,path,function(err,res){
         if(err){toast('❌ Falha ao enviar '+file.name+' para a nuvem.');finishOne();return;}
         docs.push({
           id:docId,name:file.name,type:file.type,
           url:res.url,storagePath:res.path,size:file.size,
-          uploadedAt:new Date().toISOString(),uploadedBy:S.nome,pinned:false
+          uploadedAt:new Date().toISOString(),uploadedBy:(S&&S.nome)||'?',pinned:false // FIX (2026-07-22): guard S nulo
         });
         ok++;finishOne();
       });
@@ -690,7 +680,7 @@ function processAdmDocFiles(files){
       reader.onload=function(e){
         docs.push({
           id:docId,name:file.name,type:file.type,data:e.target.result,size:file.size,
-          uploadedAt:new Date().toISOString(),uploadedBy:S.nome,pinned:false
+          uploadedAt:new Date().toISOString(),uploadedBy:(S&&S.nome)||'?',pinned:false // FIX (2026-07-22): guard S nulo
         });
         ok++;finishOne();
       };

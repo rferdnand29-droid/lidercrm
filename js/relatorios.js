@@ -15,7 +15,7 @@ function renderAdmPage(){
   // sessão aberta, a lista aqui nunca era atualizada — só mudava com um novo login. Agora, toda
   // vez que a aba ADM é aberta, buscamos a lista mais recente direto do Firestore em segundo
   // plano e re-renderizamos assim que chegar (a tela já abre rápido com o cache local acima).
-  loadUsersDB(function(){try{renderUsers();}catch(e){}});
+  loadUsersDB(function(){try{renderUsers();}catch(e){console.warn('[rel] renderUsers failed',e);}});
   document.querySelectorAll('.adm-tab').forEach(function(b){b.classList.remove('on');});
   document.querySelectorAll('.adm-pane').forEach(function(p){p.classList.remove('on');});
   var ft=document.querySelector('.adm-tab'),fp=document.getElementById('adm-pane-usuarios');
@@ -35,7 +35,7 @@ function admGoTab(tab,btn){
 }
 
 function renderAdmTable(){
-  var users=getUsers().filter(function(u){return u.id!=='adm'&&u.ativo;});
+  var users=getUsers().filter(function(u){return u.ativo!==false;});
   var tb=document.getElementById('atbody');if(!tb)return;
   var rows=[];
   users.forEach(function(u){getCliLocal(u.id).forEach(function(c){var uIdJs=_jsSq(u.id),cIdJs=_jsSq(c.id);rows.push('<tr><td><span style="cursor:pointer;color:var(--al)" onclick="admOpenTimeline(\''+uIdJs+'\',\''+cIdJs+'\')">'+eH(c.nome)+'</span></td><td>'+eH(u.nome.split(' ')[0])+'</td>'+(c.steps||[]).slice(0,7).map(function(s){return '<td>'+(s?'<span style="color:var(--ok)">✓</span>':'<span style="color:var(--m2)">·</span>')+'</td>';}).join('')+'</tr>');});});
@@ -43,7 +43,7 @@ function renderAdmTable(){
 }
 
 function renderAdmMetrics(){
-  var users=getUsers().filter(function(u){return u.id!=='adm'&&u.ativo;});
+  var users=getUsers().filter(function(u){return u.ativo!==false;});
   var tot=0,ag=0,fec=0,nsh=0;
   users.forEach(function(u){var clis=getCliLocal(u.id);tot+=clis.length;clis.forEach(function(c){if(c.steps&&c.steps[0])ag++;if(c.steps&&c.steps[6])fec++;});var kbn=getKBFor('negocios',u.id);nsh+=kbn.filter(function(c){return c.col==='noshow'||c.col==='desist';}).length;});
   /* fechamentos do kanban contados separado para nao duplicar com steps[6] do dashboard */
@@ -69,46 +69,20 @@ function renderAdmMetrics(){
 function admViewBoard(board,uid){_kbViewUid[board]=uid;_kbNavFromAdm=true;goPage(board);}
 
 // Feed
-var FEED_KEY='lf13_feed';
+var __relatoriosRuntime=(((window.LiderCRM||{}).modules||{}).relatorios||{}).runtime||{};
+var FEED_KEY=__relatoriosRuntime.FEED_KEY||function(){};
+var getFeed=__relatoriosRuntime.getFeed||function(){};
+var saveFeed=__relatoriosRuntime.saveFeed||function(){};
+var _canalToFeedTag=__relatoriosRuntime._canalToFeedTag||function(){};
+var CANAL_FEED_LBL=__relatoriosRuntime.CANAL_FEED_LBL||function(){};
+var logFeedEvent=__relatoriosRuntime.logFeedEvent||function(){};
+var _kbDeleteReasonLabel=__relatoriosRuntime._kbDeleteReasonLabel||function(){};
+var _admAtivClassify=__relatoriosRuntime._admAtivClassify||function(){};
 
-function getFeed(){return sg(FEED_KEY)||[];}
-
-function saveFeed(list){var trimmed=list.slice(0,200);ss(FEED_KEY,trimmed);if(DB_MODE==='firebase'&&db){db.collection('config').doc('feed').set({list:trimmed,ts:Date.now()}).catch(function(){});}}
-
-// Normaliza os diferentes valores de "canal" usados no Banco de Objeções
-// (zap_ou_ligacao/preferir_ligacao/somente_ligacao) e nas Objeções da Equipe
-// (whatsapp/ligacao/ambos) para um único padrão de 3 opções usado no filtro
-// do feed de atividades da equipe: 'chamada' | 'whatsapp' | 'ambos'.
-function _canalToFeedTag(canal){
-  if(canal==='whatsapp')return 'whatsapp';
-  if(canal==='ligacao'||canal==='preferir_ligacao'||canal==='somente_ligacao')return 'chamada';
-  if(canal==='ambos'||canal==='zap_ou_ligacao')return 'ambos';
-  return null;
-}
-
-var CANAL_FEED_LBL={chamada:'☎️ Ligação',whatsapp:'📱 WhatsApp',ambos:'🔁 Ambos'}
-
-function logFeedEvent(type,byId,itemName,detail,board,canal){
-  var u=getUser(byId);
-  var entry={id:'f'+Date.now(),type:type,byId:byId,byName:u?u.nome:'?',byCor:u?u.cor:0,itemName:itemName,detail:detail,board:board,canal:canal||null,ts:new Date().toISOString()};
-  // Cache local: mantém mais recente primeiro (usado por getFeed() em leituras instantâneas,
-  // ex. resumo do Dashboard) — grava direto, sem depender da nuvem.
-  var localFeed=getFeed();localFeed.unshift(entry);ss(FEED_KEY,localFeed.slice(0,200));
-  // CORREÇÃO (concorrência): a versão anterior fazia GET do array inteiro, adicionava a
-  // entrada e regravava tudo com SET — se dois usuários disparassem eventos quase ao mesmo
-  // tempo, o segundo SET sobrescrevia o documento antes de incluir a entrada do primeiro,
-  // perdendo essa entrada silenciosamente do histórico da equipe. Agora usa arrayUnion, que
-  // é um append atômico no servidor: nunca sobrescreve o que outro usuário já gravou. Como
-  // consequência, o array no Firestore fica em ordem de inserção (mais antigo primeiro) —
-  // renderAdmFeed() reordena por "ts" ao ler de lá (ver comentário nessa função).
-  if(DB_MODE==='firebase'&&db){
-    db.collection('config').doc('feed').set({list:firebase.firestore.FieldValue.arrayUnion(entry),ts:Date.now()},{merge:true}).catch(function(){});
-  }
-}
 
 function renderAdmLigacoes(){
   var el=document.getElementById('adm-lig-list');if(!el)return;
-  var users=getUsers().filter(function(u){return u.id!=='adm'&&u.ativo;});
+  var users=getUsers().filter(function(u){return u.ativo!==false;});
   if(!users.length){el.innerHTML='<div class="act-empty">Nenhum consultor.</div>';return;}
   // Calcula somatória total de ligações de todos os consultores hoje
   var _ligTotal=0;
@@ -136,7 +110,13 @@ function renderAdmLigacoes(){
     +'</div>';
   el.innerHTML=resumoHTML+users.map(function(u){var uIdAttr=eH(u.id);return '<div class="adm-lig-row" id="adm-lig-row-'+uIdAttr+'" style="margin-bottom:10px;padding:10px;border:1px solid var(--b1);border-radius:10px"><div style="font-size:.78rem;font-weight:600;margin-bottom:6px">'+eH(u.nome)+' <span style="color:var(--mu);font-weight:400" id="adm-lig-cnt-'+uIdAttr+'"></span></div><div class="lig-grid" id="adm-lig-grid-'+uIdAttr+'" style="grid-template-columns:repeat(10,1fr);max-width:320px"></div></div>';}).join('');
   users.forEach(function(u){
-    if(DB_MODE==='firebase'&&db){
+    var root=window.LiderCRM;
+    var wc=root&&root.api&&root.api.workerClient;
+    if(root&&root.config&&root.config.useWorkerApi&&wc&&typeof wc.ligacoesList==='function'){
+      wc.ligacoesList(u.id,today()).then(function(doc){
+        _drawAdmLigRow(u,(doc&&doc.list)||getLigToday(u.id));
+      }).catch(function(){_drawAdmLigRow(u,getLigToday(u.id));});
+    }else if(DB_MODE==='firebase'&&db){
       db.collection('ligacoes').doc(u.id+'_'+today()).get().then(function(d){
         var list=(d.exists&&d.data().list)?d.data().list:[];
         _drawAdmLigRow(u,list);
@@ -161,19 +141,50 @@ function _drawAdmLigRow(u,list){
 var _admFeedCache=[];
 
 var _admFeedCanal=null;
+var _admFeedUserId=null;
+
+function _admFeedRenderUserOptions(){
+  var sel=document.getElementById('adm-feed-user-filter');if(!sel)return;
+  var cur=_admFeedUserId||'';
+  var users=(getUsers()||[]).filter(function(u){return u&&u.ativo!==false;}).slice().sort(function(a,b){
+    return String((a&&a.nome)||'').localeCompare(String((b&&b.nome)||''),'pt-BR');
+  });
+  sel.innerHTML='<option value="">Todos os usuários</option>'+users.map(function(u){
+    return '<option value="'+eH(u.id)+'">'+eH(u.nome||u.id)+'</option>';
+  }).join('');
+  sel.value=cur;
+}
+
+function admFeedFilterUser(uid){
+  _admFeedUserId=uid||null;
+  _admFeedRenderList();
+}
 
 function renderAdmFeed(){
   var el=document.getElementById('adm-feed-list');if(!el)return;
   function _draw(feed){
     _admFeedCache=feed;
+    _admFeedRenderUserOptions();
     _admFeedRenderList();
   }
-  if(DB_MODE==='firebase'&&db){
+  _admFeedRenderUserOptions();
+  var root=window.LiderCRM;
+  var wc=root&&root.api&&root.api.workerClient;
+  if(root&&root.config&&root.config.useWorkerApi&&wc&&typeof wc.feedList==='function'){
+    // Fase 3.4: GET /api/v1/feed já devolve os eventos (um doc por evento) ordenados
+    // por "ts" desc — reordena de novo aqui só por segurança/consistência com o ramo
+    // de baixo, e cacheia local pra leituras instantâneas (getFeed()).
+    wc.feedList(200).then(function(list){
+      var feed=(list||[]).slice().sort(function(a,b){var ta=new Date(a.ts).getTime()||0,tb=new Date(b.ts).getTime()||0;return tb-ta;});
+      ss(FEED_KEY,feed);
+      _draw(feed);
+    }).catch(function(){_draw(getFeed());});
+  }else if(DB_MODE==='firebase'&&db){
     db.collection('config').doc('feed').get().then(function(d){
       var feed=d.exists&&d.data().list?d.data().list:getFeed();
       // logFeedEvent() grava com arrayUnion (append atômico), então o array vem em ordem
       // de inserção (mais antigo primeiro) — reordena por "ts" antes de exibir/cachear.
-      feed=feed.slice().sort(function(a,b){return new Date(b.ts)-new Date(a.ts);});
+      feed=feed.slice().sort(function(a,b){var ta=new Date(a.ts).getTime()||0,tb=new Date(b.ts).getTime()||0;return tb-ta;});
       // Faz a limpeza (mantém só as 200 mais recentes) só quando necessário, aqui — não a
       // cada evento — para não reintroduzir o overwrite concorrente de logFeedEvent().
       if(feed.length>200)saveFeed(feed);else ss(FEED_KEY,feed);
@@ -196,14 +207,17 @@ function admFeedFilterCanal(canal,btn){
 function _admFeedRenderList(){
   var el=document.getElementById('adm-feed-list');if(!el)return;
   var users=getUsers();
+  var sel=document.getElementById('adm-feed-user-filter');
+  if(sel)_admFeedUserId=sel.value||null;
   var q=((document.getElementById('adm-feed-search')||{}).value||'').toLowerCase().trim();
   var feed=_admFeedCache.filter(function(f){
     if(_admFeedCanal&&f.canal!==_admFeedCanal)return false;
+    if(_admFeedUserId&&f.byId!==_admFeedUserId)return false;
     if(!q)return true;
     var hay=((f.byName||'')+' '+(f.itemName||'')+' '+(f.detail||'')).toLowerCase();
     return hay.indexOf(q)>=0;
   });
-  if(!feed.length){el.innerHTML='<div class="act-empty">'+(q||_admFeedCanal?'Nenhuma movimentação encontrada para essa busca/filtro.':'Nenhuma movimentacao ainda.')+'</div>';return;}
+  if(!feed.length){el.innerHTML='<div class="act-empty">'+(q||_admFeedCanal||_admFeedUserId?'Nenhuma movimentação encontrada para esse usuário/busca/filtro.':'Nenhuma movimentacao ainda.')+'</div>';return;}
   var tL={move:'moveu',create:'criou',discard:'descartou',login:'entrou',delete:'excluiu permanentemente',note:'anexou',obj_edit:'editou a objeção',obj_delete:'excluiu a objeção'};
   el.innerHTML=feed.slice(0,60).map(function(f){
     var u=users.find(function(x){return x.id===f.byId;});var bg=AVB[(u?u.cor:0)%AVB.length];
@@ -215,7 +229,7 @@ function _admFeedRenderList(){
     var canalLbl=eH(CANAL_FEED_LBL[f.canal]||f.canal||'');
     var canalTag=f.canal?' <span style="font-size:.58rem;padding:1px 6px;border-radius:20px;background:var(--bg3);color:var(--mu);white-space:nowrap">'+canalLbl+'</span>':'';
     var typeLbl=eH(tL[f.type]||f.type||'');
-    return '<div class="adm-feed-item">'+av+'<div class="adm-feed-body"><div class="adm-feed-txt"><strong>'+eH((f.byName||'').split(' ')[0])+'</strong> '+typeLbl+' <strong>'+eH(f.itemName)+'</strong>'+(f.detail?' - '+eH(f.detail):'')+canalTag+'</div><div class="adm-feed-time">'+dt+'</div></div></div>';
+    return '<div class="adm-feed-item">'+av+'<div class="adm-feed-body"><div class="adm-feed-txt"><strong>'+eH((f.byName||'?').split(' ')[0])+'</strong> '+typeLbl+' <strong>'+eH(f.itemName||'')+'</strong>'+(f.detail?' - '+eH(f.detail):'')+canalTag+'</div><div class="adm-feed-time">'+dt+'</div></div></div>';
   }).join('');
 }
 
@@ -229,7 +243,8 @@ var _timeViewUid=null;
 function renderTimeConsFilter(){
   var el=document.getElementById('time-cons-bar');if(!el)return;
   if(!hasSupervisorAccess()){el.innerHTML='';return;}
-  var users=getUsers().filter(function(u){return u.id!=='adm'&&u.ativo;});
+  var users=(typeof getDepartmentVisibleUsers==='function'?getDepartmentVisibleUsers(S&&S.userId):getUsers().filter(function(u){return u.ativo!==false;})).filter(function(u){return !S||u.id!==S.userId;});
+  if(_timeViewUid&&users.every(function(u){return u.id!==_timeViewUid;}))_timeViewUid=null;
   var html='<span style="font-size:.65rem;color:var(--mu);margin-right:4px">Ver:</span><button class="kb-cons-chip'+(_timeViewUid===null?' on':'')+'" onclick="setTimeConsFilter(null,this)">Todos</button>';
   users.forEach(function(u){var uidJs=_jsSq(u.id);html+='<button class="kb-cons-chip'+(_timeViewUid===u.id?' on':'')+'" onclick="setTimeConsFilter(\''+uidJs+'\',this)">'+eH(u.nome.split(' ')[0])+'</button>';});
   el.innerHTML=html;
@@ -241,6 +256,18 @@ function setTimeConsFilter(uid,btn){
   if(bar)bar.querySelectorAll('.kb-cons-chip').forEach(function(b){b.classList.remove('on');});
   if(btn)btn.classList.add('on');
   renderTimePage();
+}
+
+function _timeToggleBoards(show){
+  var ids=['time-leads-title','time-leads-kanban-wrap','time-negocios-title','time-negocios-kanban-wrap'];
+  ids.forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)el.style.display=show?'':'none';
+  });
+  if(!show){
+    var leadsWrap=document.getElementById('time-leads-kanban');if(leadsWrap)leadsWrap.innerHTML='';
+    var negWrap=document.getElementById('time-negocios-kanban');if(negWrap)negWrap.innerHTML='';
+  }
 }
 
 /* Soma leads/negócios/fechamentos por consultor para o resumo de KPIs no topo da página Time. */
@@ -262,42 +289,65 @@ function _timeKpisHTML(users){
 function renderTimePage(){
   if(!hasSupervisorAccess())return;
   renderTimeConsFilter();
-  var allUsers=getUsers().filter(function(u){return u.id!=='adm'&&u.ativo;});
+  _timeToggleBoards(false);
+  var allUsers=(typeof getDepartmentVisibleUsers==='function'?getDepartmentVisibleUsers(S&&S.userId):getUsers().filter(function(u){return u.ativo!==false;})).filter(function(u){return !S||u.id!==S.userId;});
+  if(_timeViewUid&&allUsers.every(function(u){return u.id!==_timeViewUid;}))_timeViewUid=null;
   var targetUsers=_timeViewUid?allUsers.filter(function(u){return u.id===_timeViewUid;}):allUsers;
   var kpiEl=document.getElementById('time-kpis');if(kpiEl)kpiEl.innerHTML=_timeKpisHTML(targetUsers);
-  var leadsWrap=document.getElementById('time-leads-kanban');
-  var negWrap=document.getElementById('time-negocios-kanban');
-  // Junta os cards de todos os consultores-alvo num único array combinado (cada card
-  // guarda o uid do dono pra ownerTag aparecer no card, igual já acontece na visão "Todos"
-  // do ADM). Não usa loadKBRemote (Firestore) — leitura local já reflete o último sync.
-  var leadsAll=[],negAll=[];
-  targetUsers.forEach(function(u){
-    getKBFor('leads',u.id).forEach(function(c){c._timeOwnerUid=u.id;leadsAll.push(c);});
-    getKBFor('negocios',u.id).forEach(function(c){c._timeOwnerUid=u.id;negAll.push(c);});
-  });
-  if(leadsWrap)_buildKB('leads',leadsAll,leadsWrap,_timeViewUid,true);
-  if(negWrap)_buildKB('negocios',negAll,negWrap,_timeViewUid,true);
 }
+
+var _timePageRefreshTm=0;
+function _scheduleTimePageRefresh(){
+  clearTimeout(_timePageRefreshTm);
+  _timePageRefreshTm=setTimeout(function(){
+    var pg=document.getElementById('pg-time');
+    if(pg&&pg.classList.contains('on')&&hasSupervisorAccess())renderTimePage();
+  },80);
+}
+window.addEventListener('crm:users-updated',_scheduleTimePageRefresh);
+window.addEventListener('crm:departments-updated',_scheduleTimePageRefresh);
 
 /* Move um card de coluna. Se for um Lead indo pra "Convertido", aciona a conversão
    automática em Negócio (começando em "Retornar") — TAREFA PEDIDA. silent=true evita toast
    individual (usado em operações em massa, que mostram um único toast no final). */
-function _kbMoveCard(cardId,board,uid,newCol,silent,bulk){
+function _kbMoveCard(cardId,board,uid,newCol,silent,bulk,dropIndex){
   var arr=getKBFor(board,uid);
   var card=arr.find(function(x){return x.id===cardId;});if(!card)return null;
   var oldCol=card.col;
+  var hasDropIndex=Number.isFinite(dropIndex);
+
+  function _recalcManualOrder(colId,movingCard,insertAt){
+    var colCards=(typeof _sortCardsForColumn==='function'?_sortCardsForColumn(arr.filter(function(x){return x.col===colId&&(!movingCard||x.id!==movingCard.id);})):arr.filter(function(x){return x.col===colId&&(!movingCard||x.id!==movingCard.id);}));
+    if(movingCard&&movingCard.col===colId){
+      var pos=Number.isFinite(insertAt)?insertAt:0;
+      if(pos<0)pos=0;
+      if(pos>colCards.length)pos=colCards.length;
+      colCards.splice(pos,0,movingCard);
+    }
+    colCards.forEach(function(item,idx){item.manualOrder=idx;});
+  }
+
+  if(oldCol===newCol&&hasDropIndex){
+    _recalcManualOrder(newCol,card,dropIndex);
+    _kbWarnIfFailed(saveKBFor(board,uid,arr));
+    return card;
+  }
   if(oldCol===newCol)return card;
   if(board==='leads'&&newCol==='conv'){
     convertToNeg(cardId,uid,oldCol,silent,undefined,bulk);
     return getKBFor(board,uid).find(function(x){return x.id===cardId;});
   }
   card.col=newCol;card.updatedAt=new Date().toISOString();
+  _recalcManualOrder(oldCol,null,null);
+  _recalcManualOrder(newCol,card,hasDropIndex?dropIndex:0);
   if(card._autoFired)card._autoFired={}; // permite que regras de automação do tipo "card movido para coluna Y" disparem de novo se o card sair e voltar pra mesma etapa depois
   _pushHistorico(card,'Movido de "'+_colLabel(board,oldCol)+'" para "'+_colLabel(board,newCol)+'"');
   _kbWarnIfFailed(saveKBFor(board,uid,arr));
   var cl=kbCols(board).find(function(x){return x.id===newCol;});
   if(cl){
     if(!silent)toast(card.name+' -> '+cl.label);
+    if(!S||!S.userId){console.warn('[feed] logFeedEvent: sessão inativa');return;}
+
     logFeedEvent('move',S.userId,card.name,cl.label,board);
     }
   // Automação de lembrete (não em massa): card de Negócios entrando em "AG Vídeo" ou
@@ -315,7 +365,7 @@ function _kbTransferCard(cardId,board,fromUid,toUid,silent,cb){
   var arr=getKBFor(board,fromUid);var c=arr.find(function(x){return x.id===cardId;});if(!c){cb(null);return null;}
   var fromUser=getUser(fromUid),toUser=getUser(toUid);if(!toUser){cb(null);return null;}
   if(!c.respHistory)c.respHistory=[];
-  c.respHistory.push({from:fromUser?fromUser.nome:'?',fromId:fromUid,to:toUser.nome,toId:toUid,ts:new Date().toISOString(),by:S.nome});
+  c.respHistory.push({from:fromUser?(fromUser.nome||'?'):'?',fromId:fromUid,to:(toUser&&toUser.nome)||toUid,toId:toUid,ts:new Date().toISOString(),by:(S&&S.nome)||'?'});
   _pushHistorico(c,'Responsável alterado de "'+(fromUser?fromUser.nome:'?')+'" para "'+toUser.nome+'"');
   c.userId=toUid;c.updatedAt=new Date().toISOString();
   function _finish(toArrBase){
@@ -326,21 +376,29 @@ function _kbTransferCard(cardId,board,fromUid,toUid,silent,cb){
     var toArr=(toArrBase||[]).filter(function(x){return x.id!==cardId;});toArr.push(c);
     var okTo=saveKBFor(board,toUid,toArr);
     var okFrom=okTo&&saveKBFor(board,fromUid,arr.filter(function(x){return x.id!==cardId;}));
+    if(!S||!S.userId){console.warn('[feed] logFeedEvent: sessão inativa');return;}
+
     logFeedEvent('move',S.userId,c.name,'Responsavel: '+toUser.nome,board);
-    if(toUid!==S.userId&&okTo)pushNotif(toUid,'transfer','🔄 "'+c.name+'" foi transferido para você por '+S.nome,{cardId:c.id,board:board});
+    if(toUid!==S.userId&&okTo)if(S&&S.userId)pushNotif(toUid,'transfer','🔄 "'+c.name+'" foi transferido para você por '+(S.nome||'?'),{cardId:c.id,board:board});
     var okAll=okFrom&&okTo;
     if(!okTo)toast('⚠️ Não foi possível transferir — armazenamento local cheio. O card permanece com o responsável atual.',4500);
     else if(!okFrom)toast('⚠️ Card duplicado temporariamente (falha ao remover da lista de origem) — armazenamento local cheio.',4500);
-    else if(!silent)toast('Transferido para '+toUser.nome.split(' ')[0]);
+    else if(!silent)toast('Transferido para '+(toUser&&toUser.nome?toUser.nome.split(' ')[0]:'usuário'));
     cb(okAll?c:null);
   }
-  // IMPORTANTE: busca a versão mais recente do board do destinatário no Firestore antes de
+  // IMPORTANTE: busca a versão mais recente do board do destinatário no Worker antes de
   // gravar, em vez de confiar só no cache local — que pode estar desatualizado se este
   // aparelho não sincronizou o board desse usuário nesta sessão (ex.: Gestor entrou direto
   // no board filtrado de um único consultor via Painel ADM). Sem isso, cards que o
   // destinatário criou/moveu em outro dispositivo podiam ser perdidos (ver relatório de
-  // auditoria). Em modo local (sem Firestore) o comportamento continua o mesmo de antes.
-  if(DB_MODE==='firebase'&&db){
+  // auditoria). FASE 3.3 (parte 4): reaproveita o mesmo endpoint /api/v1/kanban/list já
+  // criado na parte 3 (js/kanban.js) — _kbWorkerClient() é uma função global definida lá.
+  var _wcKb=(typeof _kbWorkerClient==='function')?_kbWorkerClient():null;
+  if(_wcKb){
+    _wcKb.kanbanList(board,toUid).then(function(doc){
+      _finish((doc&&doc.list)||getKBFor(board,toUid));
+    }).catch(function(){_finish(getKBFor(board,toUid));});
+  }else if(DB_MODE==='firebase'&&db){
     db.collection('kb_'+board).doc(toUid).get().then(function(d){
       _finish(d.exists&&d.data().list?d.data().list:getKBFor(board,toUid));
     }).catch(function(){_finish(getKBFor(board,toUid));});
@@ -353,48 +411,90 @@ function _kbTransferCard(cardId,board,fromUid,toUid,silent,cb){
 /* Exclui um card (Lead ou Negócio) PERMANENTEMENTE. Diferente de "Descartar" (que só move
    o card para a coluna de descartados/no-show, mantendo o histórico), aqui o registro é
    removido de vez do array — usado para leads duplicados ou cadastrados por engano. */
+var _deleteKBState={cardId:null,board:null,ownerUid:null,reason:null};
+
+function selDeleteKBReason(reason,btn){
+  _deleteKBState.reason=reason;
+  document.querySelectorAll('#delete-kb-opts .discard-opt').forEach(function(b){b.classList.remove('sel');});
+  if(btn)btn.classList.add('sel');
+}
+
 function deleteKBCard(cardId,board,ownerUid){
   var uid=ownerUid||activeUID(board);
   var arr=getKBFor(board,uid);
   var c=arr.find(function(x){return x.id===cardId;});if(!c)return;
-  var msg=document.getElementById('confirm-del-msg');
-  if(msg)msg.innerHTML='Excluir <strong>'+eH(c.name)+'</strong> permanentemente?<br><span style="font-size:.75rem;color:var(--mu)">Diferente de Descartar: o card será removido de vez. Use apenas para duplicados ou erros de cadastro.</span>';
-  _confirmDelCb=function(){
-    var _snapshot=JSON.parse(JSON.stringify(arr));
-    var _nextArr=arr.filter(function(x){return x.id!==cardId;});
-    // Se for lead convertido, remove o negócio vinculado também — e salva ESTE lado primeiro.
-    // Assim, se a gravação do lead falhar depois, conseguimos restaurar o negócio e evitamos
-    // deixar um lead excluído com o negócio órfão (ou vice-versa) por falso sucesso.
-    var _negSnapshot=null,_hadLinkedNeg=false;
-    if(board==='leads'){
-      var negArr=getKBFor('negocios',uid);
-      var hadLinked=negArr.some(function(n){return n.originalLeadId===cardId;});
-      if(hadLinked){
-        _hadLinkedNeg=true;_negSnapshot=JSON.parse(JSON.stringify(negArr));
-        var _nextNegArr=negArr.filter(function(n){return n.originalLeadId!==cardId;});
-        if(!saveKBFor('negocios',uid,_nextNegArr)){
-          toast('⚠️ Exclusão não concluída — armazenamento local cheio.',4500);
-          return;
-        }
-      }
+  _deleteKBState={cardId:cardId,board:board,ownerUid:uid,reason:null};
+  var nm=document.getElementById('delete-kb-nome');if(nm)nm.textContent=c.name;
+  var hint=document.getElementById('delete-kb-type-hint');if(hint)hint.textContent=board==='negocios'?'Negócios serão descartados (movidos para No-Show/Desistência) em vez de excluídos permanentemente.':'Sem motivo, a exclusão não continua.';
+  var dt=document.getElementById('delete-kb-detail');if(dt)dt.value='';
+  document.querySelectorAll('#delete-kb-opts .discard-opt').forEach(function(b){b.classList.remove('sel');});
+  openM('mo-delete-kb-reason');
+}
+
+function confirmDeleteKBReason(){
+  if(!_deleteKBState.cardId||!_deleteKBState.board){toast('Card não selecionado.');return;}
+  if(!_deleteKBState.reason){toast('Selecione um motivo');return;}
+  var cardId=_deleteKBState.cardId,board=_deleteKBState.board,uid=_deleteKBState.ownerUid||activeUID(_deleteKBState.board);
+  var arr=getKBFor(board,uid);
+  var c=arr.find(function(x){return x.id===cardId;});if(!c)return;
+  var _dkbDetail=document.getElementById('delete-kb-detail');
+  var detail=(_dkbDetail?_dkbDetail.value||'':'').trim();
+  var reasonLabel=_kbDeleteReasonLabel(_deleteKBState.reason);
+  var reasonText=reasonLabel+(detail?' - '+detail:'');
+  
+  // Para Negócios, ao invés de excluir permanentemente, descarta (move para noshow)
+  if(board==='negocios'){
+    c.discarded=true;
+    c.discardedAt=new Date().toISOString();
+    c.discardMotivo=_deleteKBState.reason;
+    c.discardMotivoLabel=reasonText;
+    c.col='noshow';
+    if(typeof _pushHistorico==='function'){
+      _pushHistorico(c,'Descartado (exclusão): '+reasonText);
     }
-    if(!saveKBFor(board,uid,_nextArr)){
-      if(_hadLinkedNeg&&_negSnapshot)saveKBFor('negocios',uid,_negSnapshot);
-      toast('⚠️ Exclusão não concluída — armazenamento local cheio.',4500);
-      if(_hadLinkedNeg)renderKBLocal('negocios');
-      return;
-    }
-    arr=_nextArr;
-    logFeedEvent('delete',S.userId,c.name,'Excluído permanentemente',board);
+    var okSave=saveKBFor(board,uid,arr);
+    closeM('mo-delete-kb-reason');
     closeM('mo-kb-det');
     renderKBLocal(board);
+    if(S&&S.userId)logFeedEvent('delete',S.userId,c.name,'Descartado (exclusão) · '+reasonText,board);
+    toast(okSave?'Descartado: '+reasonText:'⚠️ Descarte pode não ter sido salvo — armazenamento local cheio.');
+    return;
+  }
+  
+  // Para Leads, mantém exclusão permanente original
+  var _snapshot=(function(){try{return JSON.parse(JSON.stringify(arr));}catch(e){return [];}})();
+  var _nextArr=arr.filter(function(x){return x.id!==cardId;});
+  var _negSnapshot=null,_hadLinkedNeg=false;
+  if(board==='leads'){
+    var negArr=getKBFor('negocios',uid);
+    var hadLinked=negArr.some(function(n){return n.originalLeadId===cardId;});
+    if(hadLinked){
+      _hadLinkedNeg=true;_negSnapshot=(function(){try{return JSON.parse(JSON.stringify(negArr));}catch(e){return [];}})();
+      var _nextNegArr=negArr.filter(function(n){return n.originalLeadId!==cardId;});
+      if(!saveKBFor('negocios',uid,_nextNegArr)){
+        toast('⚠️ Exclusão não concluída — armazenamento local cheio.',4500);
+        return;
+      }
+    }
+  }
+  if(!saveKBFor(board,uid,_nextArr)){
+    if(_hadLinkedNeg&&_negSnapshot)saveKBFor('negocios',uid,_negSnapshot);
+    toast('⚠️ Exclusão não concluída — armazenamento local cheio.',4500);
     if(_hadLinkedNeg)renderKBLocal('negocios');
-    toastUndo('Card excluído',function(){
-      saveKBFor(board,uid,_snapshot);renderKBLocal(board);
-      if(_hadLinkedNeg){saveKBFor('negocios',uid,_negSnapshot);renderKBLocal('negocios');}
-    });
-  };
-  openM('mo-confirm-del');
+    return;
+  }
+  arr=_nextArr;
+  if(!S||!S.userId){console.warn('[feed] logFeedEvent: sessão inativa');return;}
+
+  logFeedEvent('delete',S.userId,c.name,'Excluído permanentemente · '+reasonText,board);
+  closeM('mo-delete-kb-reason');
+  closeM('mo-kb-det');
+  renderKBLocal(board);
+  if(_hadLinkedNeg)renderKBLocal('negocios');
+  toastUndo('Card excluído',function(){
+    saveKBFor(board,uid,_snapshot);renderKBLocal(board);
+    if(_hadLinkedNeg){saveKBFor('negocios',uid,_negSnapshot);renderKBLocal('negocios');}
+  });
 }
 
 /* Converte um Lead em Negócio. prevCol (opcional) é a etapa em que o lead estava antes —
@@ -415,7 +515,7 @@ function convertToNeg(cardId,ownerUid,prevCol,silent,opts,noAuto){
   if(!okLead)_kbLastOpFailed=true;
   if(already){renderKBLocal('leads');return;}
   var targetCol=(opts&&opts.col&&KB_NEG_COLS.some(function(k){return k.id===opts.col;}))?opts.col:'retag';
-  var negCard={id:'neg_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),name:c.name,tel:c.tel,nicho:c.nicho,col:targetCol,valor:(opts&&opts.valor)?parseFloat(opts.valor)||0:0,obs:(opts&&opts.obs!=null)?opts.obs:(c.obs||''),createdAt:new Date().toISOString(),userId:uid,originalLeadId:c.id,attachments:[],historico:[]};
+  var negCard={id:'neg_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),name:c.name,tel:c.tel,nicho:c.nicho,col:targetCol,valor:(opts&&opts.valor)?(parseFloat(opts.valor)||0):0,obs:(opts&&opts.obs!=null)?opts.obs:(c.obs||''),createdAt:new Date().toISOString(),userId:uid,originalLeadId:c.id,attachments:[],historico:[]};
   _pushHistorico(negCard,'Negócio criado a partir do Lead (etapa inicial: "'+_colLabel('negocios',targetCol)+'")');
   negArr.push(negCard);
   var okConv=saveKBFor('negocios',uid,negArr);if(!okConv)_kbLastOpFailed=true;
@@ -434,11 +534,14 @@ function convertToNeg(cardId,ownerUid,prevCol,silent,opts,noAuto){
 
 /* Excluir */
 function delAttachment(attId){
+  if(typeof _attCanEditCurrentCard==='function'&&!_attCanEditCurrentCard()){toast('Somente visualização em Vídeo/Loja.');return;}
   var canDel=hasAdminAccess();
   if(!canDel){toast('Sem permissão para excluir anexos');return;}
   var board=_kbDetBoard,id=_kbDetId;if(!board||!id)return;
   var uid=(_kbDetOwnerUid||activeUID(board));var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
   var a=(c.attachments||[]).find(function(x){return x.id===attId;});if(!a)return;
+  if(typeof _confirmModal!=='function'){toast('Ação bloqueada: módulo de confirmação não carregado.');return;}
+
   _confirmModal({
     title:'🗑 Excluir anexo?',
     msg:'Excluir o anexo <strong>'+eH(a.name)+'</strong>?<br><span style="font-size:.76rem;color:var(--mu)">Esta ação não pode ser desfeita.</span>',
@@ -459,6 +562,8 @@ function delAttachment(attId){
 function logAttEvent(tipo,cardName,detalhe,board){
   // Adiciona ao feed (já existe logFeedEvent)
   var labels={upload:'Anexo adicionado',delete:'Anexo removido',rename:'Anexo renomeado',pin:'Anexo fixado',unpin:'Anexo desafixado'};
+  if(!S||!S.userId){console.warn('[feed] logFeedEvent: sessão inativa');return;}
+
   logFeedEvent('note',S.userId,cardName,labels[tipo]+': '+detalhe,board);
 }
 
@@ -473,6 +578,8 @@ function _dupDeleteAndRescan(cardId,board,ownerUid){
   if(!hasAdminAccess()){toast('Apenas ADM/Gestor pode excluir aqui.');return;}
   var arr=getKBFor(board,ownerUid);
   var c=arr.find(function(x){return x.id===cardId;});if(!c)return;
+  if(typeof _confirmModal!=='function'){toast('Ação bloqueada: módulo de confirmação não carregado.');return;}
+
   _confirmModal({
     title:'🗑 Excluir duplicata?',
     msg:'Excluir <strong>'+eH(c.name)+'</strong> permanentemente?<br><span style="font-size:.76rem;color:var(--mu)">Essa ação não pode ser desfeita.</span>',
@@ -481,6 +588,8 @@ function _dupDeleteAndRescan(cardId,board,ownerUid){
     onOk:function(){
       var a2=getKBFor(board,ownerUid).filter(function(x){return x.id!==cardId;});
       saveKBFor(board,ownerUid,a2);
+      if(!S||!S.userId){console.warn('[feed] logFeedEvent: sessão inativa');return;}
+
       logFeedEvent('delete',S.userId,c.name,'Excluído permanentemente (duplicata)',board);
       renderKBLocal('leads');renderKBLocal('negocios');
       toast('🗑 Duplicata excluída');
@@ -496,15 +605,6 @@ function _dupDeleteAndRescan(cardId,board,ownerUid){
 // entao nunca fica "desatualizado".
 // ============================================================
 var _admAtivAll=[],_ativFuturasLimit={}
-
-function _admAtivClassify(a){
-  if(a.done||!a.scheduledAt)return null;
-  var diff=new Date(a.scheduledAt).getTime()-Date.now();
-  if(diff<0)return 'atrasada';
-  if(diff<=24*3600*1000)return 'vence24';
-  if(diff<=48*3600*1000)return 'vence48';
-  return 'futura';
-}
 
 function renderAdmAtividades(){
   var kEl=document.getElementById('adm-ativ-kpis');if(kEl)kEl.innerHTML='<div class="est">Carregando...</div>';
@@ -525,7 +625,7 @@ function _drawAdmAtivKpis(all){
 
 function _drawAdmAtivPorConsultor(all){
   var el=document.getElementById('adm-ativ-cons');if(!el)return;
-  var users=getUsers().filter(function(u){return u.id!=='adm'&&u.ativo;});
+  var users=getUsers().filter(function(u){return u.ativo!==false;});
   if(!users.length){el.innerHTML='<div class="act-empty">Nenhum consultor.</div>';return;}
   el.innerHTML=users.map(function(u){
     var mine=all.filter(function(a){return a.userId===u.id;});
@@ -564,7 +664,7 @@ function _admAtivSection(titulo,list,cls,limit,uidForMore){
   var html='<div class="ativ-section-title">'+titulo+' ('+list.length+')</div>';
   html+=shown.map(function(a){
     var ic=im[a.type]||'📋';
-    var dt=a.scheduledAt?new Date(a.scheduledAt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+    var dt=a.scheduledAt?_formatScheduledAt(a.scheduledAt,{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
     return '<div class="ativ-row '+cls+'"><div class="ativ-row-top"><span class="ativ-ic">'+ic+'</span><span class="ativ-desc">'+eH(a.desc)+'</span><span class="ativ-time'+(cls==='late'?' late-txt':'')+'">'+dt+'</span></div>'+(a.clientNome?'<div class="ativ-row-sub">'+(a.board==='negocios'?'Negócio':'Lead')+': '+eH(a.clientNome)+'</div>':'')+'</div>';
   }).join('');
   if(list.length>limit)html+='<button class="ativ-showmore" onclick="expandAtivFuturas(\''+uidForMore+'\')">Mostrar mais '+(list.length-limit)+'</button>';

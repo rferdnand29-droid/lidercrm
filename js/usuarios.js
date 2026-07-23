@@ -10,161 +10,130 @@
 // ============================================================
 // USUARIOS / SESSAO
 // ============================================================
-// getUsers() precisa ser síncrona (chamada em dezenas de lugares no app),
-// então o admin padrão é criado com o hash legado sh() aqui — ele é
-// automaticamente migrado pro hash seguro (shSecure) no primeiro login,
-// via verifyPw() em doLogin().
-function getUsers(){var u=sg('lf6_u')||[];if(!u.some(function(x){return x.id==='adm';})){u.unshift({id:'adm',nome:'Administrador',email:ADM_EMAIL,cargo:'ADM',ph:sh('Lider@Adm2024'),data:today(),role:'adm',ativo:true,cor:0});ss('lf6_u',u);}return u;}
-
-function getUser(id){return getUsers().find(function(u){return u.id===id;})||null;}
-
-// ============================================================
-// CORREÇÃO (condição de corrida em config/users): a coleção inteira de
-// usuários vivia num ÚNICO doc Firestore ({list:[...todos]}), e toda gravação
-// (criar, editar, ativar/desativar, upgrade de hash, trocar senha, etc.)
-// escrevia o array INTEIRO de volta baseado numa leitura anterior. Duas
-// gravações concorrentes (ex.: ADM editando o cargo de um usuário enquanto
-// esse mesmo usuário loga e dispara o upgrade de hash) corriam risco de
-// "última escrita vence", uma sobrescrevendo silenciosamente a outra.
+// CORREÇÃO DE SEGURANÇA (pedido do usuário — melhorua_reforcado):
+// (1) removida a SENHA PADRÃO do ADM ('Lider@Adm2024') que era embutida
+//     literalmente no JavaScript distribuído pra todo navegador/APK.
+// (2) removido também o HASH DA SENHA do ADM (sh('Lider@Adm2024')) —
+//     como sh() é DJB2 32-bit sem salt, o hash sozinho já é reversível
+//     por força bruta e servia como "backdoor" a partir do bundle.
 //
-// Solução em duas camadas:
-// 1) Cada usuário tem seu PRÓPRIO doc na subcoleção config/users/items/{uid}
-//    — duas edições em usuários DIFERENTES nunca mais colidem entre si.
-// 2) Cada gravação manda só um PATCH com os campos que de fato mudaram (ex.:
-//    {cargo:'Gerente'}, {ph:novoHash}), e saveUserDoc aplica esse patch numa
-//    TRANSAÇÃO do Firestore: ela lê o estado atual do doc no servidor e
-//    escreve o patch por cima dele, atomicamente. Isso cobre até o caso de
-//    duas edições no MESMO usuário ao mesmo tempo (ex.: upgrade de hash e
-//    troca de senha disparando juntos) — nenhuma das duas apaga campos que a
-//    outra alterou nesse meio-tempo, porque a transação sempre parte do
-//    estado mais recente do servidor, não de uma cópia local potencialmente
-//    desatualizada.
-function saveUserDoc(uid,patch){
-  if(!(DB_MODE==='firebase'&&db)||!uid||!patch)return;
-  syncBusy();
-  var ref=db.collection('config').doc('users').collection('items').doc(uid);
-  db.runTransaction(function(tx){
-    return tx.get(ref).then(function(snap){
-      var current=snap.exists?snap.data():{};
-      var merged=Object.assign({},current,patch,{id:uid});
-      tx.set(ref,merged);
-    });
-  }).then(syncOk).catch(syncErr);
-}
-
-function deleteUserDoc(uid){
-  if(!(DB_MODE==='firebase'&&db)||!uid)return;
-  syncBusy();
-  db.collection('config').doc('users').collection('items').doc(uid).delete().then(syncOk).catch(syncErr);
-}
-
-// list = array local completo (continua igual, é só o cache local/offline).
-// uid+patch = qual usuário mudou e SÓ os campos que mudaram — vai numa
-// transação (ver saveUserDoc). Se omitidos (caller antigo/desconhecido), cai
-// num fallback mais lento que regrava cada usuário por inteiro, mas nunca
-// mais como um array só num doc único.
-function saveUsersLocal(list,uid,patch){
-  var localOk=ss('lf6_u',list);
-  if(uid&&patch){
-    saveUserDoc(uid,patch);
-  }else if(DB_MODE==='firebase'&&db){
-    list.forEach(function(u){if(u&&u.id)saveUserDoc(u.id,u);});
-  }
-  return localOk;
-}
-
-// Migração automática, uma única vez: se a subcoleção ainda estiver vazia mas
-// o doc legado config/users ({list:[...]}) tiver dados, copia cada usuário
-// para seu próprio doc em config/users/items/{uid}. Depois disso a app nunca
-// mais lê nem grava no doc legado (ele fica só como registro histórico).
-function migrateUsersLegacyDoc(cb){
-  db.collection('config').doc('users').get().then(function(d){
-    if(d.exists&&d.data().list&&d.data().list.length){
-      var r=d.data().list;
-      syncBusy();
-      var batch=db.batch();
-      r.forEach(function(u){
-        if(u&&u.id)batch.set(db.collection('config').doc('users').collection('items').doc(u.id),u,{merge:true});
-      });
-      batch.commit().then(syncOk).catch(syncErr);
-      ss('lf6_u',r);
-      cb(r);
-    }else{
-      cb(getUsers());
-    }
-  }).catch(function(){cb(getUsers());});
-}
-
-function loadUsersDB(cb){
-  if(DB_MODE==='firebase'&&db){
-    db.collection('config').doc('users').collection('items').get().then(function(snap){
-      if(!snap.empty){
-        var r=[];
-        snap.forEach(function(d){r.push(d.data());});
-        // CORREÇÃO ("usuário criado some depois de sair e entrar"): antes esta
-        // função SUBSTITUÍA a lista local inteira pela lista vinda do servidor.
-        // Se a gravação de um usuário recém-criado no Firestore (saveUserDoc,
-        // disparada em segundo plano, sem esperar o resultado) ainda não tinha
-        // terminado — ou falhou por qualquer motivo de rede/regra — o próximo
-        // load (ex.: ao sair e entrar de novo) baixava uma lista do servidor
-        // SEM esse usuário e apagava ele do localStorage também, fazendo-o
-        // "sumir" mesmo tendo sido criado com sucesso na tela. Agora qualquer
-        // usuário que já existe localmente mas ainda não apareceu no servidor
-        // é mantido na lista final e tem sua gravação tentada de novo.
-        var local=sg('lf6_u')||[];
-        var serverIds={};r.forEach(function(u){if(u&&u.id)serverIds[u.id]=true;});
-        local.forEach(function(u){
-          if(u&&u.id&&!serverIds[u.id]){
-            r.push(u);
-            saveUserDoc(u.id,u);
-          }
-        });
-        ss('lf6_u',r);
-        cb(r);
-      }else{
-        migrateUsersLegacyDoc(cb);
-      }
-    }).catch(function(){cb(getUsers());});
-  }else{cb(getUsers());}
-}
-
-// ============================================================
-// ESTRUTURA DA EMPRESA / DEPARTAMENTOS — estilo "Estrutura da empresa" do Bitrix24.
-// Dado único e compartilhado por toda a empresa (config/departments no Firestore, com
-// merge automático de sincronização como o resto do app). O ADM cria/edita/exclui
-// departamentos (nome, supervisor, supervisor adjunto opcional, departamento pai opcional
-// pra aninhar sub-departamentos, e a lista de colaboradores). Usuários comuns só
-// enxergam os departamentos dos quais fazem parte (como supervisor, adjunto ou membro) —
-// se não fizerem parte de nenhum, a página fica vazia, como pedido.
-// ============================================================
-function getDepartments(){return sg('lf_departments')||[];}
-
-function saveDepartmentsList(list){
-  ss('lf_departments',list);
-  if(DB_MODE==='firebase'&&db){syncBusy();db.collection('config').doc('departments').set({list:list,ts:Date.now()}).then(syncOk).catch(syncErr);}
-}
-
-/* Local-first: desenha na hora com o cache local e só then atualiza em segundo plano. */
-function loadDepartmentsRemote(cb){
-  if(cb)cb(getDepartments());
-  if(DB_MODE==='firebase'&&db){
-    db.collection('config').doc('departments').get().then(function(d){
-      var l=d.exists?(d.data().list||[]):[];ss('lf_departments',l);if(cb)cb(l);
-    }).catch(function(){});
-  }
-}
+// Consequência: getUsers() NÃO cria mais uma conta ADM local com
+// credencial embutida. O ADM passa a existir SOMENTE no backend
+// (Supabase `fs_documents` -> config/users/items/adm), e a
+// autenticação passa obrigatoriamente pelo Worker
+// (POST /api/v1/login), que valida o hash s2$saltHex$hashHex do
+// registro do servidor. Nenhum usuário ADM aparece "do nada" só
+// porque abriu o app num dispositivo novo.
+//
+// Se, após um login legítimo bem-sucedido via Worker, o servidor
+// devolver um user ADM, o próprio doLogin (js/auth.js) hidrata
+// window.S / lf6_s com esses dados — quem precisar de um cache
+// local do ADM (ex.: getUser('adm') em telas offline) recebe o que
+// foi vindo da rede, não uma seed hard-coded no bundle.
+var __usuariosRuntime=(((window.LiderCRM||{}).modules||{}).usuarios||{}).runtime||{};
+var getUsers=__usuariosRuntime.getUsers||function(){return [];};
+var getUser=__usuariosRuntime.getUser||function(){return null;};
+var _crmDispatchBuffered=__usuariosRuntime._crmDispatchBuffered;
+var _crmEmitUsersUpdated=__usuariosRuntime._crmEmitUsersUpdated;
+var _crmEmitDepartmentsUpdated=__usuariosRuntime._crmEmitDepartmentsUpdated;
+var _usuariosRepo=__usuariosRuntime._usuariosRepo;
+var saveUserDoc=__usuariosRuntime.saveUserDoc;
+var deleteUserDoc=__usuariosRuntime.deleteUserDoc;
+var saveUsersLocal=__usuariosRuntime.saveUsersLocal;
+var _seedDefaultUsersToCloud=__usuariosRuntime._seedDefaultUsersToCloud;
+var migrateUsersLegacyDoc=__usuariosRuntime.migrateUsersLegacyDoc;
+var loadUsersDB=__usuariosRuntime.loadUsersDB;
+var getDepartments=__usuariosRuntime.getDepartments;
+var saveDepartmentsList=__usuariosRuntime.saveDepartmentsList;
+var loadDepartmentsRemote=__usuariosRuntime.loadDepartmentsRemote;
+var _deviceId=__usuariosRuntime._deviceId;
+var _deviceLabel=__usuariosRuntime._deviceLabel;
+var _normalizeSessionsList=__usuariosRuntime._normalizeSessionsList;
+var _fmtLastSeen=__usuariosRuntime._fmtLastSeen;
 
 function _deptUserBelongs(dept,uid){
   return dept.supervisorId===uid||dept.supervisorAdjId===uid||(dept.memberIds||[]).indexOf(uid)>=0;
 }
 
+function _normalizeDeptRefsForUsers(dept,usersMap){
+  if(!dept)return dept;
+  var changed=false;
+  var supervisorId=dept.supervisorId||null;
+  if(supervisorId&&usersMap&&!usersMap[supervisorId]){supervisorId=null;changed=true;}
+  var supervisorAdjId=dept.supervisorAdjId||null;
+  if(supervisorAdjId&&usersMap&&!usersMap[supervisorAdjId]){supervisorAdjId=null;changed=true;}
+  if(supervisorAdjId&&supervisorAdjId===supervisorId){supervisorAdjId=null;changed=true;}
+  var seen={},src=Array.isArray(dept.memberIds)?dept.memberIds:[];
+  var memberIds=src.filter(function(uid){
+    if(!uid||uid===supervisorId||uid===supervisorAdjId||seen[uid])return false;
+    if(usersMap&&!usersMap[uid])return false;
+    seen[uid]=1;
+    return true;
+  });
+  if(memberIds.length!==src.length||memberIds.some(function(uid,i){return uid!==src[i];}))changed=true;
+  if(!changed)return dept;
+  return Object.assign({},dept,{supervisorId:supervisorId,supervisorAdjId:supervisorAdjId,memberIds:memberIds,ts:Date.now()});
+}
+
+function _cleanupDepartmentsForRemovedUser(uid){
+  if(!uid)return false;
+  var usersMap={};
+  getUsers().forEach(function(u){if(u&&u.id)usersMap[u.id]=u;});
+  var all=getDepartments(),changed=false;
+  var next=all.map(function(d){
+    if(!d)return d;
+    var base=d;
+    if(d.supervisorId===uid||d.supervisorAdjId===uid||(d.memberIds||[]).indexOf(uid)>=0){
+      base=Object.assign({},d,{
+        supervisorId:d.supervisorId===uid?null:d.supervisorId,
+        supervisorAdjId:d.supervisorAdjId===uid?null:d.supervisorAdjId,
+        memberIds:(d.memberIds||[]).filter(function(x){return x!==uid;})
+      });
+    }
+    var cleaned=_normalizeDeptRefsForUsers(base,usersMap);
+    if(cleaned!==d)changed=true;
+    return cleaned;
+  });
+  if(!changed)return false;
+  saveDepartmentsList(next);
+  if(_deptSelectedId){
+    var stillThere=next.some(function(d){return d&&d.id===_deptSelectedId;});
+    if(!stillThere)_deptSelectedId=null;
+  }
+  return true;
+}
+
+function getDepartmentVisibleUsers(uid){
+  uid=uid||(S&&S.userId);
+  var allUsers=getUsers().filter(function(u){return u&&u.ativo!==false;});
+  if(!uid)return allUsers;
+  if(hasAdminAccess&&hasAdminAccess(uid))return allUsers;
+  if(!(hasSupervisorAccess&&hasSupervisorAccess(uid)))return allUsers.filter(function(u){return u.id===uid;});
+  var deptIds=(getDepartments()||[]).filter(function(d){return _deptUserBelongs(d,uid);}).map(function(d){return d.id;});
+  if(!deptIds.length)return allUsers.filter(function(u){return u.id===uid;});
+  return allUsers.filter(function(u){
+    if(u.id===uid)return true;
+    return (getDepartments()||[]).some(function(d){return deptIds.indexOf(d.id)>=0&&_deptUserBelongs(d,u.id);});
+  });
+}
+
 var _deptSelectedId=null;
+var _estruturaRefreshTm=0;
+function _scheduleEstruturaRefresh(){
+  clearTimeout(_estruturaRefreshTm);
+  _estruturaRefreshTm=setTimeout(function(){
+    var pg=document.getElementById('pg-estrutura');
+    if(pg&&pg.classList.contains('on'))renderEstruturaPage();
+  },80);
+}
+window.addEventListener('crm:departments-updated',_scheduleEstruturaRefresh);
+window.addEventListener('crm:users-updated',_scheduleEstruturaRefresh);
 
 function renderEstruturaPage(){
   var admBar=document.getElementById('estrutura-adm-bar');if(admBar)admBar.style.display=hasAdminAccess()?'':'none';
   loadDepartmentsRemote(function(all){
     var isAdm=hasAdminAccess();
-    var list=isAdm?all:all.filter(function(d){return _deptUserBelongs(d,S.userId);});
+    var list=isAdm?all:all.filter(function(d){return S&&_deptUserBelongs(d,S.userId);});
     var empty=document.getElementById('estrutura-empty'),body=document.getElementById('estrutura-body');
     if(!list.length){
       if(empty)empty.style.display='';
@@ -238,8 +207,8 @@ function openDeptEditor(id){
   if(!hasAdminAccess()){toast('Apenas o ADM pode gerenciar departamentos.');return;}
   var all=getDepartments();var d=id?all.find(function(x){return x.id===id;}):null;
   document.getElementById('dept-mo-title').textContent=d?'Editar Departamento':'Novo Departamento';
-  document.getElementById('dept-id').value=id||'';
-  document.getElementById('dept-nome').value=d?d.nome:'';
+  var _di=document.getElementById('dept-id');if(_di)_di.value=id||'';
+  var _dn=document.getElementById('dept-nome');if(_dn)_dn.value=d?d.nome:'';
   var users=getUsers().filter(function(u){return u.ativo;});
   var parentSel=document.getElementById('dept-parent');
   parentSel.innerHTML='<option value="">Nenhum — departamento raiz</option>'+all.filter(function(x){return x.id!==id;}).map(function(x){return '<option value="'+x.id+'"'+(d&&d.parentId===x.id?' selected':'')+'>'+eH(x.nome)+'</option>';}).join('');
@@ -275,9 +244,11 @@ function saveDept(){
   var supervisorId=document.getElementById('dept-sup').value||null;
   var supervisorAdjId=document.getElementById('dept-sup-adj').value||null;
   var memberIds=Array.prototype.slice.call(document.querySelectorAll('.dept-member-cb:checked')).map(function(c){return c.value;});
+  var usersMap={};
+  getUsers().forEach(function(u){if(u&&u.id&&u.ativo)usersMap[u.id]=u;});
   var all=getDepartments();
   var idx=all.findIndex(function(x){return x.id===id;});
-  var obj={id:id,nome:nome,parentId:parentId,supervisorId:supervisorId,supervisorAdjId:supervisorAdjId,memberIds:memberIds,ts:Date.now()};
+  var obj=_normalizeDeptRefsForUsers({id:id,nome:nome,parentId:parentId,supervisorId:supervisorId,supervisorAdjId:supervisorAdjId,memberIds:memberIds,ts:Date.now()},usersMap);
   if(idx>=0)all[idx]=obj;else all.push(obj);
   saveDepartmentsList(all);
   closeM('mo-dept');
@@ -316,43 +287,62 @@ function deleteDept(){
 // 2 min pra atualizar "último acesso" e checar se foi removido da lista remotamente —
 // nesse caso, é deslogado automaticamente (é assim que o botão "Desconectar" funciona).
 // ============================================================
-function _deviceId(){
-  var id=null;try{id=localStorage.getItem('lf_device_id');}catch(e){}
-  if(!id){id='dev_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,10);try{localStorage.setItem('lf_device_id',id);}catch(e){}}
-  return id;
-}
-
-function _deviceLabel(){
-  var ua=navigator.userAgent||'';
-  var os='Dispositivo';
-  if(/iPhone/.test(ua))os='iPhone';
-  else if(/iPad/.test(ua))os='iPad';
-  else if(/Android/.test(ua))os='Android';
-  else if(/Windows/.test(ua))os='Windows';
-  else if(/Macintosh/.test(ua))os='Mac';
-  else if(/Linux/.test(ua))os='Linux';
-  var browser='Navegador';
-  if(/Edg\//.test(ua))browser='Edge';
-  else if(/OPR\//.test(ua))browser='Opera';
-  else if(/Chrome\//.test(ua)&&!/OPR\/|Edg\//.test(ua))browser='Chrome';
-  else if(/Firefox\//.test(ua))browser='Firefox';
-  else if(/Safari\//.test(ua)&&!/Chrome\//.test(ua))browser='Safari';
-  var isPWA=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
-  return (isPWA?'App instalado':browser)+' · '+os;
-}
-
 function sessionsKey(uid){return 'lf_sessions_'+uid;}
 
 function getSessions(uid){return sg(sessionsKey(uid))||[];}
 
+function _mutateSessionsList(uid,mutator,opts){
+  opts=opts||{};
+  if(!uid)return Promise.resolve([]);
+  function nextFrom(base){
+    var normalized=_normalizeSessionsList(base);
+    var next=mutator?mutator(normalized.slice()):normalized.slice();
+    return _normalizeSessionsList(next);
+  }
+  var repo=_usuariosRepo();
+  if(!(DB_MODE==='firebase')||!repo||typeof repo.runConfigDocTransaction!=='function'){
+    var localOnly=nextFrom(getSessions(uid));
+    ss(sessionsKey(uid),localOnly);
+    return Promise.resolve(localOnly);
+  }
+  if(opts.syncUi)syncBusy();
+  return repo.runConfigDocTransaction('sessions_'+uid,function(current){
+    var next=nextFrom(current&&current.list?current.list:[]);
+    return {list:next,ts:Date.now()};
+  }).then(function(doc){
+    var next=nextFrom(doc&&doc.list?doc.list:[]);
+    ss(sessionsKey(uid),next);
+    if(opts.syncUi)syncOk();
+    return next;
+  }).catch(function(err){
+    if(opts.syncUi)syncErr(err);
+    if(opts.allowLocalFallback){
+      var localFallback=nextFrom(getSessions(uid));
+      ss(sessionsKey(uid),localFallback);
+      return localFallback;
+    }
+    throw err;
+  });
+}
+
+function _clearUserSessionsRemote(uid){
+  if(!uid)return;
+  try{localStorage.removeItem(sessionsKey(uid));}catch(e){console.warn("usuarios: removeItem sessionsKey failed",e);}
+  var repo=_usuariosRepo();
+  if(DB_MODE==='firebase'&&repo&&typeof repo.setConfigDoc==='function'){
+    repo.setConfigDoc('sessions_'+uid,{list:[],ts:Date.now()}).catch(function(e){console.warn("[usr] clearSessions falhou",e);});
+  }
+}
+
 /* Local-first: desenha na hora com o cache local e só then atualiza em segundo plano. */
 function loadSessionsRemote(cb){
   if(!S)return cb&&cb([]);
-  if(cb)cb(getSessions(S.userId));
-  if(DB_MODE==='firebase'&&db){
-    db.collection('config').doc('sessions_'+S.userId).get().then(function(d){
-      var l=d.exists?(d.data().list||[]):[];ss(sessionsKey(S.userId),l);if(cb)cb(l);
-    }).catch(function(){});
+  if(cb)cb(_normalizeSessionsList(getSessions(S.userId)));
+  var repo=_usuariosRepo();
+  if(DB_MODE==='firebase'&&repo&&typeof repo.getConfigDoc==='function'){
+    repo.getConfigDoc('sessions_'+S.userId).then(function(d){
+      var l=_normalizeSessionsList(d&&d.list?d.list:[]);ss(sessionsKey(S.userId),l);if(cb)cb(l);
+    }).catch(function(e){console.warn("[usr] loadSessionsRemote falhou",e);});
   }
 }
 
@@ -361,17 +351,17 @@ function loadSessionsRemote(cb){
 function registerDeviceSession(){
   if(!S)return;
   var uid=S.userId,devId=_deviceId(),now=Date.now();
-  var apply=function(list){
-    list=(list||[]).slice();
+  _mutateSessionsList(uid,function(list){
     var mine=list.find(function(s){return s.deviceId===devId;});
-    if(mine){mine.lastActive=now;mine.label=_deviceLabel();}
-    else list.push({deviceId:devId,label:_deviceLabel(),loggedInAt:now,lastActive:now});
-    ss(sessionsKey(uid),list);
-    if(DB_MODE==='firebase'&&db)db.collection('config').doc('sessions_'+uid).set({list:list,ts:now}).catch(function(){});
-  };
-  if(DB_MODE==='firebase'&&db){
-    db.collection('config').doc('sessions_'+uid).get().then(function(d){apply(d.exists?(d.data().list||[]):[]);}).catch(function(){apply(getSessions(uid));});
-  } else apply(getSessions(uid));
+    if(mine){
+      mine.lastActive=now;
+      mine.label=_deviceLabel();
+      if(!mine.loggedInAt)mine.loggedInAt=now;
+    }else{
+      list.push({deviceId:devId,label:_deviceLabel(),loggedInAt:now,lastActive:now});
+    }
+    return list;
+  },{allowLocalFallback:true}).catch(function(e){console.warn("[usr] registerDeviceSession falhou",e);});
 }
 
 /* Roda a cada 2 min enquanto o app está aberto: atualiza "último acesso" e detecta se
@@ -379,29 +369,63 @@ function registerDeviceSession(){
    desloga automaticamente com um aviso, em vez de deixar o usuário mexendo numa sessão
    que o admin/ele mesmo já revogou de outro aparelho. */
 function _sessionsHeartbeat(){
-  if(!S||DB_MODE!=='firebase'||!db)return;
+  if(window.__lfHeartbeatBusy)return;
+  if(!S||DB_MODE!=='firebase')return;
+  var repo=_usuariosRepo();
+  if(!repo)return;
   var uid=S.userId,devId=_deviceId();
-  db.collection('config').doc('sessions_'+uid).get().then(function(d){
-    var list=d.exists?(d.data().list||[]):[];
+  window.__lfHeartbeatBusy=1;
+  Promise.all([
+    (typeof repo.listUsers==='function'?repo.listUsers():Promise.resolve([])),
+    (typeof repo.runConfigDocTransaction==='function'
+      ? repo.runConfigDocTransaction('sessions_'+uid,function(current){
+          var list=_normalizeSessionsList(current&&current.list?current.list:[]);
+          var mine=list.find(function(s){return s.deviceId===devId;});
+          if(mine){
+            mine.lastActive=Date.now();
+            mine.label=_deviceLabel();
+            if(!mine.loggedInAt)mine.loggedInAt=mine.lastActive;
+          }
+          return {list:list,ts:Date.now()};
+        })
+      : Promise.resolve({list:getSessions(uid)}))
+  ]).then(function(res){
+    var users=Array.isArray(res[0])?res[0]:[];
+    var me=users.find(function(u){return u&&u.id===uid;});
+    if(!me||me.ativo===false){
+      _clearUserSessionsRemote(uid);
+      toast('🔒 Sua conta foi desativada ou removida.',5000);
+      setTimeout(_execLogout,1200);
+      return;
+    }
+    var doc=res[1]||{};
+    var list=_normalizeSessionsList(doc&&doc.list?doc.list:[]);
     var mine=list.find(function(s){return s.deviceId===devId;});
     if(!mine){
+      var localList=_normalizeSessionsList(getSessions(uid));
+      var localMine=localList.find(function(s){return s.deviceId===devId;});
+      if(localMine&&!window.__lfSessionRepairing){
+        window.__lfSessionRepairing=1;
+        console.warn('[usr] sessão remota ausente; tentando re-registrar este aparelho');
+        _mutateSessionsList(uid,function(repairList){
+          var found=repairList.find(function(s){return s.deviceId===devId;});
+          if(found){
+            found.lastActive=Date.now();
+            found.label=_deviceLabel();
+            if(!found.loggedInAt)found.loggedInAt=found.lastActive;
+          }else{
+            repairList.push({deviceId:devId,label:_deviceLabel(),loggedInAt:Date.now(),lastActive:Date.now()});
+          }
+          return repairList;
+        },{allowLocalFallback:true}).finally(function(){ window.__lfSessionRepairing=0; });
+        return;
+      }
       toast('🔒 Esta sessão foi desconectada remotamente em outro dispositivo.',5000);
       setTimeout(_execLogout,1200);
       return;
     }
-    mine.lastActive=Date.now();
     ss(sessionsKey(uid),list);
-    db.collection('config').doc('sessions_'+uid).set({list:list,ts:Date.now()}).catch(function(){});
-  }).catch(function(){});
-}
-
-function _fmtLastSeen(ts){
-  if(!ts)return '—';
-  var diff=Date.now()-ts;
-  if(diff<120000)return 'agora mesmo';
-  if(diff<3600000)return 'há '+Math.floor(diff/60000)+' min';
-  if(diff<86400000)return 'há '+Math.floor(diff/3600000)+'h';
-  return new Date(ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  }).catch(function(e){console.warn("[usr] mutateSessionsList falhou",e);syncErr&&syncErr(e);}).finally(function(){ window.__lfHeartbeatBusy=0; });
 }
 
 function renderSessionsPanel(){
@@ -430,17 +454,21 @@ function openSessionsPanel(){
 }
 
 function _disconnectSessionNow(deviceId){
-  var list=getSessions(S.userId).filter(function(s){return s.deviceId!==deviceId;});
-  ss(sessionsKey(S.userId),list);
-  if(DB_MODE==='firebase'&&db){syncBusy();db.collection('config').doc('sessions_'+S.userId).set({list:list,ts:Date.now()}).then(syncOk).catch(syncErr);}
-  toast('Dispositivo desconectado.');
-  renderSessionsPanel();
+  if(!S||!deviceId)return;
+  _mutateSessionsList(S.userId,function(list){
+    return list.filter(function(s){return s.deviceId!==deviceId;});
+  },{syncUi:true,allowLocalFallback:true}).then(function(){
+    toast('Dispositivo desconectado.');
+    renderSessionsPanel();
+  }).catch(function(e){console.warn("[usr] operação bg falhou",e);});
 }
 
 // ============================================================
 // ADM
 // ============================================================
 function createUser(){
+  // FIX (2026-07-22): defesa em profundidade — bloqueia chamada direta pelo console
+  if(typeof hasAdminAccess==='function'&&!hasAdminAccess()){toast('Apenas ADM/Gestor pode criar usuários.');return;}
   var nome=(document.getElementById('nn').value||'').trim();
   var email=(document.getElementById('ne').value||'').trim().toLowerCase();
   var cargo=document.getElementById('nc').value;
@@ -448,18 +476,20 @@ function createUser(){
   var data=document.getElementById('nd').value||today();
   var err=document.getElementById('ferr');err.textContent='';
   if(!nome||!email){err.textContent='Nome e e-mail obrigatorios.';return;}
-  var users=getUsers();if(users.some(function(u){return u.email.toLowerCase()===email;})){err.textContent='E-mail ja cadastrado.';return;}
+  // FIX: validação de formato de e-mail antes de criar o usuário
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent='E-mail inválido. Use o formato: nome@dominio.com';return;}
+  var users=getUsers();if(users.some(function(u){return (u.email||'').toLowerCase()===email;})){err.textContent='E-mail ja cadastrado.';return;}
   shSecure(pw).then(function(hash){
     var newU={id:'u'+Date.now()+'_'+Math.random().toString(36).slice(2,5),nome:nome,email:email,cargo:cargo,ph:hash,data:data,role:'user',ativo:true,cor:users.length%5};
     users.push(newU);saveUsersLocal(users,newU.id,newU);try{window.dispatchEvent(new CustomEvent('crm:user-created',{detail:{id:newU.id}}));}catch(_e){}
-    document.getElementById('nn').value='';document.getElementById('ne').value='';document.getElementById('np').value='';
+    var _nn=document.getElementById('nn');if(_nn)_nn.value='';var _ne=document.getElementById('ne');if(_ne)_ne.value='';var _np=document.getElementById('np');if(_np)_np.value='';
     renderUsers();toast('Usuario criado!');showCred(newU.id,pw);
   }).catch(function(){err.textContent='Nao foi possivel gerar a senha neste dispositivo. Tente novamente.';});
 }
 
 function showCred(uid,pw){
   var u=getUser(uid);if(!u)return;
-  document.getElementById('k-uid').value=uid;
+  var _ku=document.getElementById('k-uid');if(_ku)_ku.value=uid;
   var mh=document.getElementById('mkh');if(mh)mh.textContent='Acesso: '+u.nome;
   var ke=document.getElementById('k-email');if(ke)ke.textContent=u.email;
   var ks=document.getElementById('k-senha');if(ks)ks.textContent=pw||'(somente o usuário sabe a senha atual)';
@@ -496,12 +526,35 @@ function saveCredCargo(){
   // BUG CORRIGIDO (Tarefa 4): a caixa "Ativar acesso ao Painel ADM" era exibida/ocultada
   // (toggleAdminNote) mas o valor marcado nunca era lido nem salvo — a caixa não fazia nada.
   var kCheck=document.getElementById('k-admin-check');if(kCheck){u.admExtra=kCheck.checked;patch.admExtra=kCheck.checked;}
+  // ORIENTADOR: aceita tanto o textarea legado quanto o multiselect novo
+  // do modal de credenciais (k-orientar-de).
+  var orInput=document.getElementById('k-orientados')||document.getElementById('eu-orientados');
+  if(orInput){
+    var orIds=String(orInput.value||'').split(/[\s,;]+/).map(function(x){return x.trim();}).filter(Boolean);
+    u.orientadosIds=orIds;patch.orientadosIds=orIds;
+  }else{
+    var orSel=document.getElementById('k-orientar-de');
+    if(orSel){
+      var ids=Array.prototype.slice.call(orSel.selectedOptions||[]).map(function(o){return o.value;}).filter(Boolean);
+      u.orientadosIds=ids;patch.orientadosIds=ids;
+    }
+  }
   saveUsersLocal(users,u.id,patch);renderUsers();
-  toast('Cargo de '+u.nome.split(' ')[0]+' atualizado para '+cargo+'!');
+  toast('Cargo de '+(u.nome||(u.id||'usuário')).split(' ')[0]+' atualizado para '+cargo+'!');
 }
 
 function renderUsers(){
-  var users=getUsers().filter(function(u){return u.id!=='adm';});
+  // FIX #11 (2026-07-20 v3): o documento CORRECOES_E_MELHORIAS_CRM exige que TODOS os usuários
+  // apareçam nas listas do CRM, e o ADM só possa se ocultar OPCIONALMENTE via Configurações
+  // (flag adm_hidden_in_lists / prefs.hideAdmInLists). Antes existia um filtro hard-coded
+  // u.id!=='adm' que escondia o ADM em qualquer cenário — violava o requisito.
+  var _hideAdm=false;
+  try{
+    var _prefs=(typeof getPrefs==='function')?(getPrefs()||{}):{};
+    if(_prefs&&(_prefs.hideAdmInLists===true||_prefs.adm_hidden_in_lists===true))_hideAdm=true;
+    if(!_hideAdm){var _ls=localStorage.getItem('lf_hide_adm_lists');if(_ls==='1'||_ls==='true')_hideAdm=true;}
+  }catch(_e){}
+  var users=getUsers().filter(function(u){return _hideAdm?u.id!=='adm':true;});
   var el=document.getElementById('ugrid');if(!el)return;
   if(!users.length){el.innerHTML='<div class="est">Nenhum usuario.</div>';return;}
   el.innerHTML=users.map(function(u){
@@ -513,9 +566,9 @@ function renderUsers(){
 
 function openEditUser(uid){
   var u=getUser(uid);if(!u)return;
-  document.getElementById('eu-id').value=u.id;
-  document.getElementById('eu-nome').value=u.nome||'';
-  document.getElementById('eu-email').value=u.email||'';
+  var _eid=document.getElementById('eu-id');if(_eid)_eid.value=u.id;
+  var _enm=document.getElementById('eu-nome');if(_enm)_enm.value=u.nome||'';
+  var _eem=document.getElementById('eu-email');if(_eem)_eem.value=u.email||'';
   var sel=document.getElementById('eu-cargo');
   var cargoAtual=u.cargo||'Consultor';
   var temOpcao=Array.from(sel.options).some(function(o){return o.value===cargoAtual;});
@@ -541,8 +594,10 @@ function saveEditUser(){
   var cargo=document.getElementById('eu-cargo').value;
   var err=document.getElementById('eu-err');err.textContent='';
   if(!nome||!email){err.textContent='Nome e e-mail obrigatorios.';return;}
+  // FIX: validação de formato de e-mail no editUser
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent='E-mail inválido. Use o formato: nome@dominio.com';return;}
   var users=getUsers();
-  if(users.some(function(u){return u.id!==id&&u.email.toLowerCase()===email;})){err.textContent='E-mail ja usado por outro usuario.';return;}
+  if(users.some(function(u){return u.id!==id&&(u.email||'').toLowerCase()===email;})){err.textContent='E-mail ja usado por outro usuario.';return;}
   var u=users.find(function(x){return x.id===id;});if(!u)return;
   var eraAdmin=hasAdminAccess(id);
   u.nome=nome;u.email=email;u.cargo=cargo;
@@ -552,9 +607,23 @@ function saveEditUser(){
   // NUNCA era lido aqui. O ADM marcava a opção, clicava Salvar, e nada acontecia (Supervisor
   // continuava sem acesso, sem nenhum erro ou aviso — bug silencioso).
   var euCheck=document.getElementById('eu-admin-check');if(euCheck){u.admExtra=euCheck.checked;patch.admExtra=euCheck.checked;}
+  // ORIENTADOR (rollup v21): persistir lista de UIDs que este usuario orienta.
+  // Le o textarea #eu-orientados (se existir) e salva no doc do usuario.
+  // Lista aplicada tambem no <select> #eu-orientar-de se existir.
+  var orText=document.getElementById('eu-orientados');
+  if(orText){
+    var orIds=String(orText.value||'').split(/[\s,;]+/).map(function(x){return x.trim();}).filter(Boolean);
+    u.orientadosIds=orIds;patch.orientadosIds=orIds;
+  }else{
+    var orSel=document.getElementById('eu-orientar-de');
+    if(orSel){
+      var ids=Array.prototype.slice.call(orSel.selectedOptions||[]).map(function(o){return o.value;}).filter(Boolean);
+      u.orientadosIds=ids;patch.orientadosIds=ids;
+    }
+  }
   saveUsersLocal(users,u.id,patch);closeM('mo-edit-user');renderUsers();
   var ehAdminAgora=hasAdminAccess(id);
-  if(ehAdminAgora&&!eraAdmin)toast('Salvo! '+nome.split(' ')[0]+' agora tem acesso de Administrador.');
+  if(ehAdminAgora&&!eraAdmin)toast('Salvo! '+(nome||'Usuário').split(' ')[0]+' agora tem acesso de Administrador.');
   else toast('Usuario atualizado!');
 }
 
@@ -570,6 +639,7 @@ function toggleUser(uid){
   var users=getUsers();var u=users.find(function(x){return x.id===uid;});if(!u)return;
   u.ativo=!u.ativo;
   var savedOk=saveUsersLocal(users,u.id,{ativo:u.ativo});
+  if(!u.ativo)_clearUserSessionsRemote(uid);
   renderUsers();
   if(savedOk)toast(u.ativo?'Ativado':'Desativado');
 }
@@ -593,7 +663,10 @@ function confirmDU(){
   // gravação local ter sido confirmada.
   if(!ss('lf6_u',users))return;
   deleteUserDoc(delId);
+  _clearUserSessionsRemote(delId);
+  var cleanedDepts=_cleanupDepartmentsForRemovedUser(delId);
   closeDU();
   renderUsers();
-  toast('Excluído');
+  if(cleanedDepts&&document.getElementById('pg-estrutura')&&document.getElementById('pg-estrutura').classList.contains('on'))renderEstruturaPage();
+  toast(cleanedDepts?'Excluído e removido da estrutura.':'Excluído');
 }

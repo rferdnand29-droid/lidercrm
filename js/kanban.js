@@ -7,77 +7,98 @@
  * antes - ver ordem de <script src> no index.html).
  * ===================================================================== */
 
-var KB_LEADS_COLS=[{id:'novo',label:'Novo Lead',cls:'c-novo'},{id:'tent',label:'2° Tentativa',cls:'c-tent'},{id:'whats',label:'WhatsApp',cls:'c-whats'},{id:'livre',label:'Lead Livre',cls:'c-livre'},{id:'conv',label:'Convertido',cls:'c-conv'},{id:'desc',label:'Descartado',cls:'c-desc'}];
+var __kanbanRuntime=(((window.LiderCRM||{}).modules||{}).kanban||{}).runtime||{};
+var KB_LEADS_COLS=__kanbanRuntime.KB_LEADS_COLS||[];
+var KB_NEG_COLS=__kanbanRuntime.KB_NEG_COLS||[];
+var KB_NEG_RESTRICTED=__kanbanRuntime.KB_NEG_RESTRICTED||[];
+var KB_NEG_RESTRICTED_TARGET=__kanbanRuntime.KB_NEG_RESTRICTED_TARGET||KB_NEG_RESTRICTED;
+var KB_NEG_LOCKED_SOURCE=__kanbanRuntime.KB_NEG_LOCKED_SOURCE||KB_NEG_RESTRICTED;
+var STAGE_COLORS=__kanbanRuntime.STAGE_COLORS||{};
+var _kbCardLocked=__kanbanRuntime._kbCardLocked||function(){return false;};
+var _kbStageReadOnly=__kanbanRuntime._kbStageReadOnly||function(){return false;};
+var stageColor=__kanbanRuntime.stageColor||function(){return '#888';};
+var kbCols=__kanbanRuntime.kbCols||function(){return [];};
+var kbKeyFor=__kanbanRuntime.kbKeyFor||function(b,u){return 'lf6_kb_'+b+'_'+(u||'');};
+var getKB=__kanbanRuntime.getKB||function(){return [];};
+var getKBFor=__kanbanRuntime.getKBFor||function(){return [];};
+var _mergeKeepLocalOnly=__kanbanRuntime._mergeKeepLocalOnly||function(a){return a;};
+var _kbWorkerClient=__kanbanRuntime._kbWorkerClient||function(){return null;};
+var _colLabel=__kanbanRuntime._colLabel||function(b,c){return c||'';};
+var _kbDiscardReasonLabel=__kanbanRuntime._kbDiscardReasonLabel||function(r){return r||'';};
+var _afterEl=__kanbanRuntime._afterEl||function(){};
+var _collectAllCardsForDup=__kanbanRuntime._collectAllCardsForDup||function(){return [];};
+var _countDuplicatePhone=__kanbanRuntime._countDuplicatePhone||function(){return 0;};
+var parseContactLines=__kanbanRuntime.parseContactLines||function(t){return [{name:t,tel:''}];};
 
-var KB_NEG_COLS=[
-  {id:'retag',label:'Retornar',cls:'c-retag'},
-  {id:'agvid',label:'AG Vídeo',cls:'c-agvid'},
-  {id:'presencial',label:'Presencial',cls:'c-presencial'},
-  {id:'reag',label:'Reagendar',cls:'c-reag'},
-  {id:'cart',label:'Cartela',cls:'c-cart'},
-  {id:'vidp',label:'Video/Loja',cls:'c-vidp'},
-  {id:'fich',label:'Liberação de Ficha',cls:'c-fich'},
-  {id:'aprov',label:'Cliente Aprovado',cls:'c-aprov'},
-  {id:'fecham',label:'Fechamento',cls:'c-fecham'},
-  {id:'fechado',label:'Fechado',cls:'c-fechado'},
-  {id:'noshow',label:'No-Show/Desistencia',cls:'c-noshow'}
-];
-
-var KB_NEG_RESTRICTED=['fich','aprov','fecham','fechado','vidp'];
-
-/* Uma vez que um card de Negócios entra numa etapa de KB_NEG_RESTRICTED, consultores comuns
-   (não-gestor) deixam de poder movê-lo PARA FORA dela também (antes só bloqueava entrada
-   em novas etapas restritas, mas o card continuava "arrastável" pra qualquer outra etapa
-   livre). Usado por _makeCard (drag desktop), openKBDet/moveCard (painel de detalhe) e
-   openStagePicker/_spSelect (seletor mobile estilo Bitrix). */
-function _kbCardLocked(board,col){return board==='negocios'&&KB_NEG_RESTRICTED.indexOf(col)>=0&&getMyRole()!=='gestor';}
-
-/* Cores planas usadas nos botões/etapas "em forma de seta" da interface mobile
-   (estilo Bitrix24 — ver openStagePicker/renderKBMobile). Uma cor por coluna,
-   reaproveitando a paleta já usada nos cabeçalhos do kanban desktop (.kb-col-hd.c-*)
-   sempre que possível, pra manter a mesma identidade visual entre desktop e mobile. */
-var STAGE_COLORS={
-  novo:'#1a1a1f',tent:'#36c6f0',whats:'#1B8A5E',livre:'#2f4fa0',conv:'#27ae60',desc:'#c0392b',
-  retag:'#d4b106',agvid:'#36c6f0',presencial:'#1B8A5E',reag:'#36c6f0',cart:'#3a6fe0',
-  vidp:'#7a5230',fich:'#d9491f',aprov:'#2ecfa0',fecham:'#1a4a0a',fechado:'#0a2a05',noshow:'#7b1d1d'
+// FIX (2026-07-23): _kbEnqueueSaveOnFail — quando o POST do kanban falha por rede,
+// enfileira o PUT no RetryQueue global (mesmo mecanismo já usado por saveActivities)
+// para reenvio automático quando a conexão voltar. Antes disso, uma edição de lead
+// em zona de sinal ruim ficava só no localStorage e nunca subia para a nuvem — daí
+// o "erro de salvamento em nuvem" reportado. Agora: local OK + fila persistente.
+function _kbEnqueueSaveOnFail(b,uid,list,err){
+  try{
+    var q = (window.LiderCRM && window.LiderCRM.offline && window.LiderCRM.offline.retryQueue) || null;
+    if(q && typeof q.enqueue==='function'){
+      q.enqueue({ method:'PUT', path:'/kanban/list', query:{board:b, uid:uid}, body:{uid:uid, list:list},
+                  meta:{kind:'kanban', board:b, uid:uid, at:Date.now()} });
+    }
+  }catch(_e){}
+  try{ syncErr(err); }catch(_e){}
 }
 
-function stageColor(id){return STAGE_COLORS[id]||'#3a3f4a';}
-
-function kbCols(b){return b==='leads'?KB_LEADS_COLS:KB_NEG_COLS;}
-
-function kbKeyFor(b,uid){return 'lf6_kb_'+b+'_'+uid;}
-
-function getKB(b){return sg(kbKeyFor(b,S.userId))||[];}
-
-function getKBFor(b,uid){return sg(kbKeyFor(b,uid))||[];}
-
-// CORREÇÃO (mesma causa do bug "usuário some" aplicada aqui também): toda vez que o app
-// baixa uma lista do Firestore em segundo plano (clientes, cards de Kanban) pra atualizar
-// o cache local, ele SUBSTITUÍA a lista local inteira pela do servidor. Se algo criado
-// neste aparelho (um card novo, um cliente novo) ainda não tinha terminado de sincronizar
-// — ou a gravação falhou por qualquer motivo — essa substituição apagava o item local sem
-// nenhum aviso, mesmo ele tendo sido salvo com sucesso na tela momentos antes. Esta função
-// central faz a MESCLA seguro: usa a versão do servidor como base (pra refletir edições
-// feitas em outros aparelhos) e preserva qualquer item que só existe localmente.
-function _mergeKeepLocalOnly(serverList,localList){
-  serverList=serverList||[];localList=localList||[];
-  var serverIds={};serverList.forEach(function(x){if(x&&x.id)serverIds[x.id]=true;});
-  var extra=localList.filter(function(x){return x&&x.id&&!serverIds[x.id];});
-  return extra.length?serverList.concat(extra):serverList;
+function saveKB(b,list){
+  if(!S||!S.userId){console.warn('[kb] saveKB: sessão não iniciada');return false;}
+  var localOk=ss(kbKeyFor(b,S.userId),list);
+  var wc=_kbWorkerClient();
+  if(wc){syncBusy();wc.saveKanbanList(b,S.userId,list).then(syncOk).catch(function(e){ _kbEnqueueSaveOnFail(b,S.userId,list,e); });}
+  else if(DB_MODE==='firebase'&&db){syncBusy();db.collection('kb_'+b).doc(S.userId).set({list:list,ts:Date.now()}).then(syncOk).catch(function(e){ _kbEnqueueSaveOnFail(b,S.userId,list,e); });}
+  return localOk;
 }
 
-function saveKB(b,list){var localOk=ss(kbKeyFor(b,S.userId),list);if(DB_MODE==='firebase'&&db){syncBusy();db.collection('kb_'+b).doc(S.userId).set({list:list,ts:Date.now()}).then(syncOk).catch(syncErr);}return localOk;}
-
-function saveKBFor(b,uid,list){var localOk=ss(kbKeyFor(b,uid),list);if(DB_MODE==='firebase'&&db){syncBusy();db.collection('kb_'+b).doc(uid).set({list:list,ts:Date.now()}).then(syncOk).catch(syncErr);}return localOk;}
+function saveKBFor(b,uid,list){
+  var localOk=ss(kbKeyFor(b,uid),list);
+  var wc=_kbWorkerClient();
+  if(wc){syncBusy();wc.saveKanbanList(b,uid,list).then(syncOk).catch(function(e){ _kbEnqueueSaveOnFail(b,uid,list,e); });}
+  else if(DB_MODE==='firebase'&&db){syncBusy();db.collection('kb_'+b).doc(uid).set({list:list,ts:Date.now()}).then(syncOk).catch(function(e){ _kbEnqueueSaveOnFail(b,uid,list,e); });}
+  return localOk;
+}
 
 var _kbViewUid={leads:null,negocios:null}
 
 function activeUID(b){if(!S)return null;return(hasAdminAccess(S.userId)&&_kbViewUid[b])?_kbViewUid[b]:S.userId;}
 
-function activeList(b){var u=activeUID(b);return u===S.userId?getKB(b):getKBFor(b,u);}
+function activeList(b){var u=activeUID(b);return u===(S&&S.userId)?getKB(b):getKBFor(b,u);}
 
-function saveActive(b,list){var u=activeUID(b);if(u===S.userId)return saveKB(b,list);return saveKBFor(b,u,list);}
+function saveActive(b,list){var u=activeUID(b);if(u===(S&&S.userId))return saveKB(b,list);return saveKBFor(b,u,list);}
+
+function _kbAllVisibleUserPool(){
+  var users=getUsers().filter(function(u){return u&&u.ativo;});
+  if(S&&S.userId&&!users.find(function(u){return u.id===S.userId;})){
+    users.push({id:S.userId,nome:(S.nome||S.userId),ativo:true});
+  }
+  return users;
+}
+
+function _collectLivrePoolForUser(uid){
+  var seen={};
+  var out=[];
+  function pushCard(card,ownerId){
+    if(!card||!card.id)return;
+    var key=String(card.id)+'@@'+String(ownerId||'');
+    if(seen[key])return;
+    seen[key]=true;
+    card._timeOwnerUid=ownerId||uid||(S&&S.userId)||'';
+    out.push(card);
+  }
+  getKBFor('leads',uid).forEach(function(c){pushCard(c,uid);});
+  _kbAllVisibleUserPool().forEach(function(u){
+    if(!u||!u.id||u.id===uid)return;
+    getKBFor('leads',u.id).forEach(function(c){
+      if(c&&c.col==='livre')pushCard(c,u.id);
+    });
+  });
+  return out;
+}
 
 /* Varias acoes de Kanban (mover card arrastando, transferir, descartar, restaurar
    snapshot) nunca mostravam nada quando davam certo OU quando davam errado — se o
@@ -92,7 +113,7 @@ var _kbDragId=null,_kbDragBoard=null,_kbDragOwner=null,_kbDetId=null,_kbDetBoard
 var _kbNavFromAdm=false;
 
  // flag: sinaliza que goPage foi chamado via admViewBoard
-var _kbQ={leads:'',negocios:''}
+var _kbQ={leads:'',negocios:'',__default:''}
 
 var _kbFilter={leads:{nicho:'',valorMin:'',valorMax:'',dias:''},negocios:{nicho:'',valorMin:'',valorMax:'',dias:''}}
 
@@ -122,17 +143,100 @@ function kbScroll(wrapId,dir){
    automático só por passar o mouse de raspão sobre o botão. Solta o mouse (mouseleave) ou
    clica (mouseup) pra parar. */
 var _kbHoverScrollTimer=null;
+var _kbDragAutoTimer=null,_kbDragAutoWrapId=null,_kbDragAutoDir=0;
 
 function kbScrollHoverStart(wrapId,dir){
   kbScrollHoverStop();
   var el=document.getElementById(wrapId);if(!el)return;
   _kbHoverScrollTimer=setTimeout(function(){
-    _kbHoverScrollTimer=setInterval(function(){el.scrollBy({left:dir*16,behavior:'auto'});},16);
+    // CORREÇÃO LENTIDÃO (2026-07-23): mesma otimização do drag-autoscroll acima:
+    // 60fps era pesado em mobile, 30fps é suficiente e mais leve.
+    _kbHoverScrollTimer=setInterval(function(){el.scrollBy({left:dir*16,behavior:'auto'});},33);
   },220);
 }
 
 function kbScrollHoverStop(){
   if(_kbHoverScrollTimer){clearTimeout(_kbHoverScrollTimer);clearInterval(_kbHoverScrollTimer);_kbHoverScrollTimer=null;}
+}
+
+function _kbWrapIdForBoard(board){
+  if(board==='leads')return 'leads-kanban';
+  if(board==='negocios')return 'negocios-kanban';
+  if(board==='time-leads')return 'time-leads-kanban';
+  if(board==='time-negocios')return 'time-negocios-kanban';
+  return board||'';
+}
+
+function _kbDragAutoScrollStop(){
+  if(_kbDragAutoTimer){clearInterval(_kbDragAutoTimer);_kbDragAutoTimer=null;}
+  _kbDragAutoWrapId=null;_kbDragAutoDir=0;
+}
+
+// CORREÇÃO BUG MOVIMENTAÇÃO #1 (2026-07-23):
+// Em Android WebView (Capacitor) e em iOS Safari, o evento 'dragend' às vezes
+// não dispara — principalmente quando o cursor sai da janela ou o navegador
+// interrompe o drag por scroll automático. Isso deixava _kbDragId=<id do card>
+// preso, e QUALQUER tentativa posterior de mover outro card falhava porque a
+// variável global ainda apontava pro card antigo. Resultado percebido pelo
+// usuário: "cards que não se movem", precisando refresh pra desbloquear.
+// Guard-rail global: qualquer 'dragend' OU 'drop' no documento zera o estado.
+if(typeof window!=='undefined' && !window.__LF_KB_DRAG_GUARD__){
+  window.__LF_KB_DRAG_GUARD__=1;
+  var _kbResetDragState=function(){
+    try{
+      _kbDragAutoScrollStop();
+      if(_kbDragId){
+        // Remove classe .dragging que ficou presa em algum card
+        try{ var stuck=document.querySelector('.kb-card.dragging'); if(stuck) stuck.classList.remove('dragging'); }catch(_e){}
+      }
+      _kbDragId=null;_kbDragBoard=null;_kbDragOwner=null;
+      // Remove placeholder órfão (se drop foi cancelado)
+      try{ var ph=document.getElementById('kb-ph'); if(ph) ph.remove(); }catch(_e){}
+      // Remove drag-over de todas as colunas
+      try{ document.querySelectorAll('.kb-col.drag-over').forEach(function(c){c.classList.remove('drag-over');}); }catch(_e){}
+    }catch(_e){}
+  };
+  document.addEventListener('dragend',_kbResetDragState,true);
+  document.addEventListener('drop',function(){setTimeout(_kbResetDragState,50);},true);
+  // Se a janela perder foco enquanto arrastando, também reseta
+  window.addEventListener('blur',_kbResetDragState);
+  // Tecla ESC cancela o drag
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape' && _kbDragId) _kbResetDragState(); });
+  window._kbResetDragState=_kbResetDragState;
+}
+
+function _kbDragAutoScrollMaybe(board,clientX){
+  if(!_kbDragId){_kbDragAutoScrollStop();return;}
+  var wrapId=_kbWrapIdForBoard(board);
+  var el=document.getElementById(wrapId);if(!el){_kbDragAutoScrollStop();return;}
+  var shell=el.closest('.kb-scroll-wrap')||el;
+  var rect=shell.getBoundingClientRect();
+  var zone=Math.max(56,Math.min(92,rect.width*0.12));
+  var dir=0;
+  if(clientX<=rect.left+zone)dir=-1;
+  else if(clientX>=rect.right-zone)dir=1;
+  if(!dir){_kbDragAutoScrollStop();return;}
+  if(_kbDragAutoTimer&&_kbDragAutoWrapId===wrapId&&_kbDragAutoDir===dir)return;
+  _kbDragAutoScrollStop();
+  _kbDragAutoWrapId=wrapId;_kbDragAutoDir=dir;
+  // CORREÇÃO LENTIDÃO (2026-07-23): 16ms (~60fps) era agressivo demais em
+  // Android WebView e causava scroll trepidado + alto uso de CPU durante drag.
+  // 33ms (~30fps) é suficiente pra scroll suave sem sobrecarregar a UI thread.
+  // Além disso, o interval agora se auto-cancela se _kbDragId for zerado por
+  // qualquer motivo (guard-rail acima), evitando timer órfão girando eternamente.
+  _kbDragAutoTimer=setInterval(function(){
+    if(!_kbDragId){_kbDragAutoScrollStop();return;}
+    el.scrollBy({left:dir*18,behavior:'auto'});
+  },33);
+}
+
+function _bindKBDragAutoShell(board,wrap){
+  var shell=wrap&&(wrap.closest('.kb-scroll-wrap')||wrap);
+  if(!shell||shell._kbDragAutoBoardBound===board)return;
+  shell._kbDragAutoBoardBound=board;
+  shell.addEventListener('dragover',function(e){if(_kbDragBoard===board)_kbDragAutoScrollMaybe(board,e.clientX);});
+  shell.addEventListener('dragleave',function(e){if(!shell.contains(e.relatedTarget))_kbDragAutoScrollStop();});
+  shell.addEventListener('drop',_kbDragAutoScrollStop);
 }
 
 // ============================================================
@@ -143,8 +247,8 @@ function renderKBConsBar(board){
   if(!hasAdminAccess()){el.innerHTML='';return;}
   // Exibe todos os usuários ativos para filtro (incluindo o próprio ADM/Gerente)
   var users=getUsers().filter(function(u){return u.ativo;});
-  if(!users.find(function(u){return u.id===S.userId;})){
-    users.unshift({id:S.userId,nome:S.nome||'Eu',ativo:true});
+  if(S&&S.userId&&!users.find(function(u){return u.id===S.userId;})){
+    users.unshift({id:S.userId,nome:(S.nome||'Eu'),ativo:true});
   }
   var cur=_kbViewUid[board],boardJs=_jsSq(board);
   var html='<span style="font-size:.65rem;color:var(--mu);margin-right:4px">Ver:</span><button class="kb-cons-chip'+(cur===null?' on':'')+'" onclick="setKBView(\''+boardJs+'\',null,this)">Todos</button>';
@@ -159,6 +263,33 @@ function setKBView(board,uid,btn){
   if(btn)btn.classList.add('on');renderKBLocal(board);setTimeout(function(){renderKB(board);},1200);
 }
 
+/* CORREÇÃO (auditoria — consumidores indiretos de usuário fora de Time/Estrutura/Messenger):
+   _kbViewUid[board] guarda o uid do consultor escolhido no filtro "Ver:" do ADM/Gestor, mas
+   nada revalidava esse valor quando o usuário selecionado era desativado ou excluído em
+   Time/Estrutura enquanto o Kanban continuava carregado. Como activeUID() só checa se
+   _kbViewUid[board] tem algum valor (sem verificar se o usuário ainda existe/está ativo), o
+   quadro continuava mostrando os cards daquele ex-consultor indefinidamente — e sem nenhum
+   chip marcado como "on" em renderKBConsBar() (o usuário inativo nem aparece mais na
+   lista), deixando o filtro preso num estado sem indicação visual de qual "Ver:" está
+   realmente selecionado. Mesmo padrão já corrigido em Time (_timeViewUid) e Estrutura. Ao
+   receber crm:users-updated, se o uid selecionado em _kbViewUid não estiver mais entre os
+   usuários ativos, o filtro volta para "Todos" e o quadro (se estiver na tela) é
+   redesenhado. */
+function _crmKBRevalidateViewUid(){
+  var ativos=null;
+  ['leads','negocios'].forEach(function(board){
+    var uid=_kbViewUid[board];
+    if(!uid)return;
+    if(!ativos)ativos=getUsers().filter(function(u){return u.ativo;});
+    if(!ativos.find(function(u){return u.id===uid;})){
+      _kbViewUid[board]=null;
+      var pg=document.getElementById(board==='leads'?'pg-leads':'pg-negocios');
+      if(pg&&pg.classList.contains('on')){renderKBConsBar(board);renderKBLocal(board);}
+    }
+  });
+}
+window.addEventListener('crm:users-updated',_crmKBRevalidateViewUid);
+
 /* CORREÇÃO DE LENTIDÃO AO ABRIR/TROCAR DE QUADRO:
    antes, renderKB() sempre esperava loadKBRemote() (rede/Firestore) responder ANTES de
    desenhar qualquer coisa — trocar de aba Leads/Negócios (ou trocar o filtro de consultor)
@@ -168,42 +299,66 @@ function setKBView(board,uid,btn){
    chegar algo novo (mudança feita em outro aparelho), o quadro é redesenhado de novo,
    sem o usuário jamais esperar a rede pra ver algo na tela. */
 function renderKB(board){
+  if(!S||!S.userId){console.warn('[kb] renderKB: sessão não iniciada');return;}
   var wrap=document.getElementById(board==='leads'?'leads-kanban':'negocios-kanban');if(!wrap)return;
   renderKBLocal(board); // pintura instantânea, sempre a partir do cache local
   _syncKBRemoteBG(board);
 }
 
 function _syncKBRemoteBG(board){
-  if(DB_MODE!=='firebase'||!db)return;
+  var wc=_kbWorkerClient();
+  var usingWorker=!!wc;
+  if(!usingWorker&&(DB_MODE!=='firebase'||!db))return;
+  function fetchDoc(uid){
+    return usingWorker
+      ? wc.kanbanList(board,uid).then(function(doc){return (doc&&doc.list)||[];})
+      : db.collection('kb_'+board).doc(uid).get().then(function(d){return d.exists?(d.data().list||[]):[];});
+  }
   if(hasAdminAccess()&&!_kbViewUid[board]){
     var _allAdmUsers=getUsers().filter(function(u){return u.ativo;});
-    if(!_allAdmUsers.find(function(u){return u.id===S.userId;})){
-      _allAdmUsers.push({id:S.userId,nome:S.nome||S.userId,ativo:true});
+    if(S&&S.userId&&!_allAdmUsers.find(function(u){return u.id===S.userId;})){
+      _allAdmUsers.push({id:S.userId,nome:(S.nome||S.userId),ativo:true});
     }
     var _pending=_allAdmUsers.length;
     if(!_pending)return;
     _allAdmUsers.forEach(function(u){
-      db.collection('kb_'+board).doc(u.id).get().then(function(d){
-        var server=d.exists?(d.data().list||[]):[];
+      fetchDoc(u.id).then(function(server){
         var merged=_mergeKeepLocalOnly(server,getKBFor(board,u.id));
         ss(kbKeyFor(board,u.id),merged);
         if(merged.length!==server.length)saveKBFor(board,u.id,merged); // reenvia card(s) local(is) ainda não sincronizado(s)
-      }).catch(function(){}).then(function(){
+        _autoMoveStaleToLivre(board,getKBFor(board,u.id),u.id);
+      }).catch(function(e){console.warn("[kb] sync admin falhou",e);syncErr&&syncErr(e);}).then(function(){
         _pending--;
         if(_pending<=0)renderKBLocal(board); // repinta uma única vez, já com tudo atualizado
       });
     });
   } else {
     var uid=activeUID(board);
-    db.collection('kb_'+board).doc(uid).get().then(function(d){
-      var server=d.exists?(d.data().list||[]):[];
-      var merged=_mergeKeepLocalOnly(server,getKBFor(board,uid));
-      ss(kbKeyFor(board,uid),merged);
-      if(merged.length!==server.length)saveKBFor(board,uid,merged);
-    }).catch(function(){}).then(function(){
-      if(uid===S.userId)runAutomationEngine(board,getKBFor(board,uid),uid);
-      renderKBLocal(board);
-    });
+    if(board==='leads'&&!hasAdminAccess()){
+      var _pool=_kbAllVisibleUserPool();
+      var _pendingUserSync=_pool.length;
+      if(!_pendingUserSync)return;
+      _pool.forEach(function(u){
+        fetchDoc(u.id).then(function(server){
+          var merged=_mergeKeepLocalOnly(server,getKBFor(board,u.id));
+          ss(kbKeyFor(board,u.id),merged);
+          if(merged.length!==server.length)saveKBFor(board,u.id,merged);
+          if(S&&u.id===S.userId){runAutomationEngine(board,getKBFor(board,u.id),u.id);_autoMoveStaleToLivre(board,getKBFor(board,u.id),u.id);}
+        }).catch(function(e){console.warn("[kb] sync livre pool falhou",e);syncErr&&syncErr(e);}).then(function(){
+          _pendingUserSync--;
+          if(_pendingUserSync<=0)renderKBLocal(board);
+        });
+      });
+    } else {
+      fetchDoc(uid).then(function(server){
+        var merged=_mergeKeepLocalOnly(server,getKBFor(board,uid));
+        ss(kbKeyFor(board,uid),merged);
+        if(merged.length!==server.length)saveKBFor(board,uid,merged);
+      }).catch(function(e){console.warn("[kb] sync user falhou",e);syncErr&&syncErr(e);}).then(function(){
+        if(S&&uid===S.userId){runAutomationEngine(board,getKBFor(board,uid),uid);_autoMoveStaleToLivre(board,getKBFor(board,uid),uid);}
+        renderKBLocal(board);
+      });
+    }
   }
 }
 
@@ -218,7 +373,9 @@ function _syncKBRemoteBG(board){
    Um renderKB() completo (com rebusca remota) continua rodando ao entrar/trocar de página,
    então outros dispositivos ainda recebem as mudanças. */
 function renderKBLocal(board){
+  if(!S||!S.userId){console.warn('[kb] renderKBLocal: sessão não iniciada');return;}
   var wrap=document.getElementById(board==='leads'?'leads-kanban':'negocios-kanban');if(!wrap)return;
+  _bindKBDragAutoShell(board,wrap);
   if(board==='leads'){
     // CORREÇÃO (auditoria, Duplicatas — controle de acesso): o botão "🔍 Duplicatas" era
     // HTML estático sem nenhum hasAdminAccess(), diferente de todo o resto do app (que
@@ -229,7 +386,7 @@ function renderKBLocal(board){
   }
   if(hasAdminAccess()&&!_kbViewUid[board]){
     var _allAdmUsers=getUsers().filter(function(u){return u.ativo;});
-    if(!_allAdmUsers.find(function(u){return u.id===S.userId;}))_allAdmUsers.push({id:S.userId,nome:S.nome||S.userId,ativo:true});
+    if(S&&S.userId&&!_allAdmUsers.find(function(u){return u.id===S.userId;}))_allAdmUsers.push({id:S.userId,nome:(S.nome||S.userId),ativo:true});
     var _allAdmList=[];
     _allAdmUsers.forEach(function(u){
       var list=getKBFor(board,u.id);
@@ -239,14 +396,48 @@ function renderKBLocal(board){
     _buildKB(board,_allAdmList,wrap,null);
   } else {
     var uid=activeUID(board);
-    _buildKB(board,getKBFor(board,uid),wrap,uid);
+    var baseList=(board==='leads'&&!hasAdminAccess())?_collectLivrePoolForUser(uid):getKBFor(board,uid);
+    _buildKB(board,baseList,wrap,uid);
   }
   if(typeof isMobileView==='function'&&isMobileView()&&typeof renderKBMobile==='function')renderKBMobile(board);
 }
 
 function filterKB(board){
   var inp=document.getElementById(board==='leads'?'lead-search':'neg-search');
-  _kbQ[board]=(inp?inp.value:'').toLowerCase();renderKBLocal(board);
+  _kbQ[board]=(inp?inp.value:'').toLowerCase();_kbQ[board]=_kbQ[board]||'';renderKBLocal(board);
+}
+
+function _sortCardsForColumn(cards){
+  return (cards||[]).slice().sort(function(a,b){
+    var am=Number.isFinite(a&&a.manualOrder)?a.manualOrder:null;
+    var bm=Number.isFinite(b&&b.manualOrder)?b.manualOrder:null;
+
+    if(am!==null&&bm!==null&&am!==bm)return am-bm;
+    if(am!==null&&bm===null)return -1;
+    if(am===null&&bm!==null)return 1;
+
+    var at=new Date((a&&a.createdAt)||0).getTime();
+    var bt=new Date((b&&b.createdAt)||0).getTime();
+    return bt-at;
+  });
+}
+
+function _attCanEditCurrentCard(){
+  var board=(typeof _kbDetBoard!=='undefined' ? _kbDetBoard : null);
+  var id=(typeof _kbDetId!=='undefined' ? _kbDetId : null);
+  if(!board || !id) return false;
+
+  var uid=((typeof _kbDetOwnerUid!=='undefined' ? _kbDetOwnerUid : null) ||
+          (typeof activeUID==='function' ? activeUID(board) : null));
+
+  var arr=(typeof getKBFor==='function' ? getKBFor(board,uid) : []);
+  var c=arr.find(function(x){ return x.id===id; });
+  if(!c) return false;
+
+  if(typeof _kbStageReadOnly === 'function' && _kbStageReadOnly(board,c.col)) return false;
+  if(typeof _kbDetReadOnly !== 'undefined' && _kbDetReadOnly) return false;
+
+  return true;
 }
 
 function _buildKB(board,list,wrap,ownerUid,readOnly){
@@ -265,7 +456,8 @@ function _buildKB(board,list,wrap,ownerUid,readOnly){
       if(_kbOnlyLate[board]&&!_isOverdue(c))return false;
       return true;
     });
-    var restricted=board==='negocios'&&KB_NEG_RESTRICTED.indexOf(col.id)>=0&&!canAll;
+    cards=_sortCardsForColumn(cards);
+    var restricted=board==='negocios'&&_kbCardLocked(board,col.id,'target')&&!canAll;
     var colEl=document.createElement('div');colEl.className='kb-col';colEl.dataset.col=col.id;colEl.dataset.board=board;
     var hd=document.createElement('div');hd.className='kb-col-hd '+col.cls;
     // Soma do valor de venda de todos os cards da etapa (somente Negocios) — exibida ao
@@ -284,6 +476,7 @@ function _buildKB(board,list,wrap,ownerUid,readOnly){
     if(!restricted&&!readOnly){
       ca.addEventListener('dragover',function(e){
         e.preventDefault();colEl.classList.add('drag-over');
+        _kbDragAutoScrollMaybe(board,e.clientX);
         // Throttle pro próximo animation frame: dragover dispara muitas vezes por segundo, e
         // _afterEl() faz getBoundingClientRect() de cada card da coluna — recalcular isso a
         // cada disparo (em vez de no máximo uma vez por frame) causava travamento visível ao
@@ -297,13 +490,14 @@ function _buildKB(board,list,wrap,ownerUid,readOnly){
           var af=_afterEl(ca,ca._kbDragY);if(af)ca.insertBefore(ph,af);else ca.appendChild(ph);
         });
       });
-      ca.addEventListener('dragleave',function(e){if(!ca.contains(e.relatedTarget)){colEl.classList.remove('drag-over');var ph=document.getElementById('kb-ph');if(ph&&ph.parentNode===ca)ph.remove();if(ca._kbDragRAF){cancelAnimationFrame(ca._kbDragRAF);ca._kbDragRAF=null;}}});
+      ca.addEventListener('dragleave',function(e){if(!ca.contains(e.relatedTarget)){colEl.classList.remove('drag-over');var ph=document.getElementById('kb-ph');if(ph&&ph.parentNode===ca)ph.remove();if(ca._kbDragRAF){cancelAnimationFrame(ca._kbDragRAF);ca._kbDragRAF=null;} _kbDragAutoScrollStop();}});
       ca.addEventListener('drop',function(e){
-        e.preventDefault();colEl.classList.remove('drag-over');var ph=document.getElementById('kb-ph');if(ph)ph.remove();
+        e.preventDefault();_kbDragAutoScrollStop();colEl.classList.remove('drag-over');var ph=document.getElementById('kb-ph');
+        var dropIndex=(ph&&ph.parentNode===ca)?Array.prototype.indexOf.call(ca.children,ph):null;if(ph)ph.remove();
         if(ca._kbDragRAF){cancelAnimationFrame(ca._kbDragRAF);ca._kbDragRAF=null;}
         if(!_kbDragId||_kbDragBoard!==board)return;
         var uid2=_kbDragOwner||activeUID(board);
-        _kbMoveCard(_kbDragId,board,uid2,col.id);
+        _kbMoveCard(_kbDragId,board,uid2,col.id,false,false,dropIndex);
         renderKBLocal(board);
       });
     }
@@ -312,48 +506,60 @@ function _buildKB(board,list,wrap,ownerUid,readOnly){
   });
 }
 
-function _afterEl(container,y){var els=Array.from(container.querySelectorAll('.kb-card:not(.dragging)'));return els.reduce(function(cl,el){var b=el.getBoundingClientRect();var off=y-b.top-b.height/2;return off<0&&off>cl.offset?{offset:off,el:el}:cl;},{offset:Number.NEGATIVE_INFINITY,el:null}).el;}
 
 function _makeCard(c,board,ownerUid,readOnly){
   var el=document.createElement('div');
-  var _locked=_kbCardLocked(board,c.col);
+  var _locked=(typeof _kbCardLocked==='function')&&_kbCardLocked(board,c.col,'from');
   var effOwnerUid=c._timeOwnerUid||ownerUid;
-  el.className='kb-card'+(readOnly?' kb-card-ro':'')+(_locked?' kb-card-locked':'');el.draggable=!readOnly&&!_locked;el.dataset.id=c.id;el.dataset.board=board;el.dataset.owner=effOwnerUid||S.userId;
+  var _foreignVisibleLead=(board==='leads'&&effOwnerUid&&S&&effOwnerUid!==S.userId&&!hasAdminAccess());
+  var _cardReadOnly=!!(readOnly||_foreignVisibleLead);
+  el.className='kb-card'+(_cardReadOnly?' kb-card-ro':'')+(_locked?' kb-card-locked':'');el.draggable=!_cardReadOnly&&!_locked;el.dataset.id=c.id;el.dataset.board=board;el.dataset.owner=effOwnerUid||(S&&S.userId)||'';
   var n=c.nicho||'outro';
-  var dt='';try{if(c.createdAt)dt=new Date(c.createdAt).toLocaleDateString('pt-BR');}catch(e){}
-  var actBadge=_cardActBadge(c,effOwnerUid);
-  var ownerTag='';if(effOwnerUid&&effOwnerUid!==S.userId){var ou=getUser(effOwnerUid);ownerTag='<div class="kb-owner-tag" style="background:rgba(195,154,45,.1);color:var(--al)">'+eH(ou?ou.nome.split(' ')[0]:'?')+'</div>';}
-  var _staleMs=7*24*60*60*1000;
+  var dt='';try{if(c.createdAt)dt=new Date(c.createdAt).toLocaleDateString('pt-BR');}catch(e){console.warn("kanban date parse",e);}
+  var actBadge=(typeof _cardActBadge==='function')?_cardActBadge(c,effOwnerUid):'';
+  var ownerTag='';if(effOwnerUid&&S&&effOwnerUid!==S.userId){var ou=getUser(effOwnerUid);ownerTag='<div class="kb-owner-tag" style="background:rgba(195,154,45,.1);color:var(--al)">'+eH(ou&&ou.nome?ou.nome.split(' ')[0]:'?')+'</div>';}
+  var _staleMs=2*24*60*60*1000;/* R15-01: 2 dias → etapa livre automática */
   var _lastMov=c.updatedAt||c.createdAt;
   var _isStale=_lastMov&&(Date.now()-new Date(_lastMov).getTime())>_staleMs&&c.col!=='fechado'&&c.col!=='conv'&&c.col!=='desc'&&c.col!=='noshow'&&c.col!=='desist';
   if(_isStale)el.classList.add('stale');
+  /* Etapa Livre: botão "Assumir Lead" visível para qualquer usuário logado quando o card está na etapa livre */
+  var _isLivreLead=(board==='leads'&&c.col==='livre'&&!readOnly);
+  // FIX #6 (2026-07-20): removido menu 3 pontos em Leads. Em Leads, o clique/duplo-clique já abre detalhes; em Negócios mantém menu de contexto.
+  var leadQuickBtn=(board==='leads')?'':'<button class="kb-card-menu" aria-label="Opções do card">⋯</button>';
   el.innerHTML='<div class="kb-card-num">#'+c.id.slice(-6).toUpperCase()+'</div>'
     +'<span class="kb-card-nicho '+n+'">'+(NICHO_LABELS[n]||n)+'</span>'
-    +'<div class="kb-card-top"><div class="kb-card-name">'+eH(c.name)+(c.tel&&!readOnly?'<button class="kb-copy-tel-btn" title="Copiar número" aria-label="Copiar número">📎</button>':'')+'</div>'+(readOnly?'':'<button class="kb-card-sel-btn" title="Selecionar" aria-label="Selecionar card" onclick="event.stopPropagation();toggleBulkSelect(\''+c.id+'\',\''+board+'\',\''+effOwnerUid+'\',this.closest(\'.kb-card\'))">&#9633;</button><button class="kb-card-menu" aria-label="Opções do card">⋯</button><button class="kb-card-del-btn" title="Excluir permanentemente" aria-label="Excluir card permanentemente">✕</button>')+'</div>'
+    +'<div class="kb-card-top"><div class="kb-card-name">'+eH(c.name)+(c.tel?'<button class="kb-copy-tel-btn" title="Copiar número" aria-label="Copiar número">📎</button>':'')+'</div>'+(_cardReadOnly?'':'<button class="kb-card-sel-btn" title="Selecionar" aria-label="Selecionar card" onclick="event.stopPropagation();toggleBulkSelect(\''+c.id+'\',\''+board+'\',\''+effOwnerUid+'\',this.closest(\'.kb-card\'))">&#9633;</button>'+leadQuickBtn+'<button class="kb-card-del-btn" title="Excluir permanentemente" aria-label="Excluir card permanentemente">✕</button>')+'</div>'
     +(c.tel?'<div class="kb-card-tel">'+eH(c.tel)+'</div>':'')
-    +(c.tel&&!readOnly?'<button class="kb-call-btn" aria-label="Ligar para o cliente">📞 Ligar</button><button class="kb-wa-btn">✉️ WhatsApp</button>':'')
+    +(c.tel?'<button class="kb-call-btn" aria-label="Ligar para o cliente">📞 Ligar</button><button class="kb-wa-btn">✉️ WhatsApp</button>':'')
     +(board==='negocios'&&c.valor?'<div class="kb-card-valor" style="font-size:.72rem;font-weight:700;color:var(--ok);margin-top:2px">'+fmtBRL(c.valor)+'</div>':'')
     +'<div class="kb-card-date">'+dt+'</div>'
     +(c.obs?'<div class="kb-card-obs">'+eH(c.obs.slice(0,60))+'</div>':'')
     +actBadge+ownerTag
     +(_locked?'<div class="kb-locked-tag" title="Apenas o Gestor pode mover a partir desta etapa">&#128274; Etapa travada</div>':'')
-    +(readOnly?'':'<button class="kb-act-btn">Lembrete</button>')
-    +(!readOnly&&board==='leads'&&c.col!=='conv'?'<button class="kb-convert-btn">Converter em Negocio</button>':'');
+    +(_cardReadOnly?'':'<button class="kb-act-btn">Lembrete</button>')
+    +(!_cardReadOnly&&board==='leads'&&c.col!=='conv'?'<button class="kb-convert-btn">Converter em Negocio</button>':'')
+    +(_isLivreLead&&effOwnerUid!==(S&&S.userId)?'<button class="kb-assume-btn">✋ Assumir Lead</button>':'');
   if(readOnly){
     // Modo somente leitura (página Time/Supervisor): sem drag, sem menu, sem ações —
     // só visualização. Clicar abre o detalhe em modo leitura (sem editar/mover/excluir).
-    el.addEventListener('click',function(){openKBDet(c.id,board,effOwnerUid||S.userId,true);});
+    el.addEventListener('click',function(){openKBDet(c.id,board,effOwnerUid||(S&&S.userId)||'',true);});
     return el;
   }
-  el.addEventListener('dragstart',function(e){_kbDragId=c.id;_kbDragBoard=board;_kbDragOwner=effOwnerUid||S.userId;el.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
-  el.addEventListener('dragend',function(){el.classList.remove('dragging');_kbDragId=null;_kbDragOwner=null;});
+  if(!_cardReadOnly){
+    el.addEventListener('dragstart',function(e){_kbDragId=c.id;_kbDragBoard=board;_kbDragOwner=effOwnerUid||(S&&S.userId)||'';el.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
+    el.addEventListener('dragend',function(){_kbDragAutoScrollStop();el.classList.remove('dragging');_kbDragId=null;_kbDragOwner=null;});
+  }
+  /* R16-02: botão direito do mouse abre editar lead/negócio */
+  el.addEventListener('contextmenu',function(e){e.preventDefault();e.stopPropagation();_kbDetId=c.id;_kbDetBoard=board;_kbDetOwnerUid=effOwnerUid||(S&&S.userId)||'';if(_foreignVisibleLead){openKBDet(c.id,board,effOwnerUid||(S&&S.userId)||'',false);}else if(board==='leads'){editKBFromDet();}else{openKBDet(c.id,board,effOwnerUid||(S&&S.userId)||'',false);}});
   // 1 clique = selecionar (estilo Bitrix24), 2 cliques = abrir detalhe
   var _cardClickTimer=null;
   el.addEventListener('click',function(e){
     if(e.target.closest('.kb-card-menu')||e.target.closest('.kb-convert-btn')||
        e.target.closest('.kb-act-btn')||e.target.closest('.kb-card-del-btn')||
        e.target.closest('.kb-call-btn')||e.target.closest('.kb-wa-btn')||
-       e.target.closest('.kb-copy-tel-btn')||e.target.closest('.kb-card-sel-btn'))return;
+       e.target.closest('.kb-copy-tel-btn')||e.target.closest('.kb-card-sel-btn')||
+       e.target.closest('.kb-assume-btn'))return;
+    if(_foreignVisibleLead){openKBDet(c.id,board,effOwnerUid,false);return;}
     if(_bulkMode||_bulkSelected.length>0){toggleBulkSelect(c.id,board,effOwnerUid,el);return;}
     if(_cardClickTimer){
       clearTimeout(_cardClickTimer);_cardClickTimer=null;
@@ -386,10 +592,13 @@ function _makeCard(c,board,ownerUid,readOnly){
   // também disparava toggleBulkSelect no card por baixo, além da ação do próprio botão.
   var _lpTimer=null;
   el.addEventListener('touchstart',function(e){
+    // R12B-03: long-press handler — no preventDefault
+    if(_cardReadOnly)return;
     if(e.target.closest('.kb-card-menu')||e.target.closest('.kb-convert-btn')||
        e.target.closest('.kb-act-btn')||e.target.closest('.kb-call-btn')||
        e.target.closest('.kb-wa-btn')||e.target.closest('.kb-copy-tel-btn')||
-       e.target.closest('.kb-card-del-btn')||e.target.closest('.kb-card-sel-btn'))return;
+       e.target.closest('.kb-card-del-btn')||e.target.closest('.kb-card-sel-btn')||
+       e.target.closest('.kb-assume-btn'))return;
     _lpTimer=setTimeout(function(){
       _touchZoneCancelDrag();
       navigator.vibrate&&navigator.vibrate(40);
@@ -398,13 +607,18 @@ function _makeCard(c,board,ownerUid,readOnly){
   },{passive:true});
   el.addEventListener('touchend',function(){clearTimeout(_lpTimer);},{passive:true});
   el.addEventListener('touchmove',function(){clearTimeout(_lpTimer);},{passive:true});
-  el.querySelector('.kb-act-btn').addEventListener('click',function(e){e.stopPropagation();_kbDetId=c.id;_kbDetBoard=board;_kbDetOwnerUid=effOwnerUid||S.userId;openQuickActivity();});
+  var actBtn=el.querySelector('.kb-act-btn');if(actBtn)actBtn.addEventListener('click',function(e){e.stopPropagation();_kbDetId=c.id;_kbDetBoard=board;_kbDetOwnerUid=effOwnerUid||(S&&S.userId)||'';openQuickActivity();});
   var delBtn=el.querySelector('.kb-card-del-btn');if(delBtn)delBtn.addEventListener('click',function(e){e.stopPropagation();deleteKBCard(c.id,board,effOwnerUid||activeUID(board));});
   var callBtn=el.querySelector('.kb-call-btn');if(callBtn)callBtn.addEventListener('click',function(e){e.stopPropagation();callClient(c.tel,c.name);});
   var waBtn=el.querySelector('.kb-wa-btn');if(waBtn)waBtn.addEventListener('click',function(e){e.stopPropagation();openWhatsApp(c.tel,c.name);});
   var copyBtn=el.querySelector('.kb-copy-tel-btn');if(copyBtn)copyBtn.addEventListener('click',function(e){e.stopPropagation();copyToClipboard(c.tel,'Número copiado!');});
   var cvBtn=el.querySelector('.kb-convert-btn');if(cvBtn)cvBtn.addEventListener('click',function(e){e.stopPropagation();openConvertModal(c.id,effOwnerUid);});
-  el.querySelector('.kb-card-menu').addEventListener('click',function(e){e.stopPropagation();_openCtx(c.id,board,effOwnerUid,e);});
+  var assumeBtn=el.querySelector('.kb-assume-btn');if(assumeBtn)assumeBtn.addEventListener('click',function(e){e.stopPropagation();assumeLead(c.id,board,effOwnerUid);});
+  // FIX #6 (2026-07-20): em Leads, não existe mais botão .kb-card-menu (leadQuickBtn = ''). Só registra listener em Negócios.
+  var _kbMenu = el.querySelector('.kb-card-menu');
+  if(_kbMenu){
+    _kbMenu.addEventListener('click',function(e){e.stopPropagation();_openCtx(c.id,board,effOwnerUid,e);});
+  }
   return el;
 }
 
@@ -416,10 +630,10 @@ function _cardActBadge(c,ownerUid){
   // comparava clientId contra a lista de atividades da pessoa errada. getActivitiesLocalFor
   // já existe pra isso (mesma função usada por loadAllActivitiesAdmin) e, quando ownerUid
   // é o próprio usuário logado, resolve pra chave idêntica à de getActivities().
-  var acts=getActivitiesLocalFor(ownerUid||S.userId).filter(function(a){return a.clientId===c.id&&!a.done;});if(!acts.length)return '';
+  var acts=getActivitiesLocalFor(ownerUid||(S&&S.userId)||'').filter(function(a){return a.clientId===c.id&&!a.done;});if(!acts.length)return '';
   var next=acts.sort(function(a,b){return (a.scheduledAt||'').localeCompare(b.scheduledAt||'');})[0];
-  var dt=next.scheduledAt?new Date(next.scheduledAt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
-  var late=(next.scheduledAt&&new Date(next.scheduledAt)<new Date())?'⚠ ':'';
+  var dt=next.scheduledAt?_formatScheduledAt(next.scheduledAt,{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+  var late=(next.scheduledAt&&_isScheduledExpired(next.scheduledAt))?'⚠ ':'';
   return '<div style="font-size:.61rem;color:var(--bl);margin-top:3px">🔔 '+late+eH(next.desc.slice(0,28))+(dt?' · '+dt:'')+'</div>';
 }
 
@@ -444,6 +658,7 @@ function openKBNew(board,colId){
   _kbEditId=null;_kbEditBoard=board;_kbEditOwnerUid=null;
   var mt=document.getElementById('mo-kb-title');if(mt)mt.textContent=board==='leads'?'Novo Lead':'Novo Negocio';
   ['kb-name','kb-tel','kb-obs'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+  if(typeof renderKBEditActivitySummary==='function')renderKBEditActivitySummary(null,null,null);
   var kn=document.getElementById('kb-nicho');
   // Para um novo LEAD, força o select a ficar vazio (opção "Selecione o nicho"), obrigando
   // o usuário a escolher antes de salvar — ver validação em saveKBCard(). Para Negócios
@@ -483,6 +698,8 @@ function saveKBCard(){
       var dupCount=_countDuplicatePhone(telNorm);
       if(dupCount>0){
         // Aviso não-bloqueante: usuário pode continuar ou cancelar
+        if(typeof _confirmModal!=='function'){toast('Ação bloqueada: módulo de confirmação não carregado.');return;}
+
         _confirmModal({
           title:'⚠️ Telefone duplicado',
           msg:'Já existe(m) <strong>'+dupCount+'</strong> registro(s) com este número de telefone.<br><br>Deseja continuar e cadastrar mesmo assim?',
@@ -520,19 +737,19 @@ function _finalizeSaveKBCard(board,editId,arr){
         _pushHistorico(cx,'Movido de "'+_colLabel(board,oldColVal)+'" para "'+_colLabel(board,newColVal)+'" (edição)');
       }
     }
-    logFeedEvent('create',S.userId,name,'Editado',board);
+    if(S&&S.userId)logFeedEvent('create',S.userId,name,'Editado',board);
     // CORREÇÃO (auditoria): idem acima — grava no dono real do card, não no filtro de visão.
     var savedOk1=saveKBFor(board,_kbEditOwnerUid||activeUID(board),arr);closeM('mo-kb');renderKBLocal(board);
     toast(savedOk1?'Atualizado!':'⚠️ Alteração pode não ter sido salva — armazenamento local cheio.');
   }else{
     // CRIAÇÃO: sempre salva no próprio usuário logado (S.userId), independente do filtro ADM ativo
-    var criarUid=S.userId;
+    var criarUid=(S&&S.userId);if(!criarUid){toast('Sessão expirada.');return;}
     var criarArr=getKBFor(board,criarUid);
-    var novoCard={id:'kb_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),name:name,tel:(document.getElementById('kb-tel').value||'').trim(),nicho:document.getElementById('kb-nicho').value,col:document.getElementById('kb-col').value,obs:(document.getElementById('kb-obs').value||'').trim(),createdAt:new Date().toISOString(),userId:S.userId,attachments:[],historico:[]};
+    var novoCard={id:'kb_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),name:name,tel:(document.getElementById('kb-tel').value||'').trim(),nicho:document.getElementById('kb-nicho').value,col:document.getElementById('kb-col').value,obs:(document.getElementById('kb-obs').value||'').trim(),createdAt:new Date().toISOString(),userId:(S&&S.userId)||null,attachments:[],historico:[]};
     _pushHistorico(novoCard,board==='leads'?'Lead criado':'Negócio criado');
-    criarArr.push(novoCard);
+    criarArr.unshift(novoCard);
     var savedOk2=saveKBFor(board,criarUid,criarArr);
-    logFeedEvent('create',S.userId,name,'Novo '+board,board);
+    if(S&&S.userId)logFeedEvent('create',S.userId,name,'Novo '+board,board);
     // CORREÇÃO (auditoria, motor de automação — gatilho 'card_created'): o motor só era
     // acionado no boot (1,5s após abrir o app) e depois a cada 5min (setInterval). O
     // gatilho 'card_created' só considera o card "elegível" nos primeiros 60s após
@@ -544,51 +761,115 @@ function _finalizeSaveKBCard(board,editId,arr){
     runAutomationEngine(board,criarArr,criarUid);
     toast(savedOk2?'Criado!':'⚠️ Registro pode não ter sido salvo — armazenamento local cheio.');
     closeM('mo-kb');
-    goPage(board==='leads'?'leads':'negocios');
-    // Scroll suave até o novo card após render
+
+    var targetPage=(board==='leads'?'leads':'negocios');
+    var currentPg=document.querySelector('.pg.on');
+    var alreadyOnTarget=currentPg&&currentPg.id===('pg-'+targetPage);
+
+    if(!alreadyOnTarget){
+      goPage(targetPage);
+    } else {
+      renderKBLocal(board);
+      if(typeof isMobileView==='function'&&isMobileView()&&typeof renderKBMobile==='function'){
+        renderKBMobile(board);
+      }
+    }
+
     setTimeout(function(){
       var el=document.querySelector('[data-id="'+novoCard.id+'"]');
-      if(el){el.scrollIntoView({behavior:'smooth',block:'nearest'});el.classList.add('new-anim');}
+      if(el){el.classList.add('new-anim');}
     },120);
   }
 }
 
 function openKBDet(cardId,board,ownerUid,readOnly){
-  _kbDetId=cardId;_kbDetBoard=board;_kbDetReadOnly=!!readOnly;
+  _kbDetId=cardId;_kbDetBoard=board;
   var uid=ownerUid||activeUID(board);
   _kbDetOwnerUid=uid;
   var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===cardId;});if(!c)return;
+  var limitedForeignAccess=(!readOnly&&!hasAdminAccess()&&uid&&S&&uid!==S.userId);
+  var canAssumeForeignLivre=!!(limitedForeignAccess&&board==='leads'&&c.col==='livre');
+  var stageReadOnly=(typeof _kbStageReadOnly==='function')?_kbStageReadOnly(board,c.col):false;
+  var modalReadOnly=!!(readOnly||limitedForeignAccess||stageReadOnly);
+  _kbDetReadOnly=modalReadOnly;
   var dn=document.getElementById('det-name');if(dn)dn.textContent=c.name;
-  var dt='';try{if(c.createdAt)dt=new Date(c.createdAt).toLocaleString('pt-BR');}catch(e){}
+  var dt='';try{if(c.createdAt)dt=new Date(c.createdAt).toLocaleString('pt-BR');}catch(e){console.warn("kanban datetime parse",e);}
   var dm=document.getElementById('det-meta');if(dm)dm.textContent=(c.tel||'')+(dt?' · '+dt:'');
   _kbDetTel=c.tel||'';
   var nb=document.getElementById('det-nicho-badge');if(nb){nb.className='kb-card-nicho '+(c.nicho||'outro');nb.textContent=NICHO_LABELS[c.nicho||'outro']||c.nicho||'';}
   var canAll=(getMyRole()==='gestor');
-  var cardLocked=readOnly||_kbCardLocked(board,c.col);
+  var currentCol=c.col;
+  var cardLocked=modalReadOnly||_kbCardLocked(board,c.col,'from');
   var ds=document.getElementById('det-stages');
-  if(ds)ds.innerHTML=kbCols(board).map(function(col){var active=c.col===col.id;var restricted=cardLocked||(board==='negocios'&&KB_NEG_RESTRICTED.indexOf(col.id)>=0&&!canAll);return '<button class="det-stage-btn" style="border-color:'+(active?'var(--amber)':'var(--b1)')+';background:'+(active?'rgba(195,154,45,.12)':'transparent')+';color:'+(active?'var(--al)':'var(--mu)')+'"'+(restricted?' disabled':'')+(readOnly?'':' onclick="moveCard(\''+cardId+'\',\''+board+'\',\''+col.id+'\',\''+uid+'\')"')+'>'+eH(col.label)+'</button>';}).join('');
-  var dobs=document.getElementById('det-obs');if(dobs){dobs.value=c.obs||'';dobs.readOnly=!!readOnly;}var dos=document.getElementById('det-obs-saved');if(dos)dos.textContent='';
+  if(ds)ds.innerHTML=kbCols(board).map(function(col){var active=c.col===col.id;var restricted=cardLocked||_kbCardLocked(board,currentCol,'from')||_kbCardLocked(board,col.id,'target');return '<button class="det-stage-btn" style="border-color:'+(active?'var(--amber)':'var(--b1)')+';background:'+(active?'rgba(195,154,45,.12)':'transparent')+';color:'+(active?'var(--al)':'var(--mu)')+'"'+(restricted?' disabled':'')+(modalReadOnly?'':' onclick="moveCard(\''+cardId+'\',\''+board+'\',\''+col.id+'\',\''+uid+'\')"')+'>'+eH(col.label)+'</button>';}).join('');
+  var dobs=document.getElementById('det-obs');if(dobs){dobs.value=c.obs||'';dobs.readOnly=modalReadOnly;}var dos=document.getElementById('det-obs-saved');if(dos)dos.textContent='';
   var dvw=document.getElementById('det-valor-wrap');if(dvw)dvw.style.display=board==='negocios'?'block':'none';
-  var dv=document.getElementById('det-valor');if(dv){dv.value=c.valor||'';dv.readOnly=!!readOnly;}
+  var dv=document.getElementById('det-valor');if(dv){dv.value=c.valor||'';dv.readOnly=modalReadOnly;}
   var dcw=document.getElementById('det-convert-wrap');
   if(dcw){
-    if(readOnly)dcw.innerHTML='';
-    else if(board==='leads'&&c.col!=='conv')dcw.innerHTML='<button class="kb-convert-btn" onclick="openConvertModal(\''+cardId+'\',\''+uid+'\')">Converter em Negocio</button>';
-    else if(board==='leads'&&c.col==='conv')dcw.innerHTML='<div style="font-size:.68rem;color:var(--ok);padding:6px 0">&#10003; Convertido em Negocio</div>';
-    else dcw.innerHTML='';
+    if(modalReadOnly&&!canAssumeForeignLivre)dcw.innerHTML='';
+    else {
+      var _detAssumeBtn='';
+      if(board==='leads'&&c.col==='livre'&&uid!==(S&&S.userId))
+        _detAssumeBtn='<button class="kb-assume-btn" onclick="assumeLead(\''+cardId+'\',\''+board+'\',\''+uid+'\')" style="margin-bottom:8px">✋ Assumir Lead</button>';
+      if(canAssumeForeignLivre)dcw.innerHTML=_detAssumeBtn;
+      else if(board==='leads'&&c.col!=='conv')dcw.innerHTML=_detAssumeBtn+'<button class="kb-convert-btn" onclick="openConvertModal(\''+cardId+'\',\''+uid+'\')">Converter em Negocio</button>';
+      else if(board==='leads'&&c.col==='conv')dcw.innerHTML='<div style="font-size:.68rem;color:var(--ok);padding:6px 0">&#10003; Convertido em Negocio</div>';
+      else dcw.innerHTML='';
+    }
   }
   // Responsavel + etapa (so ADM/Gerente — mesma regra ja usada em Clientes).
   // Tarefa 2: junta "alterar responsavel" com "decidir se continua Lead ou vira Negocio"
   // no mesmo painel, sem precisar abrir outra tela pra isso.
   var dtw=document.getElementById('det-transfer-wrap');
   if(dtw){
-    if(!readOnly&&hasAdminAccess()){
+    if(!modalReadOnly&&hasAdminAccess()){
       dtw.style.display='block';
-      var trUsers=getUsers().filter(function(u){return u.id!=='adm'&&u.ativo;});
-      var trSel=document.getElementById('det-resp-sel');
-      if(trSel)trSel.innerHTML=trUsers.map(function(u){return '<option value="'+u.id+'"'+(u.id===uid?' selected':'')+'>'+eH(u.nome)+'</option>';}).join('');
-      var brdSel=document.getElementById('det-resp-board');if(brdSel)brdSel.value=board;
-      _fillDetRespCol(board,c.col);
+      // FIX #11 (revisão 2026-07-20): a lista de "novo responsável" só trazia usuários
+      // ATIVOS (u.ativo), ao contrário do requisito, que exige que TODOS os usuários do
+      // CRM apareçam aqui — igual já foi corrigido na tela Usuários (ver renderUsers() em
+      // usuarios.js). Além disso, essa lista não respeitava a preferência "Ocultar ADM das
+      // listas" (lf_hide_adm_lists / getPrefs().hideAdmInLists), então o toggle não tinha
+      // efeito nenhum sobre a troca de responsável — justamente o fluxo mais sensível.
+      // Reaplica aqui a MESMA lógica de renderUsers() para as duas coisas ficarem
+      // consistentes em qualquer tela do CRM. Exceção: se o dono ATUAL do card for o ADM
+      // oculto, ele continua aparecendo na lista (senão o <select> perderia a opção
+      // selecionada e o card seria reatribuído silenciosamente para outra pessoa sem
+      // ninguém ter escolhido isso).
+      var _hideAdm=false;
+      try{
+        var _prefs=(typeof getPrefs==='function')?(getPrefs()||{}):{};
+        if(_prefs&&(_prefs.hideAdmInLists===true||_prefs.adm_hidden_in_lists===true))_hideAdm=true;
+        if(!_hideAdm){var _ls=localStorage.getItem('lf_hide_adm_lists');if(_ls==='1'||_ls==='true')_hideAdm=true;}
+      }catch(_e){}
+      var trUsers=getUsers().filter(function(u){return _hideAdm?(u.id!=='adm'||u.id===uid):true;});
+      var trSel = document.getElementById('det-resp-sel');
+      if (trSel) {
+        trSel.innerHTML =
+          '<option value="">Selecione o responsável</option>' +
+          trUsers.map(function(u){
+            return '<option value="' + u.id + '">' +
+              eH(u.nome) + (u.ativo === false ? ' (Inativo)' : '') +
+            '</option>';
+          }).join('');
+      }
+
+      var brdSel = document.getElementById('det-resp-board');
+      if (brdSel) {
+        brdSel.innerHTML =
+          '<option value="">Selecione a aba</option>' +
+          '<option value="leads">Lead</option>' +
+          '<option value="negocios">Negócio</option>';
+        brdSel.value = '';
+      }
+
+      var colSel = document.getElementById('det-resp-col');
+      if (colSel) {
+        colSel.innerHTML = '<option value="">Selecione a etapa</option>';
+      }
+
+      var motivoEl = document.getElementById('det-resp-motivo');
+      if (motivoEl) motivoEl.value = '';
     }else dtw.style.display='none';
   }
   renderDetHistorico(c);
@@ -600,15 +881,21 @@ function openKBDet(cardId,board,ownerUid,readOnly){
   renderDetAttachments(c,board,uid);
   // Botões de ação (Editar/Descartar/Excluir) ficam ocultos em modo leitura — Supervisor
   // pode ver tudo na página Time, mas não pode mover, editar ou excluir nada por lá.
-  var mEdit=document.getElementById('det-btn-edit');if(mEdit)mEdit.style.display=readOnly?'none':'';
-  var mDiscard=document.getElementById('det-btn-discard');if(mDiscard)mDiscard.style.display=readOnly?'none':'';
-  var mDel=document.getElementById('det-btn-delete');if(mDel)mDel.style.display=readOnly?'none':'';
+  var mEdit=document.getElementById('det-btn-edit');if(mEdit)mEdit.style.display=modalReadOnly?'none':'';
+  var mDiscard=document.getElementById('det-btn-discard');if(mDiscard)mDiscard.style.display=modalReadOnly?'none':'';
+  var mDel=document.getElementById('det-btn-delete');if(mDel)mDel.style.display=modalReadOnly?'none':'';
   var mCallWrap=document.getElementById('det-contact-actions');
   if(mCallWrap){
     if(_kbDetTel)mCallWrap.innerHTML='<button class="kb-call-btn" onclick="callClient(_kbDetTel,document.getElementById(\'det-name\').textContent)">📞 Ligar</button><button class="kb-wa-btn" onclick="openWhatsApp(_kbDetTel,document.getElementById(\'det-name\').textContent)">✉️ WhatsApp</button>';
     else mCallWrap.innerHTML='';
   }
+  if(typeof renderDetLinkedActivities==='function')renderDetLinkedActivities(board,cardId,uid);
   openM('mo-kb-det');
+}
+
+function renderDetLinkedActivities(board,cardId,ownerUid){
+  var el=document.getElementById('det-activity-summary');if(!el)return;
+  if(typeof _linkedActsSummaryHTML==='function')el.innerHTML=_linkedActsSummaryHTML(board,cardId,ownerUid,!_kbDetReadOnly);
 }
 
 function autoSaveKBObs(){
@@ -622,7 +909,7 @@ function autoSaveKBValor(){
   var board=_kbDetBoard,id=_kbDetId;if(!board||!id)return;
   var uid=(_kbDetOwnerUid||activeUID(board));var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
   var raw=document.getElementById('det-valor').value;
-  c.valor=raw?parseFloat(raw):0;
+  c.valor=raw?(parseFloat(raw)||0):0;
   var okV=saveKBFor(board,uid,arr);
   renderKBLocal(board);
   var m=document.getElementById('det-obs-saved');if(m){m.textContent=okV?'Salvo':'⚠️ Não salvo';setTimeout(function(){m.textContent='';},1500);}
@@ -640,21 +927,104 @@ function autoSaveKBValor(){
 // ============================================================
 function _pushHistorico(card,texto,by){
   if(!card.historico)card.historico=[];
-  card.historico.unshift({texto:texto,ts:new Date().toISOString(),by:by||S.nome});
+  card.historico.unshift({texto:texto,ts:new Date().toISOString(),by:by||(S&&S.nome)||'?'});
   if(card.historico.length>80)card.historico.length=80; // evita crescer pra sempre
 }
 
-function _colLabel(board,colId){var c=kbCols(board).find(function(x){return x.id===colId;});return c?c.label:colId;}
+/* Etapa Livre: após 2 dias sem movimentação, o Lead é enviado automaticamente para a
+   etapa "livre". Executada após a sincronização remota (não durante o render do card,
+   onde estava antes — isso causava efeitos colaterais durante a pintura do kanban e
+   duplicação de entradas no histórico). Registra na linha do tempo: responsável anterior,
+   data e horário da movimentação automática. */
+function _autoMoveStaleToLivre(board,list,ownerUid){
+  if(board!=='leads')return;
+  if(!list||!list.length)return;
+  var staleMs=2*24*60*60*1000;
+  var now=Date.now();
+  var changed=false;
+  list.forEach(function(c){
+    if(!c)return;
+    /* Etapas terminais não são elegíveis: conv (convertido), desc (descartado), livre (já está lá) */
+    if(c.col==='conv'||c.col==='desc'||c.col==='livre')return;
+    var lastMov=c.updatedAt||c.createdAt;
+    if(!lastMov)return;
+    if((now-new Date(lastMov).getTime())<=staleMs)return;
+    /* Auto-mover para livre */
+    var prevRespNome='(sem responsável)';
+    if(c.userId&&typeof getUser==='function'){
+      var prevUser=getUser(c.userId);
+      if(prevUser&&prevUser.nome)prevRespNome=prevUser.nome;
+      else prevRespNome=c.userId;
+    }
+    var moveTs=new Date().toISOString();
+    var dataStr=new Date(moveTs).toLocaleDateString('pt-BR');
+    var horaStr=new Date(moveTs).toLocaleTimeString('pt-BR');
+    c.col='livre';
+    c.updatedAt=moveTs;
+    _pushHistorico(c,'⏱ Auto-movido para Etapa Livre (parado 2 dias) — Responsável anterior: '+prevRespNome+' · Data: '+dataStr+' · Horário: '+horaStr);
+    changed=true;
+  });
+  if(changed)saveKBFor(board,ownerUid,list);
+}
+
+/* Etapa Livre — "Assumir Lead": permite que qualquer usuário logado assuma um Lead que
+   esteja na etapa "livre". Transfere o card para o usuário atual e registra na linha do
+   tempo (histórico do card) os 4 campos obrigatórios:
+   - Responsável anterior
+   - Quem assumiu
+   - Data
+   - Horário */
+function assumeLead(cardId,board,ownerUid){
+  if(!S||!S.userId){toast('Sessão expirada.');return;}
+  if(board!=='leads'){toast('Assumir Lead só está disponível para Leads.');return;}
+  var uid=ownerUid||activeUID(board);
+  if(uid===S.userId){toast('Você já é o responsável por este Lead.');return;}
+  var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===cardId;});
+  if(!c){toast('Lead não encontrado.');return;}
+  if(c.col!=='livre'){toast('Este Lead não está na Etapa Livre.');return;}
+  var prevUser=getUser(uid);
+  var prevNome=prevUser?prevUser.nome:uid;
+  var currentUser=getUser(S.userId);
+  var currNome=(currentUser&&currentUser.nome)||(S&&S.nome)||S.userId;
+  /* Transfere o card para o usuário atual. _kbTransferCard já registra a troca de
+     responsável no histórico e em respHistory; abaixo adicionamos uma entrada
+     detalhada com os 4 campos obrigatórios no card já transferido. */
+  _kbTransferCard(cardId,board,uid,S.userId,true,function(res){
+    if(res){
+      var now=new Date();
+      var dataStr=now.toLocaleDateString('pt-BR');
+      var horaStr=now.toLocaleTimeString('pt-BR');
+      var histText='✋ Lead assumido da Etapa Livre — Responsável anterior: '+prevNome+' · Assumido por: '+currNome+' · Data: '+dataStr+' · Horário: '+horaStr;
+      var newArr=getKBFor(board,S.userId);
+      var newCard=newArr.find(function(x){return x.id===cardId;});
+      if(newCard){
+        _pushHistorico(newCard,histText,currNome);
+        if(!newCard.respHistory)newCard.respHistory=[];
+        newCard.respHistory.push({from:prevNome,fromId:uid,to:currNome,toId:S.userId,ts:now.toISOString(),by:currNome,reason:'Etapa Livre — Assumir Lead'});
+        saveKBFor(board,S.userId,newArr);
+      }
+      toast('✋ Lead assumido com sucesso!');
+      renderKBLocal('leads');
+      if(typeof isMobileView==='function'&&isMobileView()&&typeof renderKBMobile==='function')renderKBMobile('leads');
+      /* Se o modal de detalhes estiver aberto para este card, atualiza o histórico */
+      if(typeof _kbDetId!=='undefined'&&_kbDetId===cardId&&newCard){
+        if(typeof renderDetHistorico==='function')renderDetHistorico(newCard);
+      }
+    }
+  });
+}
+
 
 function moveCard(cardId,board,newCol,ownerUid){
   var uid=ownerUid||activeUID(board);
   var _preArr=getKBFor(board,uid);var _preCard=_preArr.find(function(x){return x.id===cardId;});
-  if(_preCard&&_kbCardLocked(board,_preCard.col)){toast('🔒 Apenas o Gestor pode mover a partir desta etapa.');return;}
+  if(_preCard&&_kbCardLocked(board,_preCard.col,'from')){toast('🔒 Apenas o Gestor pode mover a partir desta etapa.');return;}
+  if(_kbCardLocked(board,newCol,'target')){toast('🔒 Apenas o Gestor pode mover para esta etapa.');return;}
   var card=_kbMoveCard(cardId,board,uid,newCol);
   if(!card)return;
   var canAll=(getMyRole()==='gestor');
   var ds=document.getElementById('det-stages');
-  if(ds)ds.innerHTML=kbCols(board).map(function(col){var active=card.col===col.id;var restricted=board==='negocios'&&KB_NEG_RESTRICTED.indexOf(col.id)>=0&&!canAll;return '<button class="det-stage-btn" style="border-color:'+(active?'var(--amber)':'var(--b1)')+';background:'+(active?'rgba(195,154,45,.12)':'transparent')+';color:'+(active?'var(--al)':'var(--mu)')+'"'+(restricted?' disabled':'')+' onclick="moveCard(\''+cardId+'\',\''+board+'\',\''+col.id+'\',\''+uid+'\')">'+eH(col.label)+'</button>';}).join('');
+  if(ds)ds.innerHTML=kbCols(board).map(function(col){var active=card.col===col.id;var restricted=_kbCardLocked(board,card.col,'from')||_kbCardLocked(board,col.id,'target');return '<button class="det-stage-btn" style="border-color:'+(active?'var(--amber)':'var(--b1)')+';background:'+(active?'rgba(195,154,45,.12)':'transparent')+';color:'+(active?'var(--al)':'var(--mu)')+'"'+(restricted?' disabled':'')+' onclick="moveCard(\''+cardId+'\',\''+board+'\',\''+col.id+'\',\''+uid+'\')">'+eH(col.label)+'</button>';}).join('');
   var dcw=document.getElementById('det-convert-wrap');
   if(dcw){
     if(board==='leads'&&card.col!=='conv')dcw.innerHTML='<button class="kb-convert-btn" onclick="openConvertModal(\''+cardId+'\',\''+uid+'\')">Converter em Negocio</button>';
@@ -669,9 +1039,10 @@ function editKBFromDet(){
   var uid=(_kbDetOwnerUid||activeUID(board));var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
   closeM('mo-kb-det');_kbEditId=id;_kbEditBoard=board;_kbEditOwnerUid=uid;
   var mt=document.getElementById('mo-kb-title');if(mt)mt.textContent='Editar';
-  document.getElementById('kb-name').value=c.name||'';document.getElementById('kb-tel').value=c.tel||'';document.getElementById('kb-nicho').value=c.nicho||'imovel';document.getElementById('kb-obs').value=c.obs||'';
+  var _kn=document.getElementById('kb-name');if(_kn)_kn.value=c.name||'';var _kt=document.getElementById('kb-tel');if(_kt)_kt.value=c.tel||'';var _kni=document.getElementById('kb-nicho');if(_kni)_kni.value=c.nicho||'imovel';var _ko=document.getElementById('kb-obs');if(_ko)_ko.value=c.obs||'';
   var cs=document.getElementById('kb-col');if(cs)cs.innerHTML=kbCols(board).map(function(col){return '<option value="'+col.id+'"'+(col.id===c.col?' selected':'')+'>'+eH(col.label)+'</option>';}).join('');
-  document.getElementById('kb-edit-id').value=id;document.getElementById('kb-board-type').value=board;openM('mo-kb');
+  var _kei=document.getElementById('kb-edit-id');if(_kei)_kei.value=id;var _kbt=document.getElementById('kb-board-type');if(_kbt)_kbt.value=board;if(typeof renderKBEditActivitySummary==='function')renderKBEditActivitySummary(board,id,uid);
+  setTimeout(function(){openM('mo-kb');var inp=document.getElementById('kb-name');if(inp)inp.focus();},40);
 }
 
 function deleteKBFromDet(){
@@ -698,8 +1069,8 @@ function openConvertModal(cardId,ownerUid){
   if(sel)sel.innerHTML=KB_NEG_COLS.map(function(col){return '<option value="'+col.id+'"'+(col.id==='retag'?' selected':'')+'>'+eH(col.label)+'</option>';}).join('');
   var vv=document.getElementById('conv-neg-valor');if(vv)vv.value='';
   var ov=document.getElementById('conv-neg-obs');if(ov)ov.value=c.obs||'';
-  document.getElementById('conv-neg-card-id').value=cardId;
-  document.getElementById('conv-neg-owner-uid').value=uid;
+  var _cnci=document.getElementById('conv-neg-card-id');if(_cnci)_cnci.value=cardId;
+  var _cnou=document.getElementById('conv-neg-owner-uid');if(_cnou)_cnou.value=uid||'';
   openM('mo-conv-neg');
 }
 
@@ -724,6 +1095,8 @@ function convertToLead(cardId,ownerUid,silent,targetCol){
   var uid=ownerUid||activeUID('negocios');var negArr=getKBFor('negocios',uid);
   var n=negArr.find(function(x){return x.id===cardId;});if(!n)return null;
   if(!silent){
+    if(typeof _confirmModal!=='function'){toast('Ação bloqueada: módulo de confirmação não carregado.');return;}
+
     _confirmModal({
       title:'↩️ Reverter para Lead?',
       msg:'Converter <strong>'+eH(n.name)+'</strong> de volta para Lead?<br><span style="font-size:.78rem;color:var(--mu)">O registro de Negócio será removido.</span>',
@@ -742,28 +1115,57 @@ function _doConvertToLead(cardId,uid,targetCol){
   var leadsArr=getKBFor('leads',uid);
   var lead=n.originalLeadId?leadsArr.find(function(x){return x.id===n.originalLeadId;}):null;
   var okL;
+  var nowIso=new Date().toISOString();
+  var histBase=Array.isArray(n.historico)?n.historico.slice():[];
   if(lead){
-    lead.col=targetCol||lead.colAntesConv||'livre';lead.updatedAt=new Date().toISOString();
-    _pushHistorico(lead,'Negócio revertido para Lead (etapa: "'+_colLabel('leads',lead.col)+'")');
+    lead.col=targetCol||lead.colAntesConv||'livre';
+    lead.updatedAt=nowIso;
+    lead.regressedFromBusinessId=n.id;
+    lead.regressedAt=nowIso;
+    lead.regressedFromCol=n.col||null;
+    if(Array.isArray(lead.historico)&&histBase.length){
+      histBase.slice().reverse().forEach(function(h){
+        if(!h)return;
+        var exists=lead.historico.some(function(x){return x&&x.ts===h.ts&&x.texto===h.texto;});
+        if(!exists)lead.historico.push(h);
+      });
+    }
+    _pushHistorico(lead,'Lead regredido a partir do Negócio (etapa: "'+_colLabel('leads',lead.col)+'" · origem em Negócios: "'+_colLabel('negocios',n.col||'retag')+'")');
     okL=saveKBFor('leads',uid,leadsArr);
   }else{
-    lead={id:'kb_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),name:n.name,tel:n.tel,nicho:n.nicho,col:targetCol||'livre',obs:n.obs||'',createdAt:new Date().toISOString(),userId:uid,attachments:[],historico:[]};
-    _pushHistorico(lead,'Lead recriado a partir do Negócio "'+n.name+'" (o lead original já havia sido excluído)');
+    lead={id:'kb_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),name:n.name,tel:n.tel,nicho:n.nicho,col:targetCol||'livre',obs:n.obs||'',createdAt:nowIso,userId:uid,attachments:[],historico:Array.isArray(n.historico)?n.historico.slice(0,79):[]};
+    lead.regressedFromBusinessId=n.id;
+    lead.regressedAt=nowIso;
+    lead.regressedFromCol=n.col||null;
+    _pushHistorico(lead,'Lead regredido a partir do Negócio "'+n.name+'" (o lead original não estava mais na base)');
     leadsArr.push(lead);okL=saveKBFor('leads',uid,leadsArr);
   }
   negArr=negArr.filter(function(x){return x.id!==cardId;});
   var okN=saveKBFor('negocios',uid,negArr);
   renderKBLocal('negocios');renderKBLocal('leads');
-  logFeedEvent('move',S.userId,n.name,'Negocio -> Lead','negocios');
+  if(S&&S.userId)logFeedEvent('move',S.userId,n.name,'Negócio -> Lead (regredido)','negocios');
   toast((okL&&okN)?(n.name+' -> Leads!'):'⚠️ Reversão pode não ter sido salva — armazenamento local cheio.');
   return lead;
 }
 
 /* Preenche o select de etapa do painel "Continua como" de acordo com o board escolhido
    (Lead ou Negocio tem listas de etapas diferentes). */
-function _fillDetRespCol(board,selectedCol){
-  var colSel=document.getElementById('det-resp-col');if(!colSel)return;
-  colSel.innerHTML=kbCols(board).map(function(col){return '<option value="'+col.id+'"'+(col.id===selectedCol?' selected':'')+'>'+eH(col.label)+'</option>';}).join('');
+function _fillDetRespCol(board, selectedCol){
+  var colSel = document.getElementById('det-resp-col');
+  if (!colSel) return;
+
+  if (!board) {
+    colSel.innerHTML = '<option value="">Selecione a etapa</option>';
+    return;
+  }
+
+  colSel.innerHTML =
+    '<option value="">Selecione a etapa</option>' +
+    kbCols(board).map(function(col){
+      return '<option value="' + col.id + '"' +
+        (col.id === selectedCol ? ' selected' : '') +
+        '>' + eH(col.label) + '</option>';
+    }).join('');
 }
 
 function onDetRespBoardChange(){
@@ -782,9 +1184,26 @@ function applyRespStage(){
   if(!hasAdminAccess()){toast('Somente ADM/Gerente pode alterar.');return;}
   var uid=(_kbDetOwnerUid||activeUID(board));
   var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
-  var newBoard=(document.getElementById('det-resp-board')||{}).value||board;
-  var newCol=(document.getElementById('det-resp-col')||{}).value||c.col;
-  var newUid=(document.getElementById('det-resp-sel')||{}).value||uid;
+  // FIX #11 (2026-07-20): validar TODOS os campos obrigatórios antes de aplicar.
+  var rawBoard=(document.getElementById('det-resp-board')||{}).value||'';
+  var rawCol=(document.getElementById('det-resp-col')||{}).value||'';
+  var rawUid=(document.getElementById('det-resp-sel')||{}).value||'';
+  var rawMotivo=(document.getElementById('det-resp-motivo')||{}).value||'';
+  if (!rawUid) { toast('⚠ Selecione o novo responsável'); return; }
+  if (!rawBoard) { toast('⚠ Selecione: Leads ou Negócios'); return; }
+  if (!rawCol) { toast('⚠ Selecione a etapa'); return; }
+  if (!String(rawMotivo).trim()) { toast('⚠ Informe o motivo da alteração'); return; }
+
+  if (rawUid === uid && rawBoard === board && rawCol === c.col) {
+    toast('⚠ Nenhuma alteração foi selecionada');
+    return;
+  }
+  var newBoard=rawBoard;
+  var newCol=rawCol;
+  var newUid=rawUid;
+  // FIX #11 refinado (2026-07-20): guardar dados do motivo em variáveis,
+  // aplicar histórico DEPOIS da conversão (senão o motivo se perde no card antigo).
+  var _lfMotivoTxt = 'Responsável alterado. Motivo: '+String(rawMotivo).trim()+'. De: '+(typeof getUser==='function'?((getUser(uid)||{}).nome||uid):uid)+' para: '+(typeof getUser==='function'?((getUser(newUid)||{}).nome||newUid):newUid);
   if(newBoard!==board){
     if(board==='leads'&&newBoard==='negocios'){
       convertToNeg(id,uid,undefined,true,{col:newCol,valor:0,obs:c.obs||''});
@@ -797,6 +1216,10 @@ function applyRespStage(){
     board=newBoard;id=c.id;
   }else if(newCol&&newCol!==c.col){
     _kbMoveCard(id,board,uid,newCol,true);
+  }
+  // Aplicar histórico do motivo NO CARD FINAL (após possível conversão)
+  if(typeof _pushHistorico==='function' && c){
+    try { _pushHistorico(c, _lfMotivoTxt); } catch(_e){}
   }
   if(newUid&&newUid!==uid){
     _kbTransferCard(id,board,uid,newUid,true,function(res){
@@ -819,8 +1242,19 @@ function _openCtx(cardId,board,ownerUid,e){
   if(cvBtn)cvBtn.style.display=(board==='leads')?'block':'none';
   if(cvSep)cvSep.style.display=(board==='leads')?'block':'none';
   ctx.style.display='block';
-  var x=Math.min(e.clientX,window.innerWidth-170),y=Math.min(e.clientY,window.innerHeight-240);
-  ctx.style.left=x+'px';ctx.style.top=y+'px';
+  ctx.style.left='-9999px';ctx.style.top='-9999px';
+  var anchor=(e&&e.currentTarget)||(e&&e.target)||null;
+  var x=(e&&typeof e.clientX==='number'&&e.clientX>0)?e.clientX:null;
+  var y=(e&&typeof e.clientY==='number'&&e.clientY>0)?e.clientY:null;
+  if((x===null||y===null)&&anchor&&anchor.getBoundingClientRect){
+    var ar=anchor.getBoundingClientRect();
+    x=ar.right-10;y=ar.bottom+8;
+  }
+  if(x===null||y===null){x=window.innerWidth/2;y=window.innerHeight/2;}
+  var pad=12,mw=ctx.offsetWidth||170,mh=ctx.offsetHeight||240;
+  x=Math.max(pad,Math.min(x,window.innerWidth-mw-pad));
+  y=Math.max(pad,Math.min(y,window.innerHeight-mh-pad));
+  ctx.style.left=Math.round(x)+'px';ctx.style.top=Math.round(y)+'px';
   if(_ctxOutsideHandler){document.removeEventListener('click',_ctxOutsideHandler);}
   setTimeout(function(){
     _ctxOutsideHandler=function(){ctx.style.display='none';document.removeEventListener('click',_ctxOutsideHandler);_ctxOutsideHandler=null;};
@@ -830,17 +1264,17 @@ function _openCtx(cardId,board,ownerUid,e){
 
 function _closeCtx(){var ctx=document.getElementById('kb-ctx');if(ctx)ctx.style.display='none';_kbCtxId=null;_kbCtxBoard=null;_kbCtxOwner=null;}
 
-function ctxView(){_closeCtx();openKBDet(_kbCtxId,_kbCtxBoard,_kbCtxOwner);}
+function ctxView(){var id=_kbCtxId,board=_kbCtxBoard,owner=_kbCtxOwner;_closeCtx();if(id&&board)openKBDet(id,board,owner);}
 
-function ctxEdit(){_closeCtx();_kbDetId=_kbCtxId;_kbDetBoard=_kbCtxBoard;openKBDet(_kbCtxId,_kbCtxBoard,_kbCtxOwner);setTimeout(editKBFromDet,50);}
+function ctxEdit(){var id=_kbCtxId,board=_kbCtxBoard,owner=_kbCtxOwner;_closeCtx();if(!id||!board)return;_kbDetId=id;_kbDetBoard=board;openKBDet(id,board,owner);setTimeout(editKBFromDet,50);}
 
-function ctxConvert(){_closeCtx();if(_kbCtxBoard==='leads')openConvertModal(_kbCtxId,_kbCtxOwner);}
+function ctxConvert(){var id=_kbCtxId,board=_kbCtxBoard,owner=_kbCtxOwner;_closeCtx();if(board==='leads'&&id)openConvertModal(id,owner);}
 
-function ctxDel(){_closeCtx();deleteKBCard(_kbCtxId,_kbCtxBoard,_kbCtxOwner);}
+function ctxDel(){var id=_kbCtxId,board=_kbCtxBoard,owner=_kbCtxOwner;_closeCtx();if(id&&board)deleteKBCard(id,board,owner);}
 
-function ctxActivity(){_closeCtx();_kbDetId=_kbCtxId;_kbDetBoard=_kbCtxBoard;_kbDetOwnerUid=_kbCtxOwner;openQuickActivity();}
+function ctxActivity(){var id=_kbCtxId,board=_kbCtxBoard,owner=_kbCtxOwner;_closeCtx();if(!id||!board)return;_kbDetId=id;_kbDetBoard=board;_kbDetOwnerUid=owner;openQuickActivity();}
 
-function ctxDiscard(){_closeCtx();_kbDetId=_kbCtxId;_kbDetBoard=_kbCtxBoard;_kbDetOwnerUid=_kbCtxOwner;discardKBFromDet();}
+function ctxDiscard(){var id=_kbCtxId,board=_kbCtxBoard,owner=_kbCtxOwner;_closeCtx();if(!id||!board)return;_kbDetId=id;_kbDetBoard=board;_kbDetOwnerUid=owner;discardKBFromDet();}
 
 // Discard
 var _discardId=null,_discardBoard=null,_discardMotivo=null,_discardOwner=null;
@@ -850,23 +1284,44 @@ function discardKBFromDet(){
   var uid=(_kbDetOwnerUid||activeUID(board));var arr=getKBFor(board,uid);var c=arr.find(function(x){return x.id===id;});if(!c)return;
   _discardId=id;_discardBoard=board;_discardMotivo=null;_discardOwner=uid;
   var dn=document.getElementById('discard-nome');if(dn)dn.textContent=c.name;
-  var dow=document.getElementById('discard-outro-wrap');if(dow)dow.style.display='none';
+  var dow=document.getElementById('discard-outro-wrap');if(dow)dow.style.display='block';
   var dot=document.getElementById('discard-outro-txt');if(dot)dot.value='';
   document.querySelectorAll('.discard-opt').forEach(function(b){b.classList.remove('sel');});
+  // Motivo obrigatório: desabilita confirmar até selecionar uma opção
+  var cb=document.getElementById('discard-confirm-btn');if(cb){cb.disabled=true;cb.style.opacity='.45';cb.style.cursor='not-allowed';}
   closeM('mo-kb-det');openM('mo-discard');
 }
 
-function selDiscardOpt(motivo,btn){_discardMotivo=motivo;document.querySelectorAll('.discard-opt').forEach(function(b){b.classList.remove('sel');});btn.classList.add('sel');var dow=document.getElementById('discard-outro-wrap');if(dow)dow.style.display=motivo==='outro'?'block':'none';}
+function selDiscardOpt(motivo,btn){_discardMotivo=motivo;document.querySelectorAll('.discard-opt').forEach(function(b){b.classList.remove('sel');});btn.classList.add('sel');var cb=document.getElementById('discard-confirm-btn');if(cb){cb.disabled=false;cb.style.opacity='';cb.style.cursor='';}}
 
 function confirmDiscard(){
-  if(!_discardMotivo){toast('Selecione um motivo');return;}
-  var uid=_discardOwner||S.userId;var arr=getKBFor(_discardBoard,uid);var c=arr.find(function(x){return x.id===_discardId;});if(!c)return;
-  var mL={noshow:'No-Show',desistencia:'Desistencia',sem_perfil:'Sem Perfil',contato_perdido:'Contato Perdido',outro:'Outro'};
-  var outro=_discardMotivo==='outro'?(document.getElementById('discard-outro-txt').value||'').trim():'';
-  c.discarded=true;c.discardedAt=new Date().toISOString();c.discardMotivo=_discardMotivo;c.discardMotivoLabel=mL[_discardMotivo]+(outro?' - '+outro:'');
+  var detalhe=(document.getElementById('discard-outro-txt').value||'').trim();
+  if(!_discardMotivo){toast('Selecione um motivo para descartar o lead');return;}
+  var uid=_discardOwner||(S&&S.userId);if(!uid){toast('Sessão expirada.');return;}var arr=getKBFor(_discardBoard,uid);var c=arr.find(function(x){return x.id===_discardId;});if(!c)return;
+  var motivoLabel=_kbDiscardReasonLabel(_discardMotivo);
+  c.discarded=true;c.discardedAt=new Date().toISOString();c.discardMotivo=_discardMotivo;c.discardMotivoLabel=motivoLabel+(detalhe?' - '+detalhe:'');
   c.col=_discardBoard==='negocios'?'noshow':'desc';
-  saveKBFor(_discardBoard,uid,arr);closeM('mo-discard');renderKBLocal(_discardBoard);
-  logFeedEvent('discard',S.userId,c.name,mL[_discardMotivo],_discardBoard);toast('Descartado: '+mL[_discardMotivo]);
+  _pushHistorico(c,'Descartado: '+c.discardMotivoLabel);
+  var okMain=saveKBFor(_discardBoard,uid,arr);
+  var linkedNegChanged=false;
+  if(_discardBoard==='leads'){
+    var negArr=getKBFor('negocios',uid);
+    negArr.forEach(function(n){
+      if(n.originalLeadId===_discardId){
+        n.discarded=true;
+        n.discardedAt=c.discardedAt;
+        n.discardMotivo=_discardMotivo||'outro';
+        n.discardMotivoLabel=c.discardMotivoLabel;
+        n.col='noshow';
+        _pushHistorico(n,'Descartado: '+c.discardMotivoLabel+' (vinculado ao Lead descartado)');
+        linkedNegChanged=true;
+      }
+    });
+    if(linkedNegChanged)saveKBFor('negocios',uid,negArr);
+  }
+  closeM('mo-discard');renderKBLocal(_discardBoard);if(linkedNegChanged)renderKBLocal('negocios');
+  if(S&&S.userId)logFeedEvent('discard',S.userId,c.name,motivoLabel+(linkedNegChanged?' (Lead e Negócio vinculados)':''),_discardBoard);
+  toast(okMain?('Descartado: '+motivoLabel+(linkedNegChanged?' • Negócio vinculado também foi descartado.':'')):'⚠️ Descarte pode não ter sido salvo — armazenamento local cheio.');
 }
 
 // Touch drag
@@ -906,7 +1361,7 @@ function _touchZoneBindGlobal(){
           // restritas) e em applyBulkMove/moveCard. Sem isso, soltar um card via TOQUE (touch)
           // numa coluna de KB_NEG_RESTRICTED (ex.: "Fechado") pulava a checagem de permissão
           // e qualquer consultor comum (não-gestor) conseguia mover o card para lá.
-          if(_kbCardLocked(st.board,nc)){toast('🔒 Apenas o Gestor pode mover para esta etapa.');}
+          if(_kbCardLocked(st.board,nc,'target')){toast('🔒 Apenas o Gestor pode mover para esta etapa.');}
           else{_kbMoveCard(_kbDragId,st.board,uid2,nc);renderKBLocal(st.board);}
         }
       }
@@ -932,8 +1387,17 @@ function _touchZone(ca,board,colId,restricted){
   _touchZoneBindGlobal();
   ca.addEventListener('touchstart',function(e){
     var card=e.target.closest('.kb-card');
-    if(!card||e.target.closest('.kb-card-menu')||e.target.closest('.kb-convert-btn')||e.target.closest('.kb-act-btn')||e.target.closest('.kb-call-btn')||e.target.closest('.kb-wa-btn')||e.target.closest('.kb-copy-tel-btn')||e.target.closest('.kb-card-del-btn'))return;
+    if(!card||card.classList.contains('kb-card-ro')||e.target.closest('.kb-card-menu')||e.target.closest('.kb-convert-btn')||e.target.closest('.kb-act-btn')||e.target.closest('.kb-call-btn')||e.target.closest('.kb-wa-btn')||e.target.closest('.kb-copy-tel-btn')||e.target.closest('.kb-card-del-btn')||e.target.closest('.kb-assume-btn'))return;
+    // CORREÇÃO BUG MOVIMENTAÇÃO #3 (2026-07-23): se um toque anterior deixou
+    // estado sujo (touchend não disparou por causa de gesto de swipe do sistema,
+    // pull-to-refresh cancelando, alerta nativo do WebView, etc.), o próximo
+    // touchstart caia em cima de _tzState.tc já setado e o novo drag não iniciava
+    // porque o setTimeout antigo já tinha sido perdido — o card ficava "insensível
+    // ao toque". Agora, todo touchstart começa limpando qualquer estado pendente.
     var st=_tzState;
+    if(st.dt){ try{ clearTimeout(st.dt); }catch(_e){} st.dt=null; }
+    if(st.clone){ try{ st.clone.remove(); }catch(_e){} st.clone=null; }
+    if(st.tc){ try{ st.tc.style.opacity=''; }catch(_e){} }
     st.tc=card;st.board=board;
     var r=card.getBoundingClientRect();
     st.ox=e.touches[0].clientX-r.left;st.oy=e.touches[0].clientY-r.top;
@@ -944,8 +1408,19 @@ function _touchZone(ca,board,colId,restricted){
       st.clone.style.cssText='position:fixed;z-index:9999;opacity:.8;pointer-events:none;width:'+r.width+'px;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.7);';
       st.clone.style.left=(e.touches[0].clientX-st.ox)+'px';st.clone.style.top=(e.touches[0].clientY-st.oy)+'px';
       document.body.appendChild(st.clone);st.tc.style.opacity='.3';
-      _kbDragId=card.dataset.id;_kbDragBoard=board;_kbDragOwner=card.dataset.owner||S.userId;
+      _kbDragId=card.dataset.id;_kbDragBoard=board;_kbDragOwner=card.dataset.owner||(S&&S.userId)||'';
     },320);
+  },{passive:true});
+  // CORREÇÃO BUG MOVIMENTAÇÃO #4 (2026-07-23): touchcancel não era tratado.
+  // Quando o sistema cancelava o toque (chamada telefônica entrando, gesto
+  // de sistema, WebView perdendo foco), o clone flutuante ficava na tela e
+  // _kbDragId ficava preso. Agora touchcancel reseta o estado do drag.
+  ca.addEventListener('touchcancel',function(){
+    var st=_tzState;
+    if(st.dt){ try{ clearTimeout(st.dt); }catch(_e){} st.dt=null; }
+    if(st.clone){ try{ st.clone.remove(); }catch(_e){} st.clone=null; }
+    if(st.tc){ try{ st.tc.style.opacity=''; }catch(_e){} }
+    st.tc=null;_kbDragId=null;_kbDragOwner=null;
   },{passive:true});
 }
 
@@ -1057,20 +1532,20 @@ function bulkMove(){
   var canAll=(getMyRole()==='gestor');
   var bmi=document.getElementById('bulk-move-info');if(bmi)bmi.textContent=_bulkSelected.length+' cards';
   var bco=document.getElementById('bulk-col-opts');
-  var cols=kbCols(board).filter(function(col){return canAll||!(board==='negocios'&&KB_NEG_RESTRICTED.indexOf(col.id)>=0);});
+  var cols=kbCols(board).filter(function(col){return canAll||!_kbCardLocked(board,col.id,'target');});
   if(bco)bco.innerHTML=cols.map(function(col){return '<button class="bulk-col-opt" onclick="applyBulkMove(\''+col.id+'\')">'+eH(col.label)+'</button>';}).join('');
   openM('mo-bulk-move');
 }
 
 function applyBulkMove(colId){
   var board0=_bulkSelected.length?_bulkSelected[0].board:null;
-  if(board0==='negocios'&&KB_NEG_RESTRICTED.indexOf(colId)>=0&&getMyRole()!=='gestor'){toast('⚠️ Apenas o Gestor pode mover para esta etapa.');return;}
+  if(_kbCardLocked(board0,colId,'target')){toast('⚠️ Apenas o Gestor pode mover para esta etapa.');return;}
   var affected={};_kbLastOpFailed=false;var blocked=0;
   _bulkSelected.forEach(function(x){
     var uid=x.ownerUid||activeUID(x.board);
     if(x.board==='negocios'&&getMyRole()!=='gestor'){
       var curArr=getKBFor(x.board,uid);var curCard=curArr.find(function(q){return q.id===x.id;});
-      if(curCard&&_kbCardLocked(x.board,curCard.col)){blocked++;return;}
+      if(curCard&&_kbCardLocked(x.board,curCard.col,'from')){blocked++;return;}
     }
     _kbMoveCard(x.id,x.board,uid,colId,true,true);
     affected[x.board]=true;
@@ -1091,7 +1566,7 @@ function bulkConvert(){
 
 function bulkResp(){
   if(!_bulkSelected.length)return;
-  var users=getUsers().filter(function(u){return u.id!=='adm'&&u.ativo;});
+  var users=getUsers().filter(function(u){return u.ativo;});
   var bri=document.getElementById('bulk-resp-info');if(bri)bri.textContent=_bulkSelected.length+' cards:';
   var bro=document.getElementById('bulk-resp-opts');
   if(bro)bro.innerHTML=users.map(function(u){var uidJs=_jsSq(u.id);return '<button class="bulk-col-opt" onclick="applyBulkResp(\''+uidJs+'\')">'+eH(u.nome)+'</button>';}).join('');
@@ -1110,11 +1585,11 @@ function applyBulkResp(newUid){
     if(i>=items.length){
       Object.keys(affected).forEach(function(b){renderKB(b);if(typeof isMobileView==='function'&&isMobileView()&&typeof renderKBMobile==='function')renderKBMobile(b);});
       closeM('mo-bulk-resp');clearBulk();
-      if(allOk)toast('Transferidos para '+toUser.nome.split(' ')[0]);
+      if(allOk)toast('Transferidos para '+(toUser&&toUser.nome?toUser.nome.split(' ')[0]:'usuário'));
       // se allOk for false, _kbTransferCard ja mostrou o aviso de armazenamento cheio pro card que falhou
       return;
     }
-    var x=items[i];var uid=x.ownerUid||S.userId;
+    var x=items[i];var uid=x.ownerUid||(S&&S.userId);
     _kbTransferCard(x.id,x.board,uid,newUid,true,function(res){
       if(!res)allOk=false;
       affected[x.board]=true;
@@ -1127,13 +1602,15 @@ function applyBulkResp(newUid){
 function bulkDiscard(){
   if(!_bulkSelected.length)return;
   var count=_bulkSelected.length;
-  var motiOpts=['noshow','desistencia','sem_perfil','contato_perdido'];
-  var motiLabels={noshow:'No-Show',desistencia:'Desistência',sem_perfil:'Sem Perfil',contato_perdido:'Contato Perdido'};
+  var motiOpts=['ja_comprou','sem_interesse','sem_contato'];
+  var motiLabels={ja_comprou:'Já comprou',sem_interesse:'Sem interesse',sem_contato:'Sem contato'};
   var radioHtml=motiOpts.map(function(m,i){
     return '<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:.82rem;'+(i===0?'border:1.5px solid var(--amber);background:rgba(195,154,45,.08)':'border:1.5px solid transparent')+'" id="bdisc-lbl-'+m+'">'
       +'<input type="radio" name="bulk-disc-motivo" value="'+m+'"'+(i===0?' checked':'')+' onchange="document.querySelectorAll(\'[id^=bdisc-lbl-]\').forEach(function(l){l.style.borderColor=\'transparent\';l.style.background=\'\'});this.parentElement.style.borderColor=\'var(--amber)\';this.parentElement.style.background=\'rgba(195,154,45,.08)\'">'
       +motiLabels[m]+'</label>';
   }).join('');
+  if(typeof _confirmModal!=='function'){toast('Ação bloqueada: módulo de confirmação não carregado.');return;}
+
   _confirmModal({
     title:'🗑 Descartar '+count+' card'+(count>1?'s':'')+'?',
     msg:'Escolha o motivo do descarte:<br><div style="display:flex;flex-direction:column;gap:4px;margin-top:10px">'+radioHtml+'</div>',
@@ -1145,8 +1622,13 @@ function bulkDiscard(){
       var mLabel=motiLabels[motivo]||motivo;
       var allOk=true;
       _bulkSelected.forEach(function(x){
-        var uid=x.ownerUid||S.userId;var arr=getKBFor(x.board,uid);var c=arr.find(function(q){return q.id===x.id;});
+        var uid=x.ownerUid||(S&&S.userId);var arr=getKBFor(x.board,uid);var c=arr.find(function(q){return q.id===x.id;});
         if(c){c.discarded=true;c.discardedAt=new Date().toISOString();c.discardMotivo=motivo;c.discardMotivoLabel=mLabel;c.col=x.board==='negocios'?'noshow':'desc';}
+        if(x.board==='leads'){
+          var negArr=getKBFor('negocios',uid),changed=false;
+          negArr.forEach(function(n){if(n.originalLeadId===x.id){n.discarded=true;n.discardedAt=c&&c.discardedAt||new Date().toISOString();n.discardMotivo=motivo;n.discardMotivoLabel=mLabel;n.col='noshow';changed=true;}});
+          if(changed&&!saveKBFor('negocios',uid,negArr))allOk=false;
+        }
         if(!saveKBFor(x.board,uid,arr))allOk=false;
       });
       var boards=[...new Set(_bulkSelected.map(function(x){return x.board;}))];
@@ -1166,7 +1648,7 @@ function bulkDelete(){
     var affected={};
     var groups={};
     _bulkSelected.forEach(function(x){
-      var uid=x.ownerUid||S.userId;
+      var uid=x.ownerUid||(S&&S.userId);
       var key=x.board+'__'+uid;
       if(!groups[key])groups[key]={board:x.board,uid:uid,ids:[]};
       groups[key].ids.push(x.id);
@@ -1182,7 +1664,7 @@ function bulkDelete(){
         var nextNegArr=negArr.filter(function(n){return g.ids.indexOf(n.originalLeadId)<0;});
         hadLinkedNeg=nextNegArr.length!==negArr.length;
         if(hadLinkedNeg){
-          negSnapshot=JSON.parse(JSON.stringify(negArr));
+          negSnapshot=(function(){try{return JSON.parse(JSON.stringify(negArr));}catch(e){console.warn("[kb] snapshot falhou",e);return [];}})();
           if(!saveKBFor('negocios',g.uid,nextNegArr)){allOk=false;return;}
           affected.negocios=true;
         }
@@ -1215,14 +1697,8 @@ function openBatchImport(){
 }
 
 function parseImport(){
-  var txt=document.getElementById('import-txt').value||'';_importParsed=[];
-  var lines=txt.split(/[\n;]+/).map(function(l){return l.trim();}).filter(Boolean);
-  lines.forEach(function(line){
-    var phoneMatch=line.match(/\(?\d[\d\s\-\(\)]{7,}\d/);
-    var tel=phoneMatch?phoneMatch[0].replace(/\D/g,''):'';
-    var name=line.replace(/\(?\d[\d\s\-\(\)]{7,}\d/,'').replace(/[,;\-]/g,' ').trim().replace(/\s{2,}/g,' ').trim();
-    if(name.length>1)_importParsed.push({name:name,tel:tel});
-  });
+  var txt=document.getElementById('import-txt').value||'';
+  _importParsed=parseContactLines(txt);
   var ic=document.getElementById('import-count');
   if(ic)ic.innerHTML=_importParsed.length?'<strong>'+_importParsed.length+'</strong> contatos:':'Nenhum contato identificado.';
   var ip=document.getElementById('import-preview');
@@ -1254,13 +1730,13 @@ function confirmBatchImport(){
       return (telNorm&&xTel===telNorm)||(x.name&&p.name&&x.name.trim().toLowerCase()===p.name.trim().toLowerCase());
     });
     if(isDup){dupCount++;return;}
-    var novoCard={id:'kb_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)+'_'+Math.random().toString(36).slice(2,4),name:p.name,tel:p.tel,nicho:nicho,col:col,obs:'',createdAt:now,userId:S.userId,attachments:[],historico:[]};
+    var novoCard={id:'kb_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)+'_'+Math.random().toString(36).slice(2,4),name:p.name,tel:p.tel,nicho:nicho,col:col,obs:'',createdAt:now,userId:(S&&S.userId)||null,attachments:[],historico:[]};
     _pushHistorico(novoCard,'Lead importado em lote');
     arr.push(novoCard);
   });
   var okImp=saveKB('leads',arr);closeM('mo-batch-import');renderKBLocal('leads');
   var importedCount=_importParsed.length-dupCount;
-  logFeedEvent('create',S.userId,importedCount+' leads','Importacao','leads');
+  if(S&&S.userId)logFeedEvent('create',S.userId,importedCount+' leads','Importacao','leads');
   // Uma única chamada a toast(): duas chamadas seguidas se sobrescreveriam (toast usa um
   // único elemento compartilhado), e o 2º parâmetro é a duração em ms — 'warn' não é um
   // valor válido e fazia esse toast sumir quase instantaneamente.
@@ -1273,30 +1749,9 @@ function confirmBatchImport(){
 // ============================================================
 // DETECÇÃO DE DUPLICATAS (por telefone, em Leads + Negócios, todos os consultores)
 // ============================================================
-/* Varre Leads+Negócios de todos os usuários ativos e retorna um array de cada card,
-   anotado com {_dupBoard,_dupOwnerUid,_dupOwnerName} para facilitar exibição/exclusão. */
-function _collectAllCardsForDup(){
-  var users=getUsers().filter(function(u){return u.ativo;});
-  var all=[];
-  users.forEach(function(u){
-    ['leads','negocios'].forEach(function(board){
-      getKBFor(board,u.id).forEach(function(c){
-        all.push({card:c,board:board,ownerUid:u.id,ownerName:u.nome});
-      });
-    });
-  });
-  return all;
-}
-
-/* Conta quantos OUTROS cards (em Leads ou Negócios, de qualquer consultor) já têm o mesmo
-   telefone normalizado. Usado pelo alerta não-bloqueante em saveKBCard (Parte B). */
-function _countDuplicatePhone(telNorm){
-  if(!telNorm||telNorm.length<8)return 0;
-  return _collectAllCardsForDup().filter(function(x){
-    var n=(x.card.tel||'').replace(/\D/g,'');
-    return n.length>=8&&n===telNorm;
-  }).length;
-}
+// _collectAllCardsForDup e _countDuplicatePhone foram extraídas nesta rodada (7) para
+// src/modules/kanban/runtime/kanban-helpers.js (funções puras, sem leitura/escrita de
+// DOM) — ver var __kanbanRuntime no topo deste arquivo. Comportamento idêntico.
 
 function openDuplicateScanner(){
   // CORREÇÃO (auditoria — controle de acesso grave): faltava aqui QUALQUER checagem de
@@ -1349,7 +1804,7 @@ function dicGoToEnd(){
 // FILTROS AVANÇADOS KANBAN
 // ============================================================
 function openKBAdvFilter(board){
-  document.getElementById('adv-filter-board').value=board;
+  var _afb=document.getElementById('adv-filter-board');if(_afb)_afb.value=board;
   var f=_kbFilter[board]||{};
   var nm=document.getElementById('adv-f-nome');if(nm)nm.value=_kbQ[board]||'';
   var ni=document.getElementById('adv-f-nicho');if(ni)ni.value=f.nicho||'';
@@ -1491,13 +1946,13 @@ function renderKBMobile(board){
   var uid=activeUID(board);
   var list;
   if(hasAdminAccess()&&!_kbViewUid[board]){
-    var _mbAllUsers=getUsers().filter(function(u){return u.id!=='adm'&&u.ativo;});
+    var _mbAllUsers=getUsers().filter(function(u){return u.ativo;});
     list=[];
     _mbAllUsers.forEach(function(u){
       getKBFor(board,u.id).forEach(function(c){c._timeOwnerUid=u.id;list.push(c);});
     });
   } else {
-    list=getKBFor(board,uid);
+    list=(board==='leads'&&!hasAdminAccess())?_collectLivrePoolForUser(uid):getKBFor(board,uid);
   }
   // FIX: Filtros Avançados (nicho/valor/dias) não eram aplicados na visão mobile —
   // só funcionavam no kanban desktop via _buildKB(). Mesma lógica replicada aqui.
@@ -1513,7 +1968,7 @@ function renderKBMobile(board){
   var stage=_mbStageFilter[board];
   if(stage)list=list.filter(function(c){return c.col===stage;});
   var q=(_kbQ&&_kbQ[board])||'';
-  if(q)list=list.filter(function(c){return c.name.toLowerCase().indexOf(q)>=0||(c.tel||'').indexOf(q)>=0;});
+  if(q)list=list.filter(function(c){return String(c.name||'').toLowerCase().indexOf(q)>=0||String(c.tel||'').indexOf(q)>=0;});
   if(!list.length){wrap.innerHTML='<div class="act-empty">Nenhum registro nesta etapa.</div>';return;}
   var cols=kbCols(board);
   var u=getUser(uid);
@@ -1521,10 +1976,12 @@ function renderKBMobile(board){
     var effUid=c._timeOwnerUid||uid;
     var colLbl=_colLabel(board,c.col);
     var ago=_timeAgoShort(c.createdAt);
-    var resp=getUser(c._timeOwnerUid||uid);
-    var respAvBg=AVB[(resp?resp.cor:0)%AVB.length];
+    var resp=getUser(c._timeOwnerUid||uid)||{};
+    var respAvBg=AVB[(resp.cor||0)%AVB.length];
+    var _respNome=resp.nome||'?';
     var stageOpts=cols.map(function(col){return '<option value="'+col.id+'"'+(col.id===c.col?' selected':'')+'>'+eH(col.label)+'</option>';}).join('');
     var telJs=_jsSq(c.tel||''),nameJs=_jsSq(c.name||'');
+    var _mbIsLivreLead=(board==='leads'&&c.col==='livre'&&effUid!==(S&&S.userId));
     return '<div class="mb-card" data-id="'+c.id+'">'
       +'<div class="mb-card-main">'
       +'<div class="mb-card-header"><div class="mb-card-num">'+(board==='negocios'?'Neg.':'Lead')+' #'+c.id.slice(-6).toUpperCase()+'</div>'
@@ -1536,8 +1993,9 @@ function renderKBMobile(board){
       +(board==='negocios'?'<div class="mb-card-section">Valor</div><div class="mb-card-value">'+(c.valor?fmtBRL(c.valor):'—')+'</div>':'')
       +'<div class="mb-card-section">Cliente</div><div class="mb-card-client" onclick="openKBDet(\''+c.id+'\',\''+board+'\',\''+effUid+'\')" tabindex="0" role="button">'+eH(c.name)+'</div>'+(c.tel?'<span class="mb-card-contact-badge">'+eH(c.tel)+'</span>':'')
       +'<div class="mb-card-section">Responsável</div>'
-      +'<div class="mb-card-resp"><div class="mb-card-resp-av" style="background:'+respAvBg+'">'+(resp?resp.nome.charAt(0).toUpperCase():'?')+'</div>'
-      +'<div><div class="mb-card-resp-name">'+(resp?eH(resp.nome.split(' ')[0]):'-')+'</div><div class="mb-card-resp-cargo">'+(resp?eH(resp.cargo||''):'')+'</div></div></div>'
+      +'<div class="mb-card-resp"><div class="mb-card-resp-av" style="background:'+respAvBg+'">'+(_respNome.charAt(0).toUpperCase())+'</div>'
+      +'<div><div class="mb-card-resp-name">'+eH(_respNome.split(' ')[0])+'</div><div class="mb-card-resp-cargo">'+eH(resp.cargo||'')+'</div></div></div>'
+      +(_mbIsLivreLead?'<button class="kb-assume-btn mb-assume-btn" onclick="assumeLead(\''+c.id+'\',\'leads\',\''+effUid+'\')">✋ Assumir Lead</button>':'')
       +'</div>'
       +'<div class="mb-card-actions">'
       +'<button class="mb-action-btn call" aria-label="Ligar" onclick="callClient(\''+telJs+'\',\''+nameJs+'\')" title="Ligar">📞</button>'
@@ -1555,11 +2013,11 @@ function _kbBaseListForSummary(board){
   var uid=activeUID(board);
   var list;
   if(hasAdminAccess()&&!_kbViewUid[board]){
-    var _u=getUsers().filter(function(u){return u.id!=='adm'&&u.ativo;});
+    var _u=getUsers().filter(function(u){return u.ativo;});
     list=[];
     _u.forEach(function(u){getKBFor(board,u.id).forEach(function(c){list.push(c);});});
   } else {
-    list=getKBFor(board,uid);
+    list=(board==='leads'&&!hasAdminAccess())?_collectLivrePoolForUser(uid):getKBFor(board,uid);
   }
   var f=_kbFilter[board]||{};
   list=list.filter(function(c){
@@ -1614,7 +2072,7 @@ function openStagePicker(board,cardId,ownerUid){
     html+='<button class="sp-row all'+(!_mbStageFilter[board]?' sel':'')+'" onclick="_spSelect(null)">'
       +'<span>Todas as etapas ('+list.length+')</span><span class="sp-row-meta">'+fmtBRL(allSum)+'</span></button>';
   }
-  var _curLocked=cardId&&_kbCardLocked(board,currentCol);
+  var _curLocked=cardId&&_kbCardLocked(board,currentCol,'from');
   html+=cols.map(function(c,i){
     var sel=cardId?(currentCol===c.id):(_mbStageFilter[board]===c.id);
     var meta='';
@@ -1624,7 +2082,7 @@ function openStagePicker(board,cardId,ownerUid){
       var sum=subList.reduce(function(s,x){return s+(parseFloat(x.valor)||0);},0);
       meta='<span class="sp-row-meta">'+subList.length+' &middot; '+fmtBRL(sum)+'</span>';
     }
-    var rowLocked=cardId&&(_curLocked||_kbCardLocked(board,c.id));
+    var rowLocked=cardId&&(_kbCardLocked(board,currentCol,'from')||_kbCardLocked(board,c.id,'target'));
     return '<button class="sp-row'+(sel?' sel':'')+(rowLocked?' sp-row-locked':'')+'" style="background:'+stageColor(c.id)+(rowLocked?';opacity:.4;cursor:not-allowed':'')+'"'+(rowLocked?' disabled':' onclick="_spSelect(\''+c.id+'\')"')+'>'
       +'<span>'+(i+1)+'. '+eH(c.label)+'</span>'+meta+'</button>';
   }).join('');
@@ -1639,7 +2097,7 @@ function _spSelect(colId){
   var board=_spCtx.board,cardId=_spCtx.cardId,ownerUid=_spCtx.ownerUid;
   if(cardId){
     var _uid0=ownerUid||activeUID(board);var _c0=getKBFor(board,_uid0).find(function(x){return x.id===cardId;});
-    if(_c0&&(_kbCardLocked(board,_c0.col)||_kbCardLocked(board,colId))){toast('🔒 Apenas o Gestor pode mover a partir/para esta etapa.');closeM('mo-stage-picker');return;}
+    if(_c0&&(_kbCardLocked(board,_c0.col,'from')||_kbCardLocked(board,colId,'target'))){toast('🔒 Apenas o Gestor pode mover a partir/para esta etapa.');closeM('mo-stage-picker');return;}
     moveCard(cardId,board,colId,_uid0);
   } else {
     _mbStageFilter[board]=colId;
@@ -1692,3 +2150,13 @@ function openSubEtapaPicker(board,cardId,uid){
 // redimensiona a janela cruzando o breakpoint de 768px — evita ficar com a lista
 // desatualizada caso o card tenha sido criado/editado num resize anterior.
 var _mbResizeTimer=null;
+
+
+/* R12B-17: aviso de perda de dados se a aba for fechada com modal de edição aberta */
+window.addEventListener('beforeunload', function(e) {
+  var editing = document.querySelector('.mo.open[id*="kb-det"], .mo.open[id*="edit"]');
+  if (editing) {
+    e.preventDefault();
+    e.returnValue = 'Você tem edições não salvas. Deseja sair mesmo assim?';
+  }
+});

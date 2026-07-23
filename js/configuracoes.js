@@ -7,119 +7,27 @@
  * antes - ver ordem de <script src> no index.html).
  * ===================================================================== */
 
-// Aplica o tema salvo ANTES do primeiro paint (evita "flash" do tema errado ao carregar).
-try{if(localStorage.getItem('lf_theme')==='classic')document.body.classList.add('theme-classic');}catch(_e){}
+var __configRuntime=(((window.LiderCRM||{}).modules||{}).configuracoes||{}).runtime||{};
+var setAppThemeMode=__configRuntime.setAppThemeMode||function(){};
+var _cfgWorkerClient=__configRuntime._cfgWorkerClient||function(){return null;};
+var saveThemeRemote=__configRuntime.saveThemeRemote||function(){};
+var loadThemeRemote=__configRuntime.loadThemeRemote||function(){};
+var BG_OPTIONS=__configRuntime.BG_OPTIONS||[];
+var applyThemeUI=__configRuntime.applyThemeUI||function(){};
+var toggleAppTheme=__configRuntime.toggleAppTheme||function(){};
+var _bgPreviewStyle=__configRuntime._bgPreviewStyle||function(){return '';};
+var renderConfig=__configRuntime.renderConfig||function(){};
+var saveBGRemote=__configRuntime.saveBGRemote||function(){};
+var loadBGRemote=__configRuntime.loadBGRemote||function(){};
+var compressImageFile=__configRuntime.compressImageFile||function(_f,_s,cb){cb&&cb(null);};
+/* setBG definida mais abaixo — fallback removido para evitar redeclaração */
 
-var BG_OPTIONS=[{id:'default',label:'Padrão',css:''},{id:'navy',label:'Azul',css:'background:linear-gradient(135deg,#0a1a2e 0%,#0a0c10 60%)!important'},{id:'forest',label:'Verde',css:'background:linear-gradient(135deg,#0a1a10 0%,#0a0c10 60%)!important'},{id:'purple',label:'Roxo',css:'background:linear-gradient(135deg,#150a2a 0%,#0a0c10 60%)!important'},{id:'gold',label:'Dourado',css:'background:linear-gradient(135deg,#1a1200 0%,#0a0c10 60%)!important'},{id:'slate',label:'Cinza',css:'background:linear-gradient(135deg,#0f1218 0%,#0a0c10 60%)!important'},{id:'photo',label:'Foto',css:'/* photo */'}];
-
-// FEATURE (a pedido do usuário): alternar entre o tema claro atual e o tema escuro/vermelho
-// original. Ver comentário completo no <style id="lf-theme-classic"> no <head>.
-function applyThemeUI(){
-  var on=document.body.classList.contains('theme-classic');
-  var btn=el('nav-theme-btn');if(btn)btn.title=on?'Tema atual: escuro/vermelho (tocar pra usar o claro)':'Tema atual: claro (tocar pra usar o escuro/vermelho)';
-  var lbl=el('mmd-theme-label');if(lbl)lbl.textContent=on?'Tema claro (atual: escuro)':'Tema escuro/vermelho';
-}
-
-function toggleAppTheme(){
-  var on=document.body.classList.toggle('theme-classic');
-  try{localStorage.setItem('lf_theme',on?'classic':'light');}catch(_e){}
-  applyThemeUI();
-  toast(on?'🎨 Tema escuro/vermelho ativado.':'🎨 Tema claro ativado.');
-}
-
-document.addEventListener('click',function(e){if(!_ligWidgetOpen)return;var w=document.getElementById('lig-widget'),fab=document.getElementById('lig-fab');if(w&&!w.contains(e.target)&&fab&&!fab.contains(e.target)){_ligWidgetOpen=false;w.style.display='none';}},{passive:true});
+document.addEventListener('click',function(e){if(!(typeof _ligWidgetOpen!=='undefined'&&_ligWidgetOpen))return;var w=document.getElementById('lig-widget'),fab=document.getElementById('lig-fab');if(w&&!w.contains(e.target)&&fab&&!fab.contains(e.target)){_ligWidgetOpen=false;w.style.display='none';}},{passive:true});
 
 // ============================================================
 // CONFIGURACOES
 // ============================================================
-function _bgPreviewStyle(bg,photoUrl){if(bg.id==='photo'){return photoUrl?"background:url('"+photoUrl+"') center/cover no-repeat":"background:rgba(255,255,255,.08)";}if(bg.id==='navy')return'background:linear-gradient(135deg,#0a1a2e,#0a0c10)';if(bg.id==='forest')return'background:linear-gradient(135deg,#0a1a10,#0a0c10)';if(bg.id==='purple')return'background:linear-gradient(135deg,#150a2a,#0a0c10)';if(bg.id==='gold')return'background:linear-gradient(135deg,#1a1200,#0a0c10)';if(bg.id==='slate')return'background:linear-gradient(135deg,#0f1218,#0a0c10)';return'background:var(--bg2)';}
 
-function renderConfig(){
-  var isAdm=hasAdminAccess();
-  ['cfg-identidade-section','cfg-automacoes-section','cfg-manutencao-section'].forEach(function(id){
-    var el=document.getElementById(id);if(el)el.style.display=isAdm?'':'none';
-  });
-  if(isAdm)loadAutomationRulesRemote(function(){renderAutoRules();});
-  var pic=sg('lf13_pic_'+S.userId);var pe=document.getElementById('cfg-pic-preview');
-  if(pe){if(pic)pe.innerHTML='<img src="'+_htmlAttr(pic)+'" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover">';else pe.textContent=(S.nome||'?').charAt(0).toUpperCase();}
-  var u=getUser(S.userId);
-  if(u){var cn=document.getElementById('cfg-nome');if(cn)cn.value=u.nome||'';var ce=document.getElementById('cfg-email');if(ce)ce.value=u.email||'';}
-  var cur=sg('lf13_bg_'+S.userId)||'default';
-  var photoUrl=sg('lf13_bgphoto_'+S.userId)||null;
-  var te=document.getElementById('bg-thumbs');
-  if(te)te.innerHTML=BG_OPTIONS.map(function(bg){
-    var st=_bgPreviewStyle(bg,photoUrl);
-    var icon=bg.id==='photo'?'<span style="font-size:.75rem">\uD83D\uDCF7</span>':'<span style="font-size:.55rem;color:rgba(255,255,255,.5)">'+bg.label+'</span>';
-    return '<div class="bg-thumb'+(cur===bg.id?' on':'')+'" style="'+st+';display:flex;align-items:center;justify-content:center" onclick="setBG(\''+bg.id+'\')" tabindex="0" role="button">'+icon+'</div>';
-  }).join('');
-  var rb=document.getElementById('cfg-bg-remove-btn');if(rb)rb.style.display=(cur==='photo'&&photoUrl)?'inline-block':'none';
-  var ns=document.getElementById('cfg-notif-status');if(ns&&'Notification' in window)ns.textContent='Status: '+(Notification.permission==='granted'?'Ativadas':Notification.permission==='denied'?'Bloqueadas':'Nao solicitadas');
-  var car=document.getElementById('cfg-auto-reminder');if(car)car.checked=isAutoReminderOn();
-}
-
-/* CORREÇÃO "CAPA NÃO SALVA UNIVERSAL": igual à logo, a foto de fundo/capa só ficava em
-   localStorage (por aparelho). Agora sobe pro Firestore em config/bg_<uid> — cada usuário
-   tem seu próprio documento — e é buscada de volta em qualquer dispositivo via
-   loadBGRemote(), chamada no boot antes de aplicar o fundo. */
-function saveBGRemote(id,photoData){
-  if(DB_MODE!=='firebase'||!db)return;
-  syncBusy();
-  db.collection('config').doc('bg_'+S.userId).set({id:id,photo:photoData===undefined?null:photoData,ts:Date.now()},{merge:false}).then(syncOk).catch(function(e){syncErr(e);toast('⚠️ Fundo salvo neste aparelho, mas falhou ao sincronizar com a nuvem.',4500);});
-}
-
-// CORREÇÃO (auditoria, Etapa 1 — consistência local-first): antes, em modo Firebase, cb()
-// só era chamado DEPOIS do round-trip de rede — no boot, o fundo customizado ficava no
-// padrão/em branco até a rede responder, ao contrário do padrão local-first já usado em
-// loadCli/loadAdmDocs/etc. Agora cb() é chamado IMEDIATAMENTE (pinta com o cache local) e,
-// se em modo nuvem, de novo quando a versão mais recente do Firestore responder.
-function loadBGRemote(uid,cb){
-  cb();
-  if(DB_MODE==='firebase'&&db){
-    db.collection('config').doc('bg_'+uid).get().then(function(d){
-      if(d.exists){
-        var data=d.data();
-        ss('lf13_bg_'+uid,data.id||'default');
-        if(data.photo)ss('lf13_bgphoto_'+uid,data.photo);else{try{localStorage.removeItem('lf13_bgphoto_'+uid);}catch(e){}}
-      }
-      cb();
-    }).catch(function(){});
-  }
-}
-
-/* COMPRESSÃO AUTOMÁTICA DE IMAGENS: o Firestore recusa documentos acima de ~1MB — isso é um
-   limite físico do servidor do Google, não um número que dá pra "aumentar" no código. Em vez
-   de bloquear o envio, redimensionamos e recomprimimos a imagem no navegador (canvas) até
-   caber com folga, tentando qualidades decrescentes. Assim o usuário pode escolher fotos
-   grandes do celular (vários MB) que o app se encarrega de otimizar sozinho. */
-function compressImageFile(file,maxBytes,cb){
-  if(!file||!file.type||!file.type.startsWith('image/')){cb(null);return;}
-  if(file.type==='image/svg+xml'){var r0=new FileReader();r0.onload=function(e){cb(e.target.result);};r0.onerror=function(){cb(null);};r0.readAsDataURL(file);return;}
-  var reader=new FileReader();
-  reader.onload=function(e){
-    var img=new Image();
-    img.onload=function(){
-      var steps=[[1680,.85],[1400,.8],[1200,.75],[1000,.7],[800,.62],[640,.55],[480,.45]];
-      var i=0;
-      function render(maxDim,q){
-        var w=img.width,h=img.height;
-        if(w>maxDim||h>maxDim){if(w>h){h=Math.round(h*maxDim/w);w=maxDim;}else{w=Math.round(w*maxDim/h);h=maxDim;}}
-        var c=document.createElement('canvas');c.width=w;c.height=h;
-        var ctx=c.getContext('2d');ctx.drawImage(img,0,0,w,h);
-        return c.toDataURL('image/jpeg',q);
-      }
-      function attempt(){
-        if(i>=steps.length){cb(render(steps[steps.length-1][0],steps[steps.length-1][1]));return;}
-        var st=steps[i++];var data=render(st[0],st[1]);
-        if(data.length<=maxBytes||i>=steps.length)cb(data);else attempt();
-      }
-      attempt();
-    };
-    img.onerror=function(){cb(e.target.result);};
-    img.src=e.target.result;
-  };
-  reader.onerror=function(){cb(null);};
-  reader.readAsDataURL(file);
-}
 
 function handleBGPhotoUpload(inp){
   var file=inp.files[0];if(!file)return;
@@ -128,7 +36,7 @@ function handleBGPhotoUpload(inp){
   toast('Otimizando imagem...',1500);
   compressImageFile(file,900000,function(data){
     if(!data){toast('⚠️ Não foi possível processar essa imagem.');inp.value='';return;}
-    var okBG=ss('lf13_bgphoto_'+S.userId,data);
+    var okBG=S&&S.userId?ss('lf13_bgphoto_'+S.userId,data):false;
     // CORREÇÃO: antes, mesmo que ss() falhasse (armazenamento cheio), o código seguia e
     // chamava setBG('photo',true) — trocando o modo de fundo pra "foto" e sincronizando isso
     // pra outros dispositivos, mesmo sem nenhum dado de foto salvo (fundo ficava em branco).
@@ -141,7 +49,7 @@ function handleBGPhotoUpload(inp){
   });
 }
 
-function removeBGPhoto(){try{localStorage.removeItem('lf13_bgphoto_'+S.userId);}catch(e){}setBG('default',true);renderConfig();toast('Foto de fundo removida.');}
+function removeBGPhoto(){if(!S||!S.userId)return;try{localStorage.removeItem('lf13_bgphoto_'+S.userId);}catch(e){}setBG('default',true);renderConfig();toast('Foto de fundo removida.');}
 
 function handlePicUpload(inp){
   var file=inp.files[0];if(!file)return;
@@ -150,7 +58,8 @@ function handlePicUpload(inp){
   toast('Otimizando foto...',1500);
   compressImageFile(file,900000,function(data){
     if(!data||!data.startsWith('data:image/')){toast('⚠️ Arquivo inválido.');inp.value='';return;}
-    var okPic=ss('lf13_pic_'+S.userId,data);
+    if(!S||!S.userId){toast('Sessão inválida. Faça login novamente.');return;}
+    var okPic=S&&S.userId?ss('lf13_pic_'+S.userId,data):false;
     if(!okPic){toast('⚠️ Foto muito grande para o armazenamento local. Tente uma imagem menor.',4500);return;}
     var pe=document.getElementById('cfg-pic-preview');if(pe)pe.innerHTML='<img src="'+_htmlAttr(data)+'" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover">';
     var av=document.getElementById('nav-av');if(av)av.innerHTML='<img src="'+_htmlAttr(data)+'" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover">';
@@ -158,29 +67,58 @@ function handlePicUpload(inp){
   });
 }
 
-function removePic(){ss('lf13_pic_'+S.userId,null);try{localStorage.removeItem('lf13_pic_'+S.userId);}catch(e){}var pe=document.getElementById('cfg-pic-preview');if(pe)pe.textContent=(S.nome||'?').charAt(0).toUpperCase();var av=document.getElementById('nav-av');if(av){av.innerHTML='';av.textContent=(S.nome||'?').charAt(0).toUpperCase();av.style.background=AVB[S.cor%AVB.length];}toast('Foto removida');}
+function removePic(){if(!S||!S.userId)return;ss('lf13_pic_'+S.userId,null);try{localStorage.removeItem('lf13_pic_'+S.userId);}catch(e){}var pe=document.getElementById('cfg-pic-preview');if(pe)pe.textContent=(S.nome||'?').charAt(0).toUpperCase();var av=document.getElementById('nav-av');if(av){av.innerHTML='';av.textContent=(S.nome||'?').charAt(0).toUpperCase();av.style.background=AVB[S.cor%AVB.length];}toast('Foto removida');}
 
-function saveProfileData(){var nome=(document.getElementById('cfg-nome').value||'').trim();var email=(document.getElementById('cfg-email').value||'').trim();if(!nome){toast('Nome invalido');return;}var users=getUsers();var u=users.find(function(x){return x.id===S.userId;});if(!u)return;u.nome=nome;u.email=email;var okU=saveUsersLocal(users,u.id,{nome:nome,email:email});S.nome=nome;S.email=email;var okS=ss('lf6_s',S);var nu=document.getElementById('nav-un');if(nu)nu.textContent=nome;toast((okU&&okS)?'Dados salvos!':'⚠️ Pode não ter salvo — armazenamento local cheio.');}
+function saveProfileData(){if(!S||!S.userId){toast('Sessão inválida. Faça login novamente.');return;}var nome=(document.getElementById('cfg-nome').value||'').trim();var email=(document.getElementById('cfg-email').value||'').trim();if(!nome){toast('Nome invalido');return;}var users=getUsers();var u=users.find(function(x){return x.id===S.userId;});if(!u)return;u.nome=nome;u.email=email;var okU=saveUsersLocal(users,u.id,{nome:nome,email:email});S.nome=nome;S.email=email;var okS=ss('lf6_s',S);var nu=document.getElementById('nav-un');if(nu)nu.textContent=nome;toast((okU&&okS)?'Dados salvos!':'⚠️ Pode não ter salvo — armazenamento local cheio.');}
 
+// FASE 3.5 (pedido de segurança — melhorua_reforcado):
+// changeMyPassword() NÃO gera mais o hash localmente nem grava
+// u.ph em lf6_u — esse caminho antigo mantinha uma cópia do hash
+// da senha no navegador (o mesmo vetor que a seed ADM explorava).
+// Agora chama POST /api/v1/usuarios/change-password: o Worker
+// valida a senha atual, gera o novo hash s2$saltHex$hashHex e
+// grava direto no fs_documents (config/users/items/<uid>). O
+// próximo login puxa o hash atualizado do servidor.
+//
+// Regras da nova senha (alinhadas com o schema do Worker):
+// pelo menos 8 caracteres; diferente da atual; confirmação bate.
 function changeMyPassword(){
-  var old=document.getElementById('cfg-pw-old').value||'';var nw=document.getElementById('cfg-pw-new').value||'';var conf=document.getElementById('cfg-pw-confirm').value||'';
+  var old=document.getElementById('cfg-pw-old').value||'';
+  var nw=document.getElementById('cfg-pw-new').value||'';
+  var conf=document.getElementById('cfg-pw-confirm').value||'';
   var errEl=document.getElementById('cfg-pw-err');errEl.textContent='';
-  var users=getUsers();var u=users.find(function(x){return x.id===S.userId;});if(!u){errEl.textContent='Usuario nao encontrado.';return;}
-  if(nw.length<4){errEl.textContent='Minimo 4 caracteres.';return;}
+  if(!old){errEl.textContent='Informe a senha atual.';return;}
+  nw=nw.trim();conf=conf.trim();
+  if(nw.length<8){errEl.textContent='Mínimo 8 caracteres (sem espaços nas bordas).';return;}
+  if(nw===old){errEl.textContent='A nova senha não pode ser igual à atual.';return;}
   if(nw!==conf){errEl.textContent='Senhas nao coincidem.';return;}
-  verifyPw(u,old).then(function(ok){
-    if(!ok){errEl.textContent='Senha atual incorreta.';return;}
-    shSecure(nw).then(function(hash){
-      u.ph=hash;var okPw=saveUsersLocal(users,u.id,{ph:hash});
-      document.getElementById('cfg-pw-old').value='';document.getElementById('cfg-pw-new').value='';document.getElementById('cfg-pw-confirm').value='';
-      if(okPw)toast('Senha alterada!');
-      else errEl.textContent='Não foi possível salvar a nova senha (armazenamento local cheio). Tente novamente.';
-    }).catch(function(){errEl.textContent='Nao foi possivel gerar a nova senha neste dispositivo. Tente novamente.';});
-  }).catch(function(){errEl.textContent='Nao foi possivel validar a senha atual neste dispositivo. Tente novamente.';});
+
+  var wc=window.LiderCRM&&window.LiderCRM.api&&window.LiderCRM.api.workerClient;
+  if(!wc||typeof wc.changePassword!=='function'){
+    errEl.textContent='Serviço indisponível. Recarregue e tente novamente.';return;
+  }
+
+  wc.changePassword({currentPassword:old,newPassword:nw}).then(function(){
+    var _po=document.getElementById('cfg-pw-old');if(_po)_po.value='';
+    var _pn=document.getElementById('cfg-pw-new');if(_pn)_pn.value='';
+    document.getElementById('cfg-pw-confirm').value='';
+    toast('Senha alterada!');
+  }).catch(function(err){
+    // O httpClient devolve o erro do envelope { ok:false, error:{ message } }
+    var msg=(err&&err.data&&err.data.error&&err.data.error.message)
+         ||(err&&err.message)
+         ||'Não foi possível alterar a senha. Confirme a senha atual e tente novamente.';
+    if(err&&(err.status===401||(err.data&&err.data.error&&err.data.error.code==='UNAUTHORIZED'))){
+      errEl.textContent='Senha atual incorreta.';
+    }else{
+      errEl.textContent=msg;
+    }
+  });
 }
 
 function setBG(id,silent){
-  ss('lf13_bg_'+S.userId,id);applyBG(id);
+  if(!S||!S.userId){console.warn('[cfg] setBG: sessão inativa');return;}
+  if(S&&S.userId)ss('lf13_bg_'+S.userId,id);applyBG(id);
   document.querySelectorAll('.bg-thumb').forEach(function(e){e.classList.remove('on');});
   var idx=BG_OPTIONS.findIndex(function(x){return x.id===id;});var ts=document.querySelectorAll('.bg-thumb');if(ts[idx])ts[idx].classList.add('on');
   // BUG CORRIGIDO: antes, "photoData" só era enviado quando id==='photo' — ao trocar para
@@ -189,19 +127,126 @@ function setBG(id,silent){
   // mesmo que o usuário só quisesse testar uma cor, sem intenção de apagar a foto. Agora
   // preserva a foto que já está salva localmente ao trocar de fundo — só é removida de
   // fato quando o próprio removeBGPhoto() a apaga do localStorage antes de chamar setBG().
-  var photoData=sg('lf13_bgphoto_'+S.userId)||null;
+  var photoData=(S&&S.userId)?sg('lf13_bgphoto_'+S.userId)||null:null;
   saveBGRemote(id,photoData);
   if(!silent)toast('Fundo aplicado em todos os seus dispositivos!');
+}
+
+/* R15-06 + FIX #16 (2026-07-20): papel de parede com transparência inteligente
+   adaptativa por tema claro/escuro. Ajustado para deixar o wallpaper mais nítido:
+   overlay preto translúcido no tema escuro, branco translúcido no claro e blur baixo
+   para não lavar a imagem de fundo. */
+function _bgOpacityForTheme(){
+  var isClassic=document.body&&document.body.classList.contains('theme-classic');
+  return isClassic?0.12:0.18;/* escuro: menos opacidade, claro: um pouco mais */
+}
+
+function _lfIsThemeDark(){
+  // theme-classic = dark. Se algum dia trocar, também detecta pelo body.bg
+  if(document.body && document.body.classList.contains('theme-classic')) return true;
+  if(document.documentElement && document.documentElement.getAttribute('data-theme')==='dark') return true;
+  try {
+    var bg = getComputedStyle(document.body).backgroundColor || '';
+    var m = bg.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if(m){
+      var lum = (parseInt(m[1])+parseInt(m[2])+parseInt(m[3]))/3;
+      return lum < 128;
+    }
+  } catch(_e){}
+  return false;
+}
+
+function _lfApplyWallpaperTransparency(hasWallpaper){
+  var st = document.getElementById('lf-wallpaper-transp-el');
+  if(!st){ st = document.createElement('style'); st.id = 'lf-wallpaper-transp-el'; document.head.appendChild(st); }
+  if(!hasWallpaper){ st.textContent = ''; return; }
+  var isDark = _lfIsThemeDark();
+  var alpha = isDark ? 0.36 : 0.24;
+  var bgRgb = isDark ? '0, 0, 0' : '255, 255, 255';
+  var blur = isDark ? 2 : 1;
+  st.textContent =
+    /* Painéis principais: blur + opacidade adaptativa */
+    '.kb-col, .kanban-column, .card, .kb-card, .lead-card,' +
+    '.chat-conv-item, .chat-msgs, .chat-shell, .chat-side, .chat-main,' +
+    '.topbar, header, .mo, .modal-content, [class*="modal-content"],' +
+    '.adm-kpi, .adm-mini-k, .act-item, .act-panel, .cli-card,' +
+    '.dash-card, .relat-panel, #pg-chat .chat-hd, #pg-chat .chat-compose {' +
+    '  background-color: rgba('+bgRgb+', '+alpha+') !important;' +
+    '  backdrop-filter: blur('+blur+'px) saturate(1.03);' +
+    '  -webkit-backdrop-filter: blur('+blur+'px) saturate(1.03);' +
+    '}' +
+    /* Meta-classe marca o root pra QUE features CSS possam se ativar */
+    ':root { --lf-has-wallpaper: 1; --lf-wallpaper-alpha: '+alpha+'; --lf-wallpaper-blur: '+blur+'px; }';
+  // Sinaliza no <html> a presença do wallpaper (útil para CSS extras)
+  document.documentElement.classList.add('lf-has-wallpaper');
+  document.documentElement.classList.toggle('lf-theme-dark', isDark);
+  document.documentElement.classList.toggle('lf-theme-light', !isDark);
+}
+
+function _lfClearWallpaperTransparency(){
+  var st = document.getElementById('lf-wallpaper-transp-el');
+  if(st) st.textContent = '';
+  document.documentElement.classList.remove('lf-has-wallpaper');
+  document.documentElement.classList.remove('lf-theme-dark');
+  document.documentElement.classList.remove('lf-theme-light');
+  document.documentElement.style.removeProperty('--lf-has-wallpaper');
 }
 
 function applyBG(id){
   var st=document.getElementById('bg-style-el');
   if(!st){st=document.createElement('style');st.id='bg-style-el';document.head.appendChild(st);}
-  if(id==='photo'){var photoUrl=sg('lf13_bgphoto_'+S.userId);var _isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(/Mac/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
-  st.textContent=photoUrl?"body,#app{background:url('"+photoUrl+"') center/cover no-repeat"+(_isIOS?' scroll':' fixed')+"!important;}":'';return;}
+  if(id==='photo'){
+    var photoUrl=(S&&S.userId)?sg('lf13_bgphoto_'+S.userId):null;
+    var _isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(/Mac/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
+    st.textContent=photoUrl?"body,#app{background:url('"+photoUrl+"') center/cover no-repeat"+(_isIOS?' scroll':' fixed')+"!important;}":'';
+    // FIX #16: aplicar transparência adaptativa quando tem foto
+    _lfApplyWallpaperTransparency(!!photoUrl);
+    return;
+  }
   var bg=BG_OPTIONS.find(function(x){return x.id===id;});
   st.textContent=(bg&&bg.css&&bg.id!=='photo')?'body,#app{'+bg.css+'}':'';
+  // FIX #16: fundo sem foto → limpa transparência
+  _lfClearWallpaperTransparency();
 }
+
+// FIX #16: re-aplica transparência quando o tema muda (dark/light)
+if(!window.__LF_WALLPAPER_THEME_HOOK__){
+  window.__LF_WALLPAPER_THEME_HOOK__ = true;
+  // MutationObserver no body classList — detecta troca de tema
+  var _themeObs = new MutationObserver(function(){
+    if(!document.documentElement.classList.contains('lf-has-wallpaper')) return;
+    var uid = (S && S.userId) || '';
+    if(!uid) return;
+    var hasBg = false;
+    try { hasBg = !!localStorage.getItem('lf13_bgphoto_'+uid); } catch(_e){}
+    if(hasBg) _lfApplyWallpaperTransparency(true);
+  });
+  try {
+    _themeObs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  } catch(_e){}
+}
+
+// FIX #11 (2026-07-20 v3): toggle "Ocultar ADM das listas" — persistido em localStorage
+// (chave lf_hide_adm_lists). Lido por renderUsers() em js/usuarios.js e por qualquer outra
+// lista futura que queira respeitar a preferência. Somente ADM/Gestor consegue mexer.
+function getHideAdmInLists(){
+  try{var v=localStorage.getItem('lf_hide_adm_lists');return v==='1'||v==='true';}catch(_e){return false;}
+}
+function setHideAdmInLists(on){
+  if(typeof hasAdminAccess==='function' && !hasAdminAccess()){toast('Apenas ADM/Gestor pode alterar.');return;}
+  try{localStorage.setItem('lf_hide_adm_lists', on?'1':'0');}catch(_e){}
+  toast(on?'ADM ficará oculto das listas.':'ADM voltará a aparecer nas listas.');
+  try{if(typeof renderUsers==='function')renderUsers();}catch(_e){}
+  try{if(typeof agdFillConsultorFilter==='function')agdFillConsultorFilter();}catch(_e){}
+  try{if(typeof agdFillConsultorSelect==='function')agdFillConsultorSelect();}catch(_e){}
+}
+function _lfInitHideAdmToggle(){
+  var cb=document.getElementById('cfg-hide-adm-lists');if(!cb)return;
+  cb.checked=getHideAdmInLists();
+  var sec=document.getElementById('cfg-adm-visibility-section');
+  if(sec && typeof hasAdminAccess==='function') sec.style.display=hasAdminAccess()?'block':'none';
+}
+try{document.addEventListener('DOMContentLoaded',_lfInitHideAdmToggle);}catch(_e){}
 
 // FIX 8: trocar logo do CRM
 // CORREÇÃO "LOGO NÃO SALVA UNIVERSAL": antes só gravava em localStorage (só no aparelho
@@ -226,7 +271,9 @@ function admChangeLogo(input){
     if(!data){toast('⚠️ Não foi possível processar essa imagem.');input.value='';return;}
     try{localStorage.setItem('lf_custom_logo',data);}catch(err){toast('❌ Armazenamento cheio ou modo privado');input.value='';return;}
     applyCustomLogo(data);
-    if(DB_MODE==='firebase'&&db){syncBusy();db.collection('config').doc('logo').set({data:data,ts:Date.now()}).then(function(){syncOk();toast('✅ Logo atualizada em todos os dispositivos!');}).catch(function(e2){syncErr(e2);toast('⚠️ Logo salva neste aparelho, mas falhou ao sincronizar com a nuvem.',4500);});}
+    var wc=_cfgWorkerClient();
+    if(wc){syncBusy();wc.putConfig('logo',{data:data}).then(function(){syncOk();toast('✅ Logo atualizada em todos os dispositivos!');}).catch(function(e2){syncErr(e2);toast('⚠️ Logo salva neste aparelho, mas falhou ao sincronizar com a nuvem.',4500);});}
+    else if(DB_MODE==='firebase'&&db){syncBusy();db.collection('config').doc('logo').set({data:data,ts:Date.now()}).then(function(){syncOk();toast('✅ Logo atualizada em todos os dispositivos!');}).catch(function(e2){syncErr(e2);toast('⚠️ Logo salva neste aparelho, mas falhou ao sincronizar com a nuvem.',4500);});}
     else toast('✅ Logo atualizada! (modo offline — só neste aparelho até reconectar)');
     input.value='';
   });
@@ -237,7 +284,9 @@ function admResetLogo(){
   if(!hasAdminAccess()){toast('Apenas ADM/Gestor pode resetar a logo.');return;}
   try{localStorage.removeItem('lf_custom_logo');}catch(e){}
   applyCustomLogo(null);
-  if(DB_MODE==='firebase'&&db){syncBusy();db.collection('config').doc('logo').delete().then(syncOk).catch(syncErr);}
+  var wc=_cfgWorkerClient();
+  if(wc){syncBusy();wc.deleteConfig('logo').then(syncOk).catch(syncErr);}
+  else if(DB_MODE==='firebase'&&db){syncBusy();db.collection('config').doc('logo').delete().then(syncOk).catch(syncErr);}
   toast('Logo resetada para o padrão em todos os dispositivos');
 }
 
@@ -250,13 +299,21 @@ function loadLogoRemote(cb){
   // o boot em modo Firebase mostrava a logo padrão/em branco até a rede responder).
   var l0=null;try{l0=localStorage.getItem('lf_custom_logo');}catch(e){}
   cb(l0);
-  if(DB_MODE==='firebase'&&db){
+  var wc=_cfgWorkerClient();
+  if(wc){
+    wc.getConfig('logo').then(function(doc){
+      var data=doc?(doc.data||null):null;
+      if(data){try{localStorage.setItem('lf_custom_logo',data);}catch(e){}}
+      else{try{localStorage.removeItem('lf_custom_logo');}catch(e){}}
+      cb(data);
+    }).catch(function(e){console.warn("[cfg] loadLogoRemote worker falhou",e);});
+  }else if(DB_MODE==='firebase'&&db){
     db.collection('config').doc('logo').get().then(function(d){
       var data=d.exists?(d.data().data||null):null;
       if(data){try{localStorage.setItem('lf_custom_logo',data);}catch(e){}}
       else{try{localStorage.removeItem('lf_custom_logo');}catch(e){}}
       cb(data);
-    }).catch(function(){});
+    }).catch(function(e){console.warn("[cfg] loadLogoRemote firebase falhou",e);});
   }
 }
 
@@ -294,7 +351,9 @@ function applyCRMBranding(nameText,imageData){
 
 function saveCRMNameRemote(payload){
   try{localStorage.setItem('lf_custom_crm_name',JSON.stringify(payload));}catch(err){toast('❌ Armazenamento cheio ou modo privado');return false;}
-  if(DB_MODE==='firebase'&&db){syncBusy();db.collection('config').doc('crmname').set({data:payload,ts:Date.now()}).then(function(){syncOk();toast('✅ Nome do CRM atualizado em todos os dispositivos!');}).catch(function(e2){syncErr(e2);toast('⚠️ Nome salvo neste aparelho, mas falhou ao sincronizar com a nuvem.',4500);});}
+  var wc=_cfgWorkerClient();
+  if(wc){syncBusy();wc.putConfig('crmname',{data:payload}).then(function(){syncOk();toast('✅ Nome do CRM atualizado em todos os dispositivos!');}).catch(function(e2){syncErr(e2);toast('⚠️ Nome salvo neste aparelho, mas falhou ao sincronizar com a nuvem.',4500);});}
+  else if(DB_MODE==='firebase'&&db){syncBusy();db.collection('config').doc('crmname').set({data:payload,ts:Date.now()}).then(function(){syncOk();toast('✅ Nome do CRM atualizado em todos os dispositivos!');}).catch(function(e2){syncErr(e2);toast('⚠️ Nome salvo neste aparelho, mas falhou ao sincronizar com a nuvem.',4500);});}
   else toast('✅ Nome do CRM atualizado! (modo offline — só neste aparelho até reconectar)');
   return true;
 }
@@ -333,7 +392,9 @@ function admResetCRMName(){
   if(!hasAdminAccess()){toast('Apenas ADM/Gestor pode resetar o nome do CRM.');return;}
   try{localStorage.removeItem('lf_custom_crm_name');}catch(e){}
   applyCRMBranding(null,null);
-  if(DB_MODE==='firebase'&&db){syncBusy();db.collection('config').doc('crmname').delete().then(syncOk).catch(syncErr);}
+  var wc=_cfgWorkerClient();
+  if(wc){syncBusy();wc.deleteConfig('crmname').then(syncOk).catch(syncErr);}
+  else if(DB_MODE==='firebase'&&db){syncBusy();db.collection('config').doc('crmname').delete().then(syncOk).catch(syncErr);}
   var inp=document.getElementById('cfg-crm-name-input');if(inp)inp.value='';
   toast('Nome do CRM resetado para o padrão em todos os dispositivos');
 }
@@ -342,13 +403,21 @@ function loadCRMNameRemote(cb){
   // CORREÇÃO (auditoria, Etapa 1 — consistência local-first): idem loadLogoRemote.
   var l0=null;try{l0=JSON.parse(localStorage.getItem('lf_custom_crm_name'));}catch(e){}
   cb(l0);
-  if(DB_MODE==='firebase'&&db){
+  var wc=_cfgWorkerClient();
+  if(wc){
+    wc.getConfig('crmname').then(function(doc){
+      var payload=doc?(doc.data||null):null;
+      if(payload){try{localStorage.setItem('lf_custom_crm_name',JSON.stringify(payload));}catch(e){}}
+      else{try{localStorage.removeItem('lf_custom_crm_name');}catch(e){}}
+      cb(payload);
+    }).catch(function(e){console.warn("[cfg] loadCRMNameRemote worker falhou",e);});
+  }else if(DB_MODE==='firebase'&&db){
     db.collection('config').doc('crmname').get().then(function(d){
       var payload=d.exists?(d.data().data||null):null;
       if(payload){try{localStorage.setItem('lf_custom_crm_name',JSON.stringify(payload));}catch(e){}}
       else{try{localStorage.removeItem('lf_custom_crm_name');}catch(e){}}
       cb(payload);
-    }).catch(function(){});
+    }).catch(function(e){console.warn("[cfg] loadCRMNameRemote firebase falhou",e);});
   }
 }
 
@@ -365,16 +434,39 @@ function loadCRMNameRemote(cb){
 // (#sp-err/#sp-spin), que já existiam no HTML mas não eram usados por nenhum código.
 function _checkRunEnvironment(){
   var proto=location.protocol;
-  if(proto==='http:'||proto==='https:')return false; // ambiente normal, segue o boot
+  // FIX v15 (CRÍTICO — resolvia "não conecta no app Capacitor"):
+  // Antes só liberava http:/https:. O app empacotado com Capacitor Android usa
+  // origin `capacitor://localhost` e o iOS usa `ionic://localhost` (ou `capacitor:`).
+  // Isso batia no ramo do `return true` — que BLOQUEIA o boot inteiro e nunca
+  // chama initDB(). Resultado: no app instalado a splash mostrava a mensagem
+  // "arquivo aberto diretamente" (ou ficava presa) e a nuvem NUNCA era chamada.
+  //
+  // Agora liberamos todos os schemes usados por app nativo (Capacitor / Ionic /
+  // Cordova / Android WebView / iOS WKWebView / PWA instalado):
+  //   http:, https:, capacitor:, ionic:, file:
+  // file:// só entra aqui para PWAs empacotadas / assets locais legítimos —
+  // se o usuário DE VERDADE abriu o index.html clicando no arquivo, o
+  // localStorage ainda funciona no Chromium moderno, então preferimos deixar
+  // passar (com um warning) a bloquear injustamente o app Capacitor.
+  var isCap = false;
+  try { isCap = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); } catch(_e){}
+  if(proto==='http:'||proto==='https:'||proto==='capacitor:'||proto==='ionic:'||isCap){
+    return false; // ambiente normal / app nativo — segue o boot
+  }
+  if(proto==='file:'){
+    // Só mostramos aviso amigável. Não bloqueamos — deixamos initDB() rodar em modo local.
+    try{console.warn('[LiderCRM] rodando em file:// — localStorage funciona, sync desativada.');}catch(_e){}
+    return false;
+  }
+  // Qualquer outro scheme desconhecido (about:, chrome-extension:, data:, etc.)
   var spin=document.getElementById('sp-spin');if(spin)spin.style.display='none';
   var sub=document.querySelector('#splash .splash-sub');
   if(sub)sub.textContent='Não foi possível abrir o app desta forma.';
   var err=document.getElementById('sp-err');
   if(err){
     err.style.display='block';
-    err.innerHTML='Este arquivo foi aberto diretamente (<strong>'+eH(proto)+'//</strong>), em vez de por um link.'
-      +'<br><br>Nesse modo, o navegador bloqueia o armazenamento local e a sincronização — por isso a tela fica em branco.'
-      +'<br><br>Peça o link de acesso correto (<strong>https://...</strong>) a quem administra o sistema, ou abra pelo atalho salvo na tela inicial, em vez de tocar no arquivo diretamente.';
+    err.innerHTML='Este arquivo foi aberto por um endereço não suportado (<strong>'+eH(proto)+'//</strong>).'
+      +'<br><br>Peça o link de acesso correto (<strong>https://...</strong>) a quem administra o sistema, ou abra pelo atalho salvo na tela inicial.';
   }
   return true; // bloqueia o boot normal
 }
@@ -384,7 +476,19 @@ function _checkRunEnvironment(){
   function startBoot(){
     if(__bootStarted)return;
     __bootStarted=true;
-    if(!_checkRunEnvironment())initDB();
+    if(_checkRunEnvironment())return;
+    var kickoff=function(){try{initDB();}catch(e){console.error('startBoot initDB',e);try{usarLocal('Modo offline (boot)');}catch(_e){}}};
+    try{
+      var p=window.__lfLegacyCleanupPromise;
+      if(p&&typeof p.then==='function'){
+        var done=false;
+        var runOnce=function(){if(done)return;done=true;kickoff();};
+        p.then(runOnce).catch(runOnce);
+        setTimeout(runOnce,1800);
+        return;
+      }
+    }catch(e){}
+    kickoff();
   }
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded',startBoot,{once:true});

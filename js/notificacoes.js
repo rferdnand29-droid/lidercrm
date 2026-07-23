@@ -37,11 +37,32 @@ var AUTO_REMINDER_KEY='lf_auto_reminder_on';
 function isAutoReminderOn(){var v=sg(AUTO_REMINDER_KEY);return(v===null||v===undefined)?true:!!v;}
 
 function setAutoReminderOn(v){ss(AUTO_REMINDER_KEY,!!v);}
+function _notifService(){return window.LiderCRM&&window.LiderCRM.services&&window.LiderCRM.services.notifications||null;}
+/* R15-03: som de notificação */
+var _notifAudioCtx=null;
+function _playNotifSound(){
+  try{
+    // Toca um beep curto usando Web Audio API (não precisa de arquivo .mp3)
+    if(!_notifAudioCtx)_notifAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    var ctx=_notifAudioCtx;
+    if(ctx.state==='suspended')ctx.resume();
+    var osc=ctx.createOscillator();
+    var gain=ctx.createGain();
+    osc.connect(gain);gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880,ctx.currentTime); // Lá5
+    osc.frequency.setValueAtTime(660,ctx.currentTime+0.1); // Mi5
+    gain.gain.setValueAtTime(0.15,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01,ctx.currentTime+0.3);
+    osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.3);
+  }catch(e){console.warn('[notif] som falhou',e);}
+}
+
 
 /* Abre o modal de lembrete rapido para um card especifico, sem depender do usuario
    ja estar com o detalhe desse card aberto — usada pelos gatilhos automaticos acima. */
 function _autoOpenReminderFor(cardId,board,ownerUid){
   if(!isAutoReminderOn())return;
+  if(!S||!S.userId)return;
   var ou=ownerUid||S.userId;
   setTimeout(function(){_kbDetId=cardId;_kbDetBoard=board;_kbDetOwnerUid=ou;openQuickActivity();},260);
 }
@@ -50,27 +71,21 @@ var AUTOMATION_RULES_KEY='lf_automation_rules';
 
 function getAutomationRules(){return sg(AUTOMATION_RULES_KEY)||[];}
 
-function saveAutomationRules(list){ss(AUTOMATION_RULES_KEY,list);if(DB_MODE==='firebase'&&db){syncBusy();db.collection('config').doc('automation_rules').set({list:list,ts:Date.now()}).then(syncOk).catch(syncErr);}}
+function saveAutomationRules(list){
+  ss(AUTOMATION_RULES_KEY,list);
+  var svc=_notifService();
+  if(DB_MODE==='firebase'&&svc&&typeof svc.saveAutomationRules==='function')svc.saveAutomationRules(list);
+}
 
 /* Local-first: desenha na hora com o cache local e só then atualiza em segundo plano. */
 function loadAutomationRulesRemote(cb){
   cb(getAutomationRules());
-  if(DB_MODE==='firebase'&&db){
-    db.collection('config').doc('automation_rules').get().then(function(d){
-      var l=(d.exists&&d.data().list)?d.data().list:getAutomationRules();ss(AUTOMATION_RULES_KEY,l);
-      // CORREÇÃO (auditoria, motor de automação — dual-callback): a chamada local acima (cb
-      // síncrono, logo no início da função) já marca o throttle de 15s (_autoLastRun) pro
-      // board+dono atual dentro de runAutomationEngine. Como a resposta do Firestore quase
-      // sempre chega em bem menos de 15s, esta segunda chamada de cb() — já com a lista
-      // ATUALIZADA vinda da nuvem — caía dentro da mesma janela e era descartada pelo
-      // throttle quase 100% das vezes. Resultado: o motor nunca chegava a avaliar regras
-      // recém-criadas/editadas nesta passada, só ~5min depois (próximo ciclo do
-      // setInterval) — e podia perder de vez o gatilho 'card_created' (janela de só 60s).
-      // Zera o throttle antes de rodar de novo com a lista fresca, garantindo que esta
-      // chamada realmente avalie as regras atualizadas.
+  var svc=_notifService();
+  if(DB_MODE==='firebase'&&svc&&typeof svc.loadAutomationRules==='function'){
+    svc.loadAutomationRules(function(l){
       _autoLastRun={};
       cb(l);
-    }).catch(function(){});
+    });
   }
 }
 
@@ -149,6 +164,7 @@ function _automationMsg(rule,c){
 
 function _execAutomationAction(rule,c,board,ownerUid){
   var act=rule.action||{};
+  if(!S||!S.userId)return;
   var ownerUserId=ownerUid||c.userId||S.userId;
   if(act.tipo==='notify'){
     var targetUid=(act.params&&act.params.target==='specific'&&act.params.userId)?act.params.userId:ownerUserId;
@@ -160,13 +176,12 @@ function _execAutomationAction(rule,c,board,ownerUid){
     // lote no final, as duas escritas colidiam e a movimentação era desfeita pelo save
     // do motor logo em seguida (bug pego em teste antes de entregar a feature).
     c.col=act.params.col;c.updatedAt=new Date().toISOString();
-    logFeedEvent('move',S.userId,c.name,_colLabel(board,act.params.col),board);
+    if(S&&S.userId)logFeedEvent('move',S.userId,c.name,_colLabel(board,act.params.col),board);
   }else if(act.tipo==='create_activity'){
     var p=act.params||{};
     var desc='⚙️ '+(p.desc||'Atividade automática')+' — '+c.name;
     var actObj={id:'auto_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),type:p.actTipo||'task',desc:desc,scheduledAt:null,done:false,read:false,createdAt:new Date().toISOString(),userId:ownerUserId,clientId:c.id,clientNome:c.name,board:board};
-    var list2=getActivitiesLocalFor(ownerUserId);list2.unshift(actObj);ss(actKeyFor(ownerUserId),list2);
-    if(DB_MODE==='firebase'&&db){db.collection('activities').doc(ownerUserId).set({list:list2,ts:Date.now()}).catch(function(){});}
+    var list2=getActivitiesLocalFor(ownerUserId);list2.unshift(actObj);lfSaveActivitiesFor(ownerUserId,list2);
     if(!c.activities)c.activities=[];c.activities.unshift({id:actObj.id,type:actObj.type,desc:desc,scheduledAt:null,done:false,by:'Automação',createdAt:actObj.createdAt});
     if(ownerUserId===S.userId)updateActBadge();
   }
@@ -270,6 +285,7 @@ function toggleAutoRuleActive(id){
 function deleteAutoRule(id){
   // CORREÇÃO (auditoria — controle de acesso): ver comentário em saveAutoRule().
   if(!hasAdminAccess()){toast('Apenas ADM/Gestor pode gerenciar automações');return;}
+  if(typeof _confirmModal!=='function'){if(confirm('Excluir esta regra de automação?')){var rules=getAutomationRules().filter(function(x){return x.id!==id;});saveAutomationRules(rules);renderAutoRules();toast('Regra excluída');}return;}
   _confirmModal({title:'🗑 Excluir regra?',msg:'Essa automação deixará de funcionar pra todo mundo.',okLabel:'Excluir',okClass:'bd',onOk:function(){
     var rules=getAutomationRules().filter(function(x){return x.id!==id;});saveAutomationRules(rules);renderAutoRules();toast('Regra excluída');
   }});
@@ -323,15 +339,19 @@ var NTF_ICONS={transfer:'🔄',activity:'🔔',automation:'⚙️'}
 
 var NTF_IC_CLASS={transfer:'meet',activity:'task',automation:'note'}
 
-function notifKey(uid){return 'lf_notif_'+(uid||S.userId);}
+function notifKey(uid){return 'lf_notif_'+(uid||(S&&S.userId)||'anon');}
 
 function getNotifs(uid){return sg(notifKey(uid))||[];}
 
 function saveNotifsFor(uid,list){
   uid=uid||S.userId;
-  list=list.slice(0,150); // evita crescer pra sempre
+  list=list.slice(0,150);
   ss(notifKey(uid),list);
-  if(DB_MODE==='firebase'&&db){db.collection('notifications').doc(uid).set({list:list,ts:Date.now()}).catch(function(){});}
+  var svc=_notifService();
+  if(DB_MODE==='firebase'&&svc&&typeof svc.saveNotifs==='function'){
+    var p=svc.saveNotifs(uid,list);
+    if(p&&typeof p.catch==='function')p.catch(function(e){console.warn('[notif] saveNotifsFor falhou',e);});
+  }
 }
 
 /* Busca as notificações do usuário logado no Firestore (pra refletir notificações
@@ -353,19 +373,20 @@ function _alertNewNotifs(list){
 }
 
 function loadNotifsRemote(cb){
+  cb=typeof cb==='function'?cb:function(){};
+  if(!S||!S.userId){cb([]);return;}
   var uid=S.userId;
   var local=getNotifs(uid);
   _alertNewNotifs(local);
   cb(local);
-  if(DB_MODE==='firebase'&&db){
-    db.collection('notifications').doc(uid).get().then(function(d){
-      var server=d.exists?(d.data().list||[]):[];
-      // Mesma correção de mescla aplicada às demais listas: evita que um aviso gerado
-      // neste mesmo aparelho (ex.: por uma automação) e ainda não sincronizado seja
-      // apagado por esta atualização em segundo plano.
-      var l=_mergeKeepLocalOnly(server,getNotifs(uid));
-      ss(notifKey(uid),l);_alertNewNotifs(l);cb(l);
-    }).catch(function(){});
+  var svc=_notifService();
+  if(DB_MODE==='firebase'&&svc&&typeof svc.loadNotifs==='function'){
+    svc.loadNotifs(uid,function(l){
+      l=Array.isArray(l)?l:local;
+      try{saveNotifsFor(uid,l);}catch(_e){}
+      _alertNewNotifs(l);
+      cb(l);
+    });
   }
 }
 
@@ -373,32 +394,18 @@ function loadNotifsRemote(cb){
    opts (opcional): {cardId, board} pra permitir abrir o card direto a partir da notificação. */
 function pushNotif(toUid,type,text,opts){
   if(!toUid)return;
+  if(toUid===(S&&S.userId))_playNotifSound();
+  if(!S||!S.userId)return;
   opts=opts||{};
-  var entry={id:'ntf_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),type:type,text:text,ts:new Date().toISOString(),lida:false,cardId:opts.cardId||null,board:opts.board||null};
-  // IMPORTANTE: getNotifs(toUid) só lê cache local — e este dispositivo (de quem está
-  // ENVIANDO a notificação) nunca tem as notificações de OUTRO usuário em cache
-  // (loadNotifsRemote só busca/guarda para S.userId). Sem isso, toda notificação enviada a
-  // outra pessoa (transferência de card, atividade atribuída, automação) sobrescrevia no
-  // Firestore o histórico inteiro de notificações do destinatário com uma lista de 1 item.
-  // Agora busca a lista real do destinatário no Firestore antes de acrescentar e salvar.
-  if(DB_MODE==='firebase'&&db){
-    db.collection('notifications').doc(toUid).get().then(function(d){
-      var list=d.exists?(d.data().list||[]):getNotifs(toUid);
-      list.unshift(entry);
-      if(list.length>200)list=list.slice(0,200);
-      saveNotifsFor(toUid,list);
-      if(toUid===S.userId)updateNotifBadge();
-    }).catch(function(){
-      var list=getNotifs(toUid);list.unshift(entry);
-      if(list.length>200)list=list.slice(0,200);
-      saveNotifsFor(toUid,list);
-      if(toUid===S.userId)updateNotifBadge();
-    });
+  var svc=_notifService();
+  if(svc&&typeof svc.pushNotif==='function'){
+    svc.pushNotif(toUid,type,text,opts);
     return;
   }
+  var entry={id:'ntf_'+Date.now()+'_'+Math.random().toString(36).slice(2,5),type:type,text:text,ts:new Date().toISOString(),lida:false,cardId:opts.cardId||null,board:opts.board||null};
   var list=getNotifs(toUid);
   list.unshift(entry);
-  if(list.length>200)list=list.slice(0,200); // evita crescimento ilimitado do localStorage
+  if(list.length>200)list=list.slice(0,200);
   saveNotifsFor(toUid,list);
   if(toUid===S.userId)updateNotifBadge();
 }
