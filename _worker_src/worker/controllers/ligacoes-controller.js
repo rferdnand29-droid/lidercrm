@@ -19,10 +19,11 @@
 //   PUT  /api/v1/ligacoes/list?uid=<uid>&date=<yyyy-mm-dd>
 // =====================================================================
 
-import { readJsonBody, sanitizeString } from '../validators/validate.js';
+import { readJsonBody, sanitizeString, validate } from '../validators/validate.js';
 import { getFsDocument, setFsDocument } from '../lib/fs-documents.js';
 import { ok } from '../utils/response.js';
 import { BadRequestError } from '../errors/http-errors.js';
+import { ligacoesListPutSchema } from '../schemas/index.js';
 
 const LIGACOES_LIST_PARENT = 'ligacoes/list';
 
@@ -52,6 +53,7 @@ export async function putLigacoesListDoc(request, ctx) {
   const url = new URL(request.url);
   const { uid, date } = parseUidDate(url);
   const body = await readJsonBody(request);
+  validate(Object.assign({}, body, { uid }), ligacoesListPutSchema); // R5: input validation
   const list = Array.isArray(body.list) ? body.list : [];
   const payload = { list, uid, date, ts: Date.now() };
   await setFsDocument(ctx.cfg, docPath(uid, date), payload);

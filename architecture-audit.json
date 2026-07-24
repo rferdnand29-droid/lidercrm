@@ -1,0 +1,1086 @@
+{
+  "root": ".",
+  "largestFiles": [
+    {
+      "file": "js/kanban.js",
+      "lines": 2487,
+      "functions": [
+        {
+          "name": "_makeCard",
+          "start": 510,
+          "end": 623,
+          "size": 114
+        },
+        {
+          "name": "openKBDet",
+          "start": 785,
+          "end": 894,
+          "size": 110
+        },
+        {
+          "name": "_finalizeSaveKBCard",
+          "start": 717,
+          "end": 783,
+          "size": 67
+        },
+        {
+          "name": "_buildKB",
+          "start": 443,
+          "end": 507,
+          "size": 65
+        },
+        {
+          "name": "renderKBMobile",
+          "start": 1942,
+          "end": 2006,
+          "size": 65
+        },
+        {
+          "name": "_syncKBRemoteBG",
+          "start": 308,
+          "end": 363,
+          "size": 56
+        },
+        {
+          "name": "applyRespStage",
+          "start": 1182,
+          "end": 1233,
+          "size": 52
+        },
+        {
+          "name": "saveKBCard",
+          "start": 673,
+          "end": 715,
+          "size": 43
+        }
+      ]
+    },
+    {
+      "file": "js/chat.js",
+      "lines": 1915,
+      "functions": [
+        {
+          "name": "_chatOpenCtxMenu",
+          "start": 647,
+          "end": 734,
+          "size": 88
+        },
+        {
+          "name": "renderChatMsgs",
+          "start": 458,
+          "end": 535,
+          "size": 78
+        },
+        {
+          "name": "chatCtxAction",
+          "start": 736,
+          "end": 813,
+          "size": 78
+        },
+        {
+          "name": "_chatRenderNewConvList",
+          "start": 1299,
+          "end": 1370,
+          "size": 72
+        },
+        {
+          "name": "_chatOpenConvCtxMenu",
+          "start": 582,
+          "end": 646,
+          "size": 65
+        },
+        {
+          "name": "renderChatList",
+          "start": 337,
+          "end": 395,
+          "size": 59
+        },
+        {
+          "name": "_chatPollNewMsgs",
+          "start": 1719,
+          "end": 1776,
+          "size": 58
+        },
+        {
+          "name": "chatShowConvInfo",
+          "start": 968,
+          "end": 1018,
+          "size": 51
+        }
+      ]
+    },
+    {
+      "file": "js/chat-fixes.js",
+      "lines": 1428,
+      "functions": [
+        {
+          "name": "fenceMenuStrict",
+          "start": 909,
+          "end": 956,
+          "size": 48
+        },
+        {
+          "name": "injectCtxCSS",
+          "start": 863,
+          "end": 905,
+          "size": 43
+        },
+        {
+          "name": "bootstrap",
+          "start": 1381,
+          "end": 1420,
+          "size": 40
+        },
+        {
+          "name": "_sanitizeLocal",
+          "start": 556,
+          "end": 591,
+          "size": 36
+        },
+        {
+          "name": "ensureNavButtons",
+          "start": 126,
+          "end": 160,
+          "size": 35
+        },
+        {
+          "name": "fenceMenuInsideSafeZone",
+          "start": 213,
+          "end": 247,
+          "size": 35
+        },
+        {
+          "name": "watchCtxMenuStrict",
+          "start": 961,
+          "end": 989,
+          "size": 29
+        },
+        {
+          "name": "watchCtxMenu",
+          "start": 251,
+          "end": 271,
+          "size": 21
+        }
+      ]
+    },
+    {
+      "file": "js/agenda.js",
+      "lines": 1408,
+      "functions": [
+        {
+          "name": "agdDoSave",
+          "start": 1264,
+          "end": 1365,
+          "size": 102
+        },
+        {
+          "name": "saveQuickActivity",
+          "start": 218,
+          "end": 274,
+          "size": 57
+        },
+        {
+          "name": "renderActPanel",
+          "start": 328,
+          "end": 369,
+          "size": 42
+        },
+        {
+          "name": "_agdPollOnce",
+          "start": 852,
+          "end": 893,
+          "size": 42
+        },
+        {
+          "name": "agdDelete",
+          "start": 1367,
+          "end": 1407,
+          "size": 41
+        },
+        {
+          "name": "agdListen",
+          "start": 895,
+          "end": 932,
+          "size": 38
+        },
+        {
+          "name": "createActivity",
+          "start": 95,
+          "end": 131,
+          "size": 37
+        },
+        {
+          "name": "saveLinkedActivityEdit",
+          "start": 165,
+          "end": 194,
+          "size": 30
+        }
+      ]
+    },
+    {
+      "file": "js/documentos.js",
+      "lines": 818,
+      "functions": [
+        {
+          "name": "processAttFiles",
+          "start": 247,
+          "end": 312,
+          "size": 66
+        },
+        {
+          "name": "processAdmDocFiles",
+          "start": 635,
+          "end": 691,
+          "size": 57
+        },
+        {
+          "name": "reRenderAtt",
+          "start": 53,
+          "end": 83,
+          "size": 31
+        },
+        {
+          "name": "viewAttachment",
+          "start": 368,
+          "end": 393,
+          "size": 26
+        },
+        {
+          "name": "reRenderAdmDocs",
+          "start": 559,
+          "end": 584,
+          "size": 26
+        },
+        {
+          "name": "_attPreviewPdf",
+          "start": 221,
+          "end": 245,
+          "size": 25
+        },
+        {
+          "name": "attCtxOpen",
+          "start": 447,
+          "end": 471,
+          "size": 25
+        },
+        {
+          "name": "viewAdmDoc",
+          "start": 704,
+          "end": 727,
+          "size": 24
+        }
+      ]
+    },
+    {
+      "file": "js/supabase.js",
+      "lines": 727,
+      "functions": [
+        {
+          "name": "initDB",
+          "start": 428,
+          "end": 590,
+          "size": 163
+        },
+        {
+          "name": "_mkRef",
+          "start": 207,
+          "end": 301,
+          "size": 95
+        },
+        {
+          "name": "_mkStorage",
+          "start": 338,
+          "end": 379,
+          "size": 42
+        },
+        {
+          "name": "_mkDB",
+          "start": 303,
+          "end": 336,
+          "size": 34
+        },
+        {
+          "name": "_armBootWatchdog",
+          "start": 391,
+          "end": 420,
+          "size": 30
+        },
+        {
+          "name": "hideSplash",
+          "start": 609,
+          "end": 633,
+          "size": 25
+        },
+        {
+          "name": "_mkQueryRef",
+          "start": 177,
+          "end": 193,
+          "size": 17
+        },
+        {
+          "name": "doInst",
+          "start": 708,
+          "end": 724,
+          "size": 17
+        }
+      ]
+    },
+    {
+      "file": "js/relatorios.js",
+      "lines": 675,
+      "functions": [
+        {
+          "name": "confirmDeleteKBReason",
+          "start": 434,
+          "end": 498,
+          "size": 65
+        },
+        {
+          "name": "_kbTransferCard",
+          "start": 362,
+          "end": 409,
+          "size": 48
+        },
+        {
+          "name": "_kbMoveCard",
+          "start": 313,
+          "end": 357,
+          "size": 45
+        },
+        {
+          "name": "renderAdmLigacoes",
+          "start": 83,
+          "end": 126,
+          "size": 44
+        },
+        {
+          "name": "renderAdmFeed",
+          "start": 163,
+          "end": 194,
+          "size": 32
+        },
+        {
+          "name": "_admFeedRenderList",
+          "start": 207,
+          "end": 234,
+          "size": 28
+        },
+        {
+          "name": "convertToNeg",
+          "start": 506,
+          "end": 533,
+          "size": 28
+        },
+        {
+          "name": "_dupDeleteAndRescan",
+          "start": 572,
+          "end": 599,
+          "size": 28
+        }
+      ]
+    },
+    {
+      "file": "js/usuarios.js",
+      "lines": 673,
+      "functions": [
+        {
+          "name": "_sessionsHeartbeat",
+          "start": 371,
+          "end": 429,
+          "size": 59
+        },
+        {
+          "name": "saveEditUser",
+          "start": 585,
+          "end": 628,
+          "size": 44
+        },
+        {
+          "name": "renderEstruturaPage",
+          "start": 132,
+          "end": 170,
+          "size": 39
+        },
+        {
+          "name": "saveDept",
+          "start": 225,
+          "end": 257,
+          "size": 33
+        },
+        {
+          "name": "_mutateSessionsList",
+          "start": 294,
+          "end": 326,
+          "size": 33
+        },
+        {
+          "name": "saveCredCargo",
+          "start": 516,
+          "end": 544,
+          "size": 29
+        },
+        {
+          "name": "_cleanupDepartmentsForRemovedUser",
+          "start": 78,
+          "end": 104,
+          "size": 27
+        },
+        {
+          "name": "deleteDept",
+          "start": 259,
+          "end": 280,
+          "size": 22
+        }
+      ]
+    },
+    {
+      "file": "js/auth.js",
+      "lines": 615,
+      "functions": [
+        {
+          "name": "doLogin",
+          "start": 203,
+          "end": 260,
+          "size": 58
+        },
+        {
+          "name": "tryBridge",
+          "start": 417,
+          "end": 471,
+          "size": 55
+        },
+        {
+          "name": "_install",
+          "start": 569,
+          "end": 602,
+          "size": 34
+        },
+        {
+          "name": "loadCli",
+          "start": 82,
+          "end": 103,
+          "size": 22
+        },
+        {
+          "name": "_execLogout",
+          "start": 262,
+          "end": 281,
+          "size": 20
+        },
+        {
+          "name": "findUserRecord",
+          "start": 378,
+          "end": 394,
+          "size": 17
+        },
+        {
+          "name": "_lfAuthGetUserSafe",
+          "start": 136,
+          "end": 151,
+          "size": 16
+        },
+        {
+          "name": "doLogout",
+          "start": 283,
+          "end": 296,
+          "size": 14
+        }
+      ]
+    },
+    {
+      "file": "js/app.js",
+      "lines": 573,
+      "functions": [
+        {
+          "name": "goPage",
+          "start": 262,
+          "end": 321,
+          "size": 60
+        },
+        {
+          "name": "startApp",
+          "start": 182,
+          "end": 236,
+          "size": 55
+        },
+        {
+          "name": "bootApp",
+          "start": 113,
+          "end": 158,
+          "size": 46
+        },
+        {
+          "name": "buildNav",
+          "start": 241,
+          "end": 260,
+          "size": 20
+        },
+        {
+          "name": "openInNewTab",
+          "start": 543,
+          "end": 560,
+          "size": 18
+        },
+        {
+          "name": "syncErr",
+          "start": 342,
+          "end": 356,
+          "size": 15
+        },
+        {
+          "name": "_lfGetUserSafe",
+          "start": 47,
+          "end": 60,
+          "size": 14
+        },
+        {
+          "name": "_lfLoadUsersDBSafe",
+          "start": 62,
+          "end": 75,
+          "size": 14
+        }
+      ]
+    },
+    {
+      "file": "js/bingo-sync.js",
+      "lines": 514,
+      "functions": [
+        {
+          "name": "_applyMapping",
+          "start": 205,
+          "end": 253,
+          "size": 49
+        },
+        {
+          "name": "reconcileBingoFromNegocios",
+          "start": 312,
+          "end": 356,
+          "size": 45
+        },
+        {
+          "name": "syncNegocioToBingo",
+          "start": 265,
+          "end": 308,
+          "size": 44
+        },
+        {
+          "name": "_hookConfirmDiscard",
+          "start": 428,
+          "end": 466,
+          "size": 39
+        },
+        {
+          "name": "_ensureCliForCard",
+          "start": 153,
+          "end": 189,
+          "size": 37
+        },
+        {
+          "name": "_install",
+          "start": 470,
+          "end": 506,
+          "size": 37
+        },
+        {
+          "name": "_hookConvertToNeg",
+          "start": 388,
+          "end": 422,
+          "size": 35
+        },
+        {
+          "name": "_findCliForCard",
+          "start": 114,
+          "end": 140,
+          "size": 27
+        }
+      ]
+    },
+    {
+      "file": "js/configuracoes.js",
+      "lines": 506,
+      "functions": [
+        {
+          "name": "_checkRunEnvironment",
+          "start": 435,
+          "end": 472,
+          "size": 38
+        },
+        {
+          "name": "changeMyPassword",
+          "start": 85,
+          "end": 117,
+          "size": 33
+        },
+        {
+          "name": "_lfApplyWallpaperTransparency",
+          "start": 159,
+          "end": 184,
+          "size": 26
+        },
+        {
+          "name": "admChangeLogo",
+          "start": 256,
+          "end": 280,
+          "size": 25
+        },
+        {
+          "name": "loadLogoRemote",
+          "start": 296,
+          "end": 318,
+          "size": 23
+        },
+        {
+          "name": "loadCRMNameRemote",
+          "start": 402,
+          "end": 422,
+          "size": 21
+        },
+        {
+          "name": "handleBGPhotoUpload",
+          "start": 32,
+          "end": 50,
+          "size": 19
+        },
+        {
+          "name": "admChangeCRMNameImage",
+          "start": 371,
+          "end": 388,
+          "size": 18
+        }
+      ]
+    },
+    {
+      "file": "js/attachments.js",
+      "lines": 474,
+      "functions": [
+        {
+          "name": "_openMedia",
+          "start": 74,
+          "end": 143,
+          "size": 70
+        },
+        {
+          "name": "_showCtx",
+          "start": 301,
+          "end": 347,
+          "size": 47
+        },
+        {
+          "name": "_enhanceFiles",
+          "start": 170,
+          "end": 194,
+          "size": 25
+        },
+        {
+          "name": "_pageFromEl",
+          "start": 267,
+          "end": 281,
+          "size": 15
+        },
+        {
+          "name": "_doOpenNewTab",
+          "start": 283,
+          "end": 292,
+          "size": 10
+        },
+        {
+          "name": "_enhanceImgs",
+          "start": 160,
+          "end": 168,
+          "size": 9
+        },
+        {
+          "name": "_startMsgObserver",
+          "start": 204,
+          "end": 211,
+          "size": 8
+        },
+        {
+          "name": "_enhanceChatContainer",
+          "start": 196,
+          "end": 200,
+          "size": 5
+        }
+      ]
+    },
+    {
+      "file": "js/notificacoes.js",
+      "lines": 464,
+      "functions": [
+        {
+          "name": "runAutomationEngine",
+          "start": 109,
+          "end": 156,
+          "size": 48
+        },
+        {
+          "name": "saveAutoRule",
+          "start": 248,
+          "end": 276,
+          "size": 29
+        },
+        {
+          "name": "openAutoRuleEditor",
+          "start": 221,
+          "end": 246,
+          "size": 26
+        },
+        {
+          "name": "_execAutomationAction",
+          "start": 165,
+          "end": 189,
+          "size": 25
+        },
+        {
+          "name": "loadNotifsRemote",
+          "start": 375,
+          "end": 391,
+          "size": 17
+        },
+        {
+          "name": "pushNotif",
+          "start": 395,
+          "end": 411,
+          "size": 17
+        },
+        {
+          "name": "_playNotifSound",
+          "start": 43,
+          "end": 58,
+          "size": 16
+        },
+        {
+          "name": "renderAutoRules",
+          "start": 311,
+          "end": 325,
+          "size": 15
+        }
+      ]
+    },
+    {
+      "file": "src/modules/sync/runtime/retry-queue-sync.js",
+      "lines": 450,
+      "functions": [
+        {
+          "name": "_sbKey",
+          "start": 64,
+          "end": 80,
+          "size": 17
+        },
+        {
+          "name": "_enqueueActivities",
+          "start": 276,
+          "end": 289,
+          "size": 14
+        },
+        {
+          "name": "_enqueueAgendaSlot",
+          "start": 331,
+          "end": 342,
+          "size": 12
+        },
+        {
+          "name": "SyncManager_start",
+          "start": 227,
+          "end": 236,
+          "size": 10
+        },
+        {
+          "name": "_enqueueLigacoes",
+          "start": 290,
+          "end": 299,
+          "size": 10
+        },
+        {
+          "name": "_workerAuthHeaders",
+          "start": 321,
+          "end": 330,
+          "size": 10
+        },
+        {
+          "name": "SyncManager_status",
+          "start": 240,
+          "end": 247,
+          "size": 8
+        },
+        {
+          "name": "_paint",
+          "start": 263,
+          "end": 270,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "file": "src/modules/leads/runtime/objections-runtime.js",
+      "lines": 431,
+      "functions": [
+        {
+          "name": "admSaveEditObjecao",
+          "start": 168,
+          "end": 195,
+          "size": 28
+        },
+        {
+          "name": "renderUserObjBank",
+          "start": 340,
+          "end": 364,
+          "size": 25
+        },
+        {
+          "name": "admDeleteBancoObjecao",
+          "start": 197,
+          "end": 220,
+          "size": 24
+        },
+        {
+          "name": "userSaveEditObjecao",
+          "start": 297,
+          "end": 314,
+          "size": 18
+        },
+        {
+          "name": "userDeleteObjecao",
+          "start": 316,
+          "end": 333,
+          "size": 18
+        },
+        {
+          "name": "loadCustomObjecoes",
+          "start": 41,
+          "end": 57,
+          "size": 17
+        },
+        {
+          "name": "loadObjEdits",
+          "start": 98,
+          "end": 114,
+          "size": 17
+        },
+        {
+          "name": "loadObjDeletedIds",
+          "start": 126,
+          "end": 142,
+          "size": 17
+        }
+      ]
+    },
+    {
+      "file": "js/utils.js",
+      "lines": 429,
+      "functions": [
+        {
+          "name": "toggleMobileMenu",
+          "start": 313,
+          "end": 349,
+          "size": 37
+        },
+        {
+          "name": "openM",
+          "start": 155,
+          "end": 186,
+          "size": 32
+        },
+        {
+          "name": "closeM",
+          "start": 188,
+          "end": 208,
+          "size": 21
+        },
+        {
+          "name": "_safeLiteHTML",
+          "start": 91,
+          "end": 110,
+          "size": 20
+        },
+        {
+          "name": "toastUndo",
+          "start": 236,
+          "end": 252,
+          "size": 17
+        },
+        {
+          "name": "patchMobileGoPage",
+          "start": 391,
+          "end": 406,
+          "size": 16
+        },
+        {
+          "name": "_fallbackCopy",
+          "start": 114,
+          "end": 127,
+          "size": 14
+        },
+        {
+          "name": "_parseScheduledAt",
+          "start": 48,
+          "end": 60,
+          "size": 13
+        }
+      ]
+    },
+    {
+      "file": "src/modules/agenda/runtime/activities-store.js",
+      "lines": 382,
+      "functions": [
+        {
+          "name": "lfSaveActivitiesFor",
+          "start": 273,
+          "end": 352,
+          "size": 80
+        },
+        {
+          "name": "saveActivities",
+          "start": 203,
+          "end": 270,
+          "size": 68
+        },
+        {
+          "name": "_mergeById",
+          "start": 107,
+          "end": 153,
+          "size": 47
+        },
+        {
+          "name": "_diffIds",
+          "start": 180,
+          "end": 200,
+          "size": 21
+        },
+        {
+          "name": "_annotatePending",
+          "start": 83,
+          "end": 98,
+          "size": 16
+        },
+        {
+          "name": "_enqueueSave",
+          "start": 164,
+          "end": 175,
+          "size": 12
+        },
+        {
+          "name": "_markPending",
+          "start": 53,
+          "end": 59,
+          "size": 7
+        },
+        {
+          "name": "_clearPending",
+          "start": 60,
+          "end": 66,
+          "size": 7
+        }
+      ]
+    },
+    {
+      "file": "src/modules/documentos/runtime/audio-helper.js",
+      "lines": 377,
+      "functions": [
+        {
+          "name": "startRecording",
+          "start": 82,
+          "end": 184,
+          "size": 103
+        },
+        {
+          "name": "stopRecording",
+          "start": 198,
+          "end": 248,
+          "size": 51
+        },
+        {
+          "name": "uploadAudio",
+          "start": 269,
+          "end": 308,
+          "size": 40
+        },
+        {
+          "name": "stopAndUpload",
+          "start": 311,
+          "end": 341,
+          "size": 31
+        },
+        {
+          "name": "cancelRecording",
+          "start": 251,
+          "end": 265,
+          "size": 15
+        },
+        {
+          "name": "makeAudioAttachment",
+          "start": 344,
+          "end": 356,
+          "size": 13
+        },
+        {
+          "name": "_pickMimeType",
+          "start": 48,
+          "end": 58,
+          "size": 11
+        },
+        {
+          "name": "_cleanupRecording",
+          "start": 186,
+          "end": 195,
+          "size": 10
+        }
+      ]
+    },
+    {
+      "file": "src/repositories/storage-repository.js",
+      "lines": 376,
+      "functions": [
+        {
+          "name": "supabaseStorageUpload",
+          "start": 144,
+          "end": 210,
+          "size": 67
+        },
+        {
+          "name": "_sbConfig",
+          "start": 90,
+          "end": 133,
+          "size": 44
+        },
+        {
+          "name": "supabaseStorageRemove",
+          "start": 212,
+          "end": 243,
+          "size": 32
+        },
+        {
+          "name": "legacyUpload",
+          "start": 39,
+          "end": 65,
+          "size": 27
+        },
+        {
+          "name": "fileToDataUrl",
+          "start": 24,
+          "end": 33,
+          "size": 10
+        },
+        {
+          "name": "legacyRemove",
+          "start": 67,
+          "end": 76,
+          "size": 10
+        },
+        {
+          "name": "_isBinaryFile",
+          "start": 245,
+          "end": 254,
+          "size": 10
+        },
+        {
+          "name": "workerRequest",
+          "start": 15,
+          "end": 22,
+          "size": 8
+        }
+      ]
+    }
+  ],
+  "generatedAt": "2026-07-24T06:01:25.075Z"
+}

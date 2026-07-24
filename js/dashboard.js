@@ -279,7 +279,14 @@ function renderMobileDash(){
     var fech=Math.max(fecCli,fecKB);
     var ag=list.filter(function(c){return c.steps&&c.steps[0];}).length;
     var tx=ag>0?Math.round(fech/ag*100):0;
-    var acts=(typeof getActivities==='function')?getActivities():[];
+    // FIX 2026-07-23 (mdash-getactivities-undef-guard): getActivities é um
+    // wrapper (js/agenda.js:20) que resolve para __agendaRuntime.getActivities||function(){}.
+    // Se activities-store ainda não populou o runtime no primeiro tick do boot,
+    // o typeof ainda diz 'function' (o fallback é uma função), mas a chamada
+    // retorna undefined — e o .filter abaixo lança TypeError, derrubando o
+    // render inteiro do painel mobile (KPIs de Total/Fechamentos/Taxa/Pendências
+    // ficam zerados até o próximo goPage('dash')). Defesa: coalesce para [].
+    var acts=(typeof getActivities==='function')?(getActivities()||[]):[];
     var pend=acts.filter(function(a){return !a.done;}).length;
     var elL=document.getElementById('mdash-kpi-leads');if(elL)elL.textContent=tot;
     var elF=document.getElementById('mdash-kpi-fech');if(elF)elF.textContent=fech;
@@ -288,7 +295,11 @@ function renderMobileDash(){
   });
   var recEl=document.getElementById('mdash-recent');
   if(recEl){
-    var feed=(typeof getFeed==='function'?getFeed():[]).slice(0,5);
+    // FIX 2026-07-23 (mdash-getfeed-undef-guard): mesmo padrão do getActivities
+    // acima — getFeed (js/relatorios.js:74) é wrapper e pode retornar undefined
+    // se feed-runtime ainda não hidratou. .slice(0,5) em undefined lança TypeError
+    // e apaga o bloco de "atividades recentes" do painel mobile.
+    var feed=((typeof getFeed==='function'?getFeed():[])||[]).slice(0,5);
     if(!feed.length)recEl.innerHTML='<div class="act-empty">Nenhuma atividade recente.</div>';
     else recEl.innerHTML=feed.map(function(f){
       var dt=new Date(f.ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});

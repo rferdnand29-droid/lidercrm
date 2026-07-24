@@ -11,7 +11,8 @@ function _safeLoadCli(uid,cb){if(typeof loadCli==='function')loadCli(uid,cb);els
 
 function ck(uid){return 'lf6_c_'+uid;}
 
-function getCliLocal(uid){return sg(ck(uid))||[];}
+// R5: getCliLocal com fallback robusto (merged from lf-auth-getclilocal-guard patch)
+function getCliLocal(uid){try{return sg(ck(uid))||[];}catch(_e){return [];}}
 
 // FASE 3.3 (parte 2, 2026-07-17): saveCli() passa a preferir
 // LiderCRM.api.workerClient.saveClientesList() — grava o mesmo formato

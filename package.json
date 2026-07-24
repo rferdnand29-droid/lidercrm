@@ -1,6 +1,6 @@
 {
   "name": "lidercrm",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Lider CRM — Cloudflare Pages + Supabase + Backblaze",
   "private": true,
   "type": "module",
@@ -8,7 +8,16 @@
     "start": "npx --yes wrangler pages dev . --port 8788",
     "dev": "npm run start",
     "build": "echo 'Static site — no build step needed. Cloudflare Pages serves files as-is.'",
-    "preview": "npx --yes wrangler pages dev ."
+    "preview": "npx --yes wrangler pages dev .",
+    "audit:architecture": "node scripts/architecture-audit.js . > architecture-audit.json",
+    "validate:permissions": "node scripts/validate-access-control.js",
+    "validate:architecture": "node scripts/validate-architecture.js",
+    "seed:agenda": "DRY_RUN=1 node tests/agenda-test/scripts/seed-agenda.mjs",
+    "seed:agenda:check": "node tests/agenda-test/scripts/seed-agenda.mjs --check",
+    "seed:agenda:apply": "RESET=1 node tests/agenda-test/scripts/seed-agenda.mjs",
+    "test:agenda:n1": "k6 run -e LEVEL=N1 tests/agenda-test/agenda.test.js",
+    "test:agenda:n2": "k6 run -e LEVEL=N2 tests/agenda-test/agenda.test.js",
+    "test:agenda:n3": "k6 run -e LEVEL=N3 tests/agenda-test/agenda.test.js"
   },
   "engines": {
     "node": ">=18"

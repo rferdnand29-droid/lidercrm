@@ -72,6 +72,9 @@ export function sanitizeObject(obj, allowedKeys) {
   return out;
 }
 
+// R5: limite de 2 MB no body bruto para evitar exaustão de memória
+const MAX_BODY_SIZE = 2 * 1024 * 1024;
+
 export async function readJsonBody(request) {
   const contentType = (request.headers.get('Content-Type') || '').toLowerCase();
   if (!contentType.includes('application/json')) {
@@ -80,6 +83,9 @@ export async function readJsonBody(request) {
   }
   const text = await request.text();
   if (!text) return {};
+  if (text.length > MAX_BODY_SIZE) {
+    throw new ValidationError('Body excede o limite de 2 MB.');
+  }
   try { return JSON.parse(text); }
   catch (_e) { throw new ValidationError('JSON malformado.'); }
 }

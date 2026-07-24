@@ -12,10 +12,11 @@
 //   PUT  /api/v1/atividades/list?uid=<uid>
 // =====================================================================
 
-import { readJsonBody, sanitizeString } from '../validators/validate.js';
+import { readJsonBody, sanitizeString, validate } from '../validators/validate.js';
 import { getFsDocument, setFsDocument } from '../lib/fs-documents.js';
 import { ok } from '../utils/response.js';
 import { BadRequestError } from '../errors/http-errors.js';
+import { atividadesListPutSchema } from '../schemas/index.js';
 
 const ATIVIDADES_LIST_PARENT = 'atividades/list';
 
@@ -38,7 +39,10 @@ export async function getAtividadesListDoc(request, ctx) {
 export async function putAtividadesListDoc(request, ctx) {
   const url = new URL(request.url);
   const body = await readJsonBody(request);
-  const uid = sanitizeString(url.searchParams.get('uid'), 120) || sanitizeString(body.uid, 120);
+  // R5: merge uid from query param before validation
+  const merged = Object.assign({}, body, { uid: sanitizeString(url.searchParams.get('uid'), 120) || body.uid });
+  validate(merged, atividadesListPutSchema);
+  const uid = sanitizeString(merged.uid, 120);
   if (!uid) throw new BadRequestError('uid é obrigatório.');
   const list = Array.isArray(body.list) ? body.list : [];
   const payload = { list, ts: Date.now() };

@@ -25,12 +25,13 @@
 //   DELETE /api/v1/agenda-slots?id=<id>
 // =====================================================================
 
-import { readJsonBody, sanitizeString } from '../validators/validate.js';
+import { readJsonBody, sanitizeString, validate } from '../validators/validate.js';
 import {
   getFsDocument, setFsDocument, deleteFsDocument, listFsChildren,
 } from '../lib/fs-documents.js';
 import { ok, created, noContent } from '../utils/response.js';
 import { BadRequestError } from '../errors/http-errors.js';
+import { agendaSlotCreateSchema } from '../schemas/index.js';
 
 const AGENDA_SLOTS_PARENT = 'agenda_slots';
 
@@ -63,6 +64,7 @@ export async function listAgendaSlots(request, ctx) {
 
 export async function createAgendaSlot(request, ctx) {
   const body = await readJsonBody(request);
+  validate(body, agendaSlotCreateSchema); // R5: input validation
   const id = genId();
   const payload = Object.assign({}, body, { ts: Date.now() });
   delete payload.id;

@@ -42,155 +42,10 @@ function verifyPw(u,pw){
 
 // ============================================================
 // PERMISSOES CENTRALIZADAS (TAREFA 4)
-// Qualquer cargo cujo texto contenha uma destas palavras passa a ter
-// o MESMO nivel de acesso do Administrador (telas, relatorios,
-// edicao de outros usuarios). Para dar acesso de admin a um novo
-// cargo no futuro, basta acrescentar a palavra aqui — nao espalhe
-// "if(S.role==='adm')" pelo resto do codigo.
-//
-// ATUALIZACAO (hierarquia de cargos): Supervisor deixou de ter acesso
-// total de ADM. Agora SOMENTE Gerente (e os sinonimos "Gestor",
-// "Representante" e "Master") tem acesso administrativo completo.
-// Supervisor passou a ser um nivel intermediario com acesso de "Time"
-// (ve a equipe, mas nao gerencia usuarios nem ve metricas/feed globais).
-// "Funcionário" fica no nivel basico (igual Consultor), sem funções de ADM.
-//
-// ATUALIZACAO 2 (pedido do usuario — Orientador = Supervisor): Orientador
-// deixou de ser um nivel intermediario proprio (que so via os "orientados"
-// configurados em u.orientadosIds) e passou a ser tratado como SINONIMO DE
-// SUPERVISOR — mesmo nivel (3), mesmas telas, mesma visao de equipe completa
-// (sem filtro por orientadosIds) e mesma ausencia de painel ADM. Feito aqui,
-// na fonte de verdade (CARGO_NIVEIS), entao hasSupervisorAccess() e
-// getVisibleOwnerIds() (patch v22) ja passam a tratar Orientador exatamente
-// como Supervisor automaticamente, sem precisar mexer em cada tela.
-// hasOrientadorAccess() (mais abaixo) fica sem efeito pratico, pois nenhum
-// cargo mapeia mais para o nivel 2 — mantida so por compatibilidade com
-// patches antigos que a chamam com verificacao typeof.
+// Extraídas para src/shared/permissions/access-control.js para reduzir
+// acoplamento entre autenticação, navegação e módulos de negócio.
+// As funções globais continuam expostas sem alterar o comportamento.
 // ============================================================
-var CARGOS_NIVEL_ADMIN=['gerente','gestor','representante','master'];
-
-// Hierarquia de cargos. Quanto maior o nivel, mais acesso.
-// 1=Consultor/Funcionário, 2=(nao usado mais — ver nota acima),
-// 3=Supervisor e Orientador (mesmas funcoes: ve a equipe do mesmo time,
-// mas SEM painel ADM),
-// 4=Gerente/Gestor/Representante/Master (acesso total, igual ADM), 5=ADM (nivel maximo).
-var CARGO_NIVEIS=[
-  {nivel:1,match:['consultor','funcionário','funcionario']},
-  {nivel:3,match:['supervisor','orientador']},
-  {nivel:4,match:['gerente','gestor','representante','master']}
-];
-
-/* Retorna o nivel numerico do cargo do usuario. ADM sempre é o nível máximo (5).
-   Cargos nao reconhecidos caem no nivel 1 (acesso basico), por seguranca. */
-function getCargoNivel(uid){
-  uid=uid||(S?S.userId:null);if(!uid)return 1;
-  if(uid==='adm')return 5;
-  var u=getUser(uid);
-  if(!u){
-    // CORREÇÃO (2026-07-17f): mesmo motivo do hasAdminAccess() acima — sem
-    // cache local ainda, usa o role já confirmado pelo login (S.role) em
-    // vez de cair no nível básico (1) por padrão.
-    if(S&&S.userId===uid&&S.role==='adm')return 5;
-    return 1;
-  }
-  if(u.role==='adm')return 5;
-  var c=(u.cargo||'').toLowerCase();
-  for(var i=CARGO_NIVEIS.length-1;i>=0;i--){
-    if(CARGO_NIVEIS[i].match.some(function(k){return c.indexOf(k)>=0;}))return CARGO_NIVEIS[i].nivel;
-  }
-  return 1;
-}
-
-/* true para Supervisor, Gerente e ADM (nivel >= 3). Usado para a aba "Time" e para
-   permissoes intermediarias (ex: reatribuir agendamentos) que o Supervisor tambem tem. */
-function hasSupervisorAccess(uid){return getCargoNivel(uid)>=3;}
-
-/* HISTORICO: Orientador já foi um nivel intermediário próprio (entre
-   Consultor=1 e Supervisor=3), com acesso limitado aos "orientados"
-   configurados em u.orientadosIds[].
-   ATUALIZACAO (pedido do usuario): Orientador agora tem as MESMAS funções
-   de Supervisor — CARGO_NIVEIS mapeia 'orientador' direto pro nivel 3 (ver
-   acima), então hasSupervisorAccess() já retorna true pra Orientador e
-   getVisibleOwnerIds() (patch v22) já retorna "sem filtro" (vê a equipe
-   inteira, não só orientadosIds) antes mesmo de chegar aqui.
-   Por isso esta função nunca mais retorna true na prática (nenhum cargo
-   mapeia pro nivel 2) — mantida apenas para não quebrar patches antigos que
-   a chamam com verificação typeof==='function'. */
-function hasOrientadorAccess(uid){
-  uid=uid||(S?S.userId:null);if(!uid)return false;
-  if(uid==='adm')return false;
-  var u=getUser(uid);if(!u)return false;
-  if(u.role==='adm')return false;
-  return getCargoNivel(uid)===2;
-}
-
-/* Retorna a lista (sempre array) de UIDs que ESTE usuario orienta.
-   Lê o campo u.orientadosIds salvo no doc local. Se vazio, retorna []. */
-function getOrientadosIds(uid){
-  uid=uid||(S?S.userId:null);if(!uid)return [];
-  var u=getUser(uid);if(!u)return [];
-  var arr=Array.isArray(u.orientadosIds)?u.orientadosIds:[];
-  return arr.filter(Boolean);
-}
-
-/* Filtro utilitario: dado um array de objetos com .ownerId ou .uid,
-   retorna so os que pertencem ao proprio usuario OU aos que ele orienta. */
-function filterItemsForOrientador(items){
-  if(!Array.isArray(items))return [];
-  var myId=(S&&S.userId)||null;
-  var orIds=getOrientadosIds(myId);
-  if(!orIds.length)return items.filter(function(x){return x&&(x.ownerId===myId||x.uid===myId);});
-  var allow=orIds.concat([myId]);
-  return items.filter(function(x){return x&&allow.indexOf(x.ownerId||x.uid)>=0;});
-}
-
-
-function hasAdminAccess(uid){
-  uid=uid||(S?S.userId:null);if(!uid)return false;
-  if(uid==='adm')return true;
-  var u=getUser(uid);
-  if(!u){
-    // CORREÇÃO (2026-07-17f): logo após um login novo (doLogin), a lista
-    // local de usuários (lf6_u) ainda pode não ter sido baixada da nuvem
-    // (loadUsersDB roda em paralelo/depois) — getUser(uid) retornava null
-    // e hasAdminAccess() negava acesso de ADM mesmo pra quem tinha acabado
-    // de logar como ADM de verdade (o Worker já confirmou isso no JWT).
-    // Agora, sem registro local ainda, confiamos no role que já veio do
-    // login (S.role) em vez de negar acesso por falta de cache.
-    if(S&&S.userId===uid&&S.role==='adm')return true;
-    return false;
-  }
-  if(u.role==='adm')return true;
-  // BUG CORRIGIDO (Tarefa 4): o checkbox "Ativar acesso ao Painel ADM" (eu-admin-check /
-  // k-admin-check), mostrado para Supervisor, nunca era lido ao salvar nem consultado aqui —
-  // marcar a caixa e clicar em Salvar não tinha efeito nenhum. Agora u.admExtra é persistido
-  // (ver saveEditUser/saveCredCargo) e consultado antes do cargo.
-  if(u.admExtra)return true;
-  var c=(u.cargo||'').toLowerCase();
-  return CARGOS_NIVEL_ADMIN.some(function(k){return c.indexOf(k)>=0;});
-}
-
-function toggleAdminNote(selId,noteId){
-  var sel=document.getElementById(selId),note=document.getElementById(noteId);if(!sel||!note)return;
-  var c=(sel.value||'').toLowerCase();
-  var isAdmin=CARGOS_NIVEL_ADMIN.some(function(k){return c.indexOf(k)>=0;});
-  // Orientador agora tem exatamente as mesmas funções de Supervisor (pedido
-  // do usuário) — trata os dois como o mesmo caso aqui na nota informativa,
-  // senão a tela de edição mostraria "sem nota" pra Orientador mesmo com
-  // acesso de equipe igual ao Supervisor.
-  var isSupervisor=!isAdmin&&(c.indexOf('supervisor')>=0||c.indexOf('orientador')>=0);
-  var adminToggle=document.getElementById(selId==='k-cargo'?'k-admin-toggle':'eu-admin-toggle');
-  if(adminToggle)adminToggle.style.display=(isAdmin||isSupervisor)?'block':'none';
-  if(isAdmin){
-    note.style.display='block';
-    note.innerHTML='&#128737; Este cargo tem acesso ao Painel ADM (métricas, usuários, feed), igual ao Gerente. As funções de consultor continuam normalmente.';
-  }else if(isSupervisor){
-    note.style.display='block';
-    note.innerHTML='&#128065; Cargo Supervisor/Orientador: vê leads e negócios da equipe (aba Time), mas NÃO acessa o painel ADM.';
-  }else{
-    note.style.display='none';
-  }
-}
 
 /* CORREÇÃO DE LENTIDÃO (mesmo princípio já aplicado à movimentação de cards no Kanban):
    antes, TODA busca/filtro/troca de aba na tela de Clientes esperava uma ida-e-volta ao
@@ -204,18 +59,38 @@ function toggleAdminNote(selId,noteId){
 // em vez de db.collection('clientes').doc(uid).get() — mesmo formato
 // de documento ({ list, uid, ts }), só trocando o transporte. Fallback
 // pro caminho antigo só se o Worker não estiver disponível.
+// FIX 2026-07-23 (auth-getclilocal-inline-guard-v2): getCliLocal está
+// declarado em js/clientes.js, que é carregado DEPOIS de auth.js na
+// ordem de <script> síncronos. Se qualquer caller externo (patches
+// mobile, onclick inline, bootApp em supabase.js) chamar loadCli()
+// no intervalo entre a avaliação de auth.js e a de clientes.js, o
+// identificador ainda não existe e o console dispara ReferenceError
+// — cascateando em renderDash (métricas), renderAnalytics e no fluxo
+// que aplica tema/wallpaper do cliente. Defesa em profundidade:
+// resolvemos via window.getCliLocal (populado pelo guard inline no
+// <head> ANTES de storage.js) e caímos em [] como último recurso.
+function _lfSafeGetCliLocal(uid){
+  try{
+    if(typeof getCliLocal==='function') return getCliLocal(uid);
+    if(typeof window!=='undefined' && typeof window.getCliLocal==='function') return window.getCliLocal(uid);
+    if(typeof window!=='undefined' && typeof window.sg==='function' && typeof window.ck==='function'){
+      return window.sg(window.ck(uid))||[];
+    }
+  }catch(_e){ try{console.warn('[auth] _lfSafeGetCliLocal falhou',_e);}catch(_e2){} }
+  return [];
+}
 function loadCli(uid,cb){
-  var localList=getCliLocal(uid);
-  var localSig=(window.__LF_PERF_R4&&window.__LF_PERF_R4.signature)?window.__LF_PERF_R4.signature(localList):JSON.stringify(localList);
+  var localList=_lfSafeGetCliLocal(uid);
+  var localSig=JSON.stringify(localList);
   cb(localList);
   var root=window.LiderCRM;
   var wc=root&&root.api&&root.api.workerClient;
   var cfg=root&&root.config;
   function applyServerList(server){
-    var merged=_mergeKeepLocalOnly(server,getCliLocal(uid));
+    var merged=_mergeKeepLocalOnly(server,_lfSafeGetCliLocal(uid));
     ss(ck(uid),merged);
     if(merged.length!==server.length)saveCli(uid,merged); // reenvia o(s) item(ns) local(is) que ainda não estavam no servidor
-    var mergedSig=(window.__LF_PERF_R4&&window.__LF_PERF_R4.signature)?window.__LF_PERF_R4.signature(merged):JSON.stringify(merged);
+    var mergedSig=JSON.stringify(merged);
     if(mergedSig!==localSig)cb(merged);
   }
   if(cfg&&cfg.useWorkerApi&&wc&&typeof wc.clientesList==='function'){
@@ -247,6 +122,8 @@ function _lfAuthUsuariosRuntime(){
 }
 
 function _lfAuthResolveFn(name, legacyRef){
+  var shared=((window.LiderCRM||{}).shared||{}).runtime||{};
+  if(shared&&typeof shared.resolveFn==='function') return shared.resolveFn(name,legacyRef);
   if(typeof legacyRef==='function')return legacyRef;
   try{ if(typeof window[name]==='function') return window[name]; }catch(_e){}
   try{
@@ -257,24 +134,28 @@ function _lfAuthResolveFn(name, legacyRef){
 }
 
 function _lfAuthGetUserSafe(uid){
+  var shared=((window.LiderCRM||{}).shared||{}).runtime||{};
+  if(shared&&typeof shared.getUserSafe==='function') return shared.getUserSafe(uid);
   var fn=_lfAuthResolveFn('getUser',typeof getUser!=='undefined'?getUser:null);
   if(fn){
-    try{return fn(uid)||null;}catch(_e){}
+    try{return fn(uid)||null;}catch(_e){console.warn('[auth] getUser falhou',_e);}
   }
   var listFn=_lfAuthResolveFn('getUsers',typeof getUsers!=='undefined'?getUsers:null);
   if(listFn){
     try{
       var list=listFn();
       if(Array.isArray(list)) return list.find(function(u){return u&&String(u.id)===String(uid);})||null;
-    }catch(_e){}
+    }catch(_e){console.warn('[auth] getUsers falhou',_e);}
   }
   return null;
 }
 
 function _lfAuthLoadUsersDBSafe(cb){
+  var shared=((window.LiderCRM||{}).shared||{}).runtime||{};
+  if(shared&&typeof shared.loadUsersDBSafe==='function') return shared.loadUsersDBSafe(cb);
   var fn=_lfAuthResolveFn('loadUsersDB',typeof loadUsersDB!=='undefined'?loadUsersDB:null);
   if(typeof fn!=='function'){ if(typeof cb==='function') cb([]); return; }
-  try{return fn(cb);}catch(_e){ if(typeof cb==='function') cb([]); }
+  try{return fn(cb);}catch(_e){ console.warn('[auth] loadUsersDB falhou',_e); if(typeof cb==='function') cb([]); }
 }
 
 function _lfAuthResolveWorkerClient(){
@@ -393,7 +274,18 @@ function _execLogout(){
   // Fecha todos os modais abertos e restaura scroll do body
   document.querySelectorAll('.mo.open').forEach(function(m){m.classList.remove('open');});
   document.body.style.overflow='';document.body.style.position='';document.body.style.width='';document.body.style.top='';
-  S=null;try{localStorage.removeItem('lf6_s');}catch(e){}
+  try{
+    var http=(window.LiderCRM&&window.LiderCRM.api&&window.LiderCRM.api.httpClient)||null;
+    if(http&&http.session&&typeof http.session.clear==='function') http.session.clear();
+  }catch(e){console.warn('[auth] worker session cleanup falhou',e);}
+  try{
+    [
+      'lf_retry_q_v1',
+      'lidercrm_retry_queue_v1',
+      'lidercrm_dlq_v1'
+    ].forEach(function(k){ try{ localStorage.removeItem(k); }catch(_e){} });
+  }catch(e){console.warn('[auth] retry queue cleanup falhou',e);}
+  S=null;try{localStorage.removeItem('lf6_s');}catch(e){console.warn('[auth] localStorage cleanup falhou',e);}
   document.getElementById('app').classList.remove('vis');
   document.getElementById('login-screen').classList.add('vis');
   document.getElementById('le').value='';document.getElementById('lp').value='';
@@ -406,7 +298,17 @@ function doLogout(){
     clearTimeout(t._tm);clearTimeout(t._confirmTm);
     tm.innerHTML='Sair da conta? <button id="toast-logout-btn" style="margin-left:8px;padding:2px 9px;border-radius:6px;border:none;background:var(--red);color:#fff;font-size:.75rem;cursor:pointer;font-family:Outfit,sans-serif">Sair</button>';
     var btn=document.getElementById('toast-logout-btn');
-    if(btn){btn.addEventListener('click',function(){clearTimeout(t._confirmTm);t.classList.remove('show');_execLogout();},{once:true});}
+    if(btn){btn.addEventListener('click',function(){
+      clearTimeout(t._confirmTm);t.classList.remove('show');
+      try{
+        var wc=window.LiderCRM&&window.LiderCRM.api&&window.LiderCRM.api.workerClient;
+        if(wc&&typeof wc.logout==='function'){
+          wc.logout().catch(function(e){console.warn('[auth] worker logout falhou',e);}).finally(_execLogout);
+          return;
+        }
+      }catch(e){console.warn('[auth] doLogout worker logout falhou',e);}
+      _execLogout();
+    },{once:true});}
     t.classList.add('show');
     t._confirmTm=setTimeout(function(){t.classList.remove('show');tm.textContent='';},4000);
   } else {
@@ -417,3 +319,317 @@ function doLogout(){
 function checkSes(){var s=sg('lf6_s');if(!s)return false;var u=_lfAuthGetUserSafe(s.userId);if(!u){S=s;return true;}if(u.ativo===false){try{localStorage.removeItem('lf6_s');}catch(e){}return false;}S=s;return true;}
 
 function getMyRole(){return hasAdminAccess()?'gestor':'consultor';}
+
+
+/* =====================================================================
+ * Ponte de autenticação legada → Worker JWT
+ * Incorporado de: lf-legacy-auth-bridge-v1-20260717.js
+ * ===================================================================== */
+/* =====================================================================
+ * lf-legacy-auth-bridge-v1-20260717.js  (Fase 3.2)
+ * ---------------------------------------------------------------------
+ * Ponte de autenticação entre o login LEGADO do CRM (users em
+ * localStorage / config/users) e o JWT do Worker. Roda 100% no cliente,
+ * sem exigir mexer no auth.js legado, e é totalmente idempotente
+ * (guardrail lf.legacyAuthBridge.v1 — não roda duas vezes).
+ *
+ * Fluxo:
+ *   1) Espera existir sessão legada (S.userId + S.email) e o usuário
+ *      correspondente no getUsers()/loadUsersDB().
+ *   2) Se já existe JWT do Worker válido (api.httpClient.session.isValid),
+ *      não faz nada.
+ *   3) Caso contrário:
+ *        a) GET  /api/v1/session/legacy-nonce?uid=&email=  -> {ts}
+ *        b) sig = HMAC-SHA256(JWT_SECRET_DERIVED, `${uid}|${email}|${ts}|${ph}`)
+ *           obs.: o Worker recomputa o HMAC do lado servidor usando o
+ *           mesmo JWT_SECRET e o `ph` que já tem no fs_documents —
+ *           então o cliente NÃO precisa saber JWT_SECRET; ele só
+ *           precisa provar que conhece `ph`. Para isso, o cliente usa
+ *           o próprio `ph` como *chave HMAC* (compatível com o mesmo
+ *           material do servidor porque JWT_SECRET aqui participa como
+ *           parte do próprio material — ver auth-service.js).
+ *        c) POST /api/v1/session/legacy-bridge  { uid, email, ts, sig }
+ *           -> JWT do Worker, salvo em api.httpClient.session.
+ *
+ * Segurança:
+ *   • `ph` NUNCA sai do dispositivo (só é usado localmente como material
+ *     do HMAC).
+ *   • Janela de validade do nonce = 60s no servidor.
+ *   • Se o user não tem `ph` (ex.: primeiro login pós-migração), o
+ *     bridge é abortado silenciosamente — o próximo login vai emitir
+ *     JWT direto pelo /api/v1/login (que aceita legado agora).
+ *
+ * Após o sucesso:
+ *   • dispara `window.dispatchEvent(new CustomEvent('lf:worker-session-ready'))`
+ *   • marca `window.__lf_worker_session_source = 'legacy-bridge'`
+ * ===================================================================== */
+(function(global){
+  'use strict';
+  if (!global || !global.document) return;
+  var guard = global.__lf_guards = global.__lf_guards || {};
+  if (guard['legacyAuthBridge.v1']) return;
+  guard['legacyAuthBridge.v1'] = true;
+
+  var LOG_PREFIX = '[lf-legacy-auth-bridge]';
+  function log(){ if (global.console && global.console.debug) try { console.debug.apply(console, [LOG_PREFIX].concat([].slice.call(arguments))); } catch(_e){} }
+
+  function root(){ return global.LiderCRM || {}; }
+  function cfg(){ return (root().config || {}); }
+  function api(){ return (root().api || {}); }
+
+  function isBridgeEnabled(){
+    var c = cfg();
+    return c && c.useLegacyAuthBridge !== false;
+  }
+  function hasValidWorkerJwt(){
+    var http = api().httpClient;
+    return !!(http && http.session && http.session.isValid && http.session.isValid());
+  }
+  function currentLegacySession(){
+    // S global do CRM legado (auth.js) + fallback ao lf6_s persistido.
+    var S = global.S;
+    if (!S || !S.userId) {
+      try {
+        var raw = global.localStorage && global.localStorage.getItem('lf6_s');
+        if (raw) S = JSON.parse(raw);
+      } catch(_e){}
+    }
+    return (S && S.userId) ? S : null;
+  }
+  function findUserRecord(uid){
+    // getUsers() já é global no legado (js/usuarios.js).
+    if (typeof global.getUser === 'function'){
+      try { var u = global.getUser(uid); if (u) return u; } catch(_e){}
+    }
+    if (typeof global.getUsers === 'function'){
+      try {
+        var list = global.getUsers();
+        if (Array.isArray(list)){
+          for (var i = 0; i < list.length; i++){
+            if (list[i] && String(list[i].id) === String(uid)) return list[i];
+          }
+        }
+      } catch(_e){}
+    }
+    return null;
+  }
+
+  // ------------ HMAC-SHA256 (hex) usando WebCrypto do browser ------------
+  function _bufToHex(buf){
+    var arr = new Uint8Array(buf); var hex = '';
+    for (var i = 0; i < arr.length; i++) hex += arr[i].toString(16).padStart(2,'0');
+    return hex;
+  }
+  function hmacSha256Hex(keyStr, msgStr){
+    if (!(global.crypto && global.crypto.subtle)){
+      return Promise.reject(new Error('crypto_subtle_unavailable'));
+    }
+    var enc = new TextEncoder();
+    return global.crypto.subtle.importKey(
+      'raw', enc.encode(String(keyStr || '')),
+      { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    ).then(function(key){
+      return global.crypto.subtle.sign('HMAC', key, enc.encode(String(msgStr || '')));
+    }).then(_bufToHex);
+  }
+
+  // ------------ Fluxo principal ------------
+  var _inFlight = null;
+  function tryBridge(){
+    if (!isBridgeEnabled()) { log('desativado por config'); return Promise.resolve(false); }
+    if (hasValidWorkerJwt()) { log('já tem JWT válido — nada a fazer'); return Promise.resolve(true); }
+    if (_inFlight) return _inFlight;
+
+    var sess = currentLegacySession();
+    if (!sess) { log('sem sessão legada — aguardando'); return Promise.resolve(false); }
+    var uid = String(sess.userId);
+    var email = String(sess.email || '').trim().toLowerCase();
+    if (!uid || !email) { log('sessão legada sem uid/email'); return Promise.resolve(false); }
+
+    var u = findUserRecord(uid);
+    if (!u) { log('user record não encontrado ainda'); return Promise.resolve(false); }
+    var ph = String(u.ph || '');
+    if (!ph) { log('user sem ph — bridge abortado (usuário precisa logar via /login)'); return Promise.resolve(false); }
+
+    var wc = api().workerClient;
+    if (!wc || typeof wc.legacyNonce !== 'function' || typeof wc.legacyBridge !== 'function'){
+      log('workerClient sem métodos de bridge — ignorado');
+      return Promise.resolve(false);
+    }
+
+    _inFlight = wc.legacyNonce(uid, email).then(function(nonce){
+      if (!nonce || typeof nonce.ts !== 'number'){
+        throw new Error('nonce_invalido');
+      }
+      // Contrato do HMAC (idêntico ao auth-service.js do Worker):
+      //   chave    = ph  (hash da senha do user, só conhecido pelo
+      //                    cliente e pelo Worker)
+      //   material = `${uid}|${email}|${ts}|${ph}`
+      // Quem NÃO conhece `ph` não consegue forjar a assinatura, e o
+      // `ph` nunca trafega pela rede em nenhum momento.
+      var material = uid + '|' + email + '|' + String(nonce.ts) + '|' + ph;
+      return hmacSha256Hex(ph, material).then(function(sig){
+        return wc.legacyBridge({
+          uid: uid, email: email, ts: nonce.ts, sig: sig
+        });
+      });
+    }).then(function(result){
+      if (result && result.token){
+        global.__lf_worker_session_source = 'legacy-bridge';
+        try { global.dispatchEvent(new CustomEvent('lf:worker-session-ready', { detail: { source: 'legacy-bridge' } })); } catch(_e){}
+        log('JWT emitido pela ponte legada, source=legacy-bridge, user=', result.user && result.user.email);
+        return true;
+      }
+      log('bridge respondeu sem token');
+      return false;
+    }).catch(function(err){
+      // Não escala erro: o app continua operando via fallback legado.
+      log('bridge falhou:', err && err.message);
+      return false;
+    }).finally(function(){ _inFlight = null; });
+
+    return _inFlight;
+  }
+
+  // ------------ Disparadores ------------
+  // 1) Ao subir o app (DOMContentLoaded / arch pronto)
+  function scheduleInitial(){
+    // aguarda um pouquinho pra garantir que os users legados foram
+    // carregados (loadUsersDB é assíncrono no primeiro boot).
+    setTimeout(tryBridge, 800);
+    setTimeout(tryBridge, 2500);
+  }
+  if (document.readyState === 'complete' || document.readyState === 'interactive'){
+    scheduleInitial();
+  } else {
+    document.addEventListener('DOMContentLoaded', scheduleInitial, { once: true });
+  }
+  // 2) Quando o app legado terminar o startApp() (bootApp), tentar de novo.
+  global.addEventListener('lf:app-started', tryBridge);
+  // 3) Após o login legado (o botão "Entrar" chama doLogin que chama startApp).
+  //    Instrumenta uma polling curta que detecta troca de S.userId.
+  var _lastUid = null;
+  setInterval(function(){
+    var s = currentLegacySession();
+    var uid = s && s.userId ? String(s.userId) : null;
+    if (uid && uid !== _lastUid){
+      _lastUid = uid;
+      tryBridge();
+    } else if (!uid){
+      _lastUid = null;
+      // Se o legado deslogou, também limpa o JWT do Worker (Fase 3.2:
+      // desligar o legado de forma controlada).
+      var http = api().httpClient;
+      if (http && http.session && http.session.isValid && http.session.isValid()){
+        try { http.session.clear(); } catch(_e){}
+        log('sessão legada caiu — JWT do Worker limpo');
+      }
+    }
+  }, 1500);
+
+  // Exposto para debug/manual
+  global.__lfLegacyAuthBridge = { tryBridge: tryBridge };
+})(window);
+
+
+/* =====================================================================
+ * Guard: consultor não vira supervisor-readonly por nivel incorreto
+ * Incorporado de: lf-leads-edit-consultant-guard-v1-20260723.js
+ * ===================================================================== */
+/*
+ * FIX (2026-07-23): "usuário consultor não consegue editar próprios leads".
+ *
+ * Diagnóstico:
+ *   lf-supervisor-teamview-readonly-v1-20260722.js decide se aplica o
+ *   modo somente-leitura via isSupervisorReadonly(), que por sua vez
+ *   depende de hasSupervisorAccess() (definido em js/auth.js:106):
+ *     hasSupervisorAccess = getCargoNivel(uid) >= 3
+ *
+ *   Se getCargoNivel() retornar >=3 para um usuário que na verdade é
+ *   'consultor' (dado corrompido no cadastro, cargo salvo com string
+ *   inesperada, migração incompleta do schema, etc.), o patch de
+ *   supervisor envolve TODO o renderKBLocal em modo readonly quando
+ *   o filtro está em "Todos" — o consultor não consegue nem editar
+ *   os cards dele mesmo.
+ *
+ * Estratégia (defesa em profundidade, NÃO altera auth.js):
+ *   1. Após auth.js ter definido hasSupervisorAccess, envolvemos a
+ *      função em um guard: se o usuário tem cargo textual explícito
+ *      diferente de 'supervisor'/'orientador'/'gerente'/'gestor', o
+ *      resultado é forçado a false. Assim, um consultor mal
+ *      classificado por número de nível volta a ter edição total.
+ *   2. Log ÚNICO por sessão quando o guard bloqueia um resultado,
+ *      pra permitir diagnosticar cadastros errados sem poluir o
+ *      console.
+ *   3. Só roda quando isSupervisorReadonly já existe (garante que o
+ *      patch de teamview-readonly foi carregado).
+ *
+ * Segurança:
+ *   Este patch NUNCA aumenta permissões (nunca transforma consultor
+ *   em supervisor). Só evita rebaixar por engano um consultor legítimo
+ *   a modo somente-leitura. Se um supervisor de verdade tem cargo
+ *   textual correto, o comportamento fica idêntico.
+ *
+ * Zero acoplamento com auth/login/JWT/bridge.
+ */
+(function(){
+  if (window.__LF_LEADS_EDIT_GUARD_V1__) return;
+  window.__LF_LEADS_EDIT_GUARD_V1__ = true;
+
+  var SUPERVISOR_CARGOS = { supervisor:1, orientador:1, gerente:1, gestor:1, admin:1, administrador:1 };
+
+  function _cargoTextual(uid){
+    try{
+      var u = (typeof window.getUser === 'function') ? window.getUser(uid) : null;
+      if (!u) return null;
+      var c = (u.cargo || u.role || u.papel || '').toString().trim().toLowerCase();
+      return c || null;
+    }catch(_e){ return null; }
+  }
+
+  function _install(){
+    if (typeof window.hasSupervisorAccess !== 'function') return false;
+    if (window.__LF_HAS_SUP_WRAPPED__) return true;
+    window.__LF_HAS_SUP_WRAPPED__ = true;
+
+    var _orig = window.hasSupervisorAccess;
+    var _loggedOnce = false;
+
+    window.hasSupervisorAccess = function(uid){
+      var raw = false;
+      try{ raw = !!_orig.apply(this, arguments); }catch(_e){ raw = false; }
+      if (!raw) return false;
+
+      var effectiveUid = uid || (window.S && window.S.userId) || null;
+      if (!effectiveUid) return raw;
+
+      var cargo = _cargoTextual(effectiveUid);
+      // Sem cargo textual disponível -> confia no cálculo original.
+      if (!cargo) return raw;
+
+      // Cargo textual explícito de supervisor -> mantém.
+      if (SUPERVISOR_CARGOS[cargo]) return true;
+
+      // Nível diz "supervisor" mas cargo textual é claramente de
+      // consultor / operacional -> força false (não deixa cair no
+      // modo readonly do patch de teamview).
+      if (!_loggedOnce){
+        _loggedOnce = true;
+        try{ console.warn('[lf-leads-edit-guard] hasSupervisorAccess=TRUE por nível mas cargo="'+cargo+'" — rebaixando para consultor. Verificar cadastro do usuário '+effectiveUid); }catch(_e){}
+      }
+      return false;
+    };
+    return true;
+  }
+
+  // Tenta instalar já; se auth.js ainda não rodou, tenta em
+  // DOMContentLoaded / load (com pequeno retry).
+  if (_install()) return;
+  var _tries = 0;
+  var _t = setInterval(function(){
+    _tries++;
+    if (_install() || _tries > 40){ // ~4s máx
+      clearInterval(_t);
+    }
+  }, 100);
+})();

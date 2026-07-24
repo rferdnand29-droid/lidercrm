@@ -13,11 +13,23 @@
  * O token de autorização é cacheado por 24h (validade do B2).
  * ===================================================================== */
 
+// Credenciais lidas de meta tags no HTML — NÃO hardcoded no fonte.
+// Configure via:
+//   <meta name="lf-b2-key-id"  content="SEU_KEY_ID">
+//   <meta name="lf-b2-app-key" content="SUA_APP_KEY">
+// ou via window.__B2_KEY_ID / window.__B2_APP_KEY (injetados pelo servidor).
+(function _b2LoadCreds(){
+  var kMeta = document.querySelector('meta[name="lf-b2-key-id"]');
+  var aMeta = document.querySelector('meta[name="lf-b2-app-key"]');
+  window.__B2_KEY_ID  = (kMeta && kMeta.content) || window.__B2_KEY_ID  || '';
+  window.__B2_APP_KEY = (aMeta && aMeta.content) || window.__B2_APP_KEY || '';
+})();
+
 var B2_CONFIG = {
   bucketId: 'db7517517f50753a9eff0e1f',
   bucketName: 'lidercrm-anexos',
-  keyId: '005b571f05aefef0000000001',
-  applicationKey: 'K005mkGLYaLAImIb7BBeRM9oVwnfQKQ',
+  get keyId(){ return window.__B2_KEY_ID || ''; },
+  get applicationKey(){ return window.__B2_APP_KEY || ''; },
   apiBaseUrl: 'https://api.backblazeb2.com/b2api/v2/',
   downloadUrl: null, // preenchido após authorize
   apiUrl: null, // preenchido após authorize

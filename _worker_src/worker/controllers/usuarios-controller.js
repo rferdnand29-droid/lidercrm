@@ -25,7 +25,7 @@ import { listService } from '../services/crud-service.js';
 import { usuariosRepo } from '../repositories/index.js';
 import { respondWithCache } from '../utils/etag.js';
 import { ok, created } from '../utils/response.js';
-import { readJsonBody, sanitizeString } from '../validators/validate.js';
+import { readJsonBody, sanitizeString, validate } from '../validators/validate.js';
 import {
   getFsDocument, setFsDocument, deleteFsDocument,
   listFsChildren, upsertFsDocuments,
@@ -37,6 +37,7 @@ import {
   findRoleBySlug, listAllRoles,
   relationalToLegacy, scrubUserForClient,
 } from '../repositories/users-relational-repository.js';
+import { usuarioConfigPutSchema } from '../schemas/index.js';
 
 const ALLOWED_FILTERS = ['role', 'status', 'ativo'];
 const USERS_PARENT = 'config/users/items';
@@ -293,6 +294,7 @@ export async function putUsuarioConfig(request, ctx) {
   const name = sanitizeString(url.searchParams.get('name'), 160);
   if (!name) throw new BadRequestError('name é obrigatório.');
   const body = await readJsonBody(request);
+  validate(body || {}, usuarioConfigPutSchema); // R5: input validation
 
   // [patch: chat-group-server-gate v1] — Passo 5.2.
   // Se o documento representa uma conversa em grupo do chat

@@ -37,10 +37,12 @@ export async function getDashboard(request, ctx) {
   const cfg = ctx.cfg;
 
   // ------- 1) Tenta o RELACIONAL primeiro -------
+  // R5: reduce limit from 2000 to 500, add 90-day filter on leads
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
   const [relClients, relLeads, relBusiness] = await Promise.all([
-    safeSelect(cfg, 'clients', { select: 'id,extra', limit: 2000 }),
-    safeSelect(cfg, 'leads',   { select: 'id,status,created_at', limit: 2000 }),
-    safeSelect(cfg, 'business',{ select: 'id,status,value', limit: 2000 }),
+    safeSelect(cfg, 'clients', { select: 'id,extra', limit: 500 }),
+    safeSelect(cfg, 'leads',   { select: 'id,status,created_at', limit: 500, created_at: 'gte.' + ninetyDaysAgo }),
+    safeSelect(cfg, 'business',{ select: 'id,status,value', limit: 500 }),
   ]);
 
   const hasRelational =
@@ -76,7 +78,7 @@ export async function getDashboard(request, ctx) {
 
     return respondWithCache(request, summary,
       { endpoint: '/api/v1/dashboard', source: 'relational' },
-      { maxAge: 15, extraHeaders: ctx.headers });
+      { maxAge: 30, extraHeaders: ctx.headers }); // R5: cache 15s -> 30s
   }
 
   // ------- 2) Fallback LEGADO (fs_documents via repos) -------
@@ -106,5 +108,5 @@ export async function getDashboard(request, ctx) {
 
   return respondWithCache(request, summary,
     { endpoint: '/api/v1/dashboard', source: 'legacy' },
-    { maxAge: 15, extraHeaders: ctx.headers });
+    { maxAge: 30, extraHeaders: ctx.headers }); // R5: cache 15s -> 30s
 }

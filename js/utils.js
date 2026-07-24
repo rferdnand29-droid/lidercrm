@@ -374,3 +374,55 @@ document.addEventListener('focusin',function(e){_keepFocusedFieldVisible(e.targe
 document.addEventListener('DOMContentLoaded',function(){
   document.querySelectorAll('.lf-logo-img').forEach(function(img){img.src=LF_LOGO_B64;});
 });
+
+
+/* =====================================================================
+ * FIX: navegação Config → Leads travada no mobile (BUG 2 do v39)
+ * mobileGoPage com delay pós-closeMobileMenu para vencer a corrida de rAF
+ * Incorporado de: lf-v39-critical-fixes-20260716.js (BUG 2 apenas)
+ * ===================================================================== */
+(function(){
+  if(window.__LF_V39_CRITICAL_FIXES__) return;
+  window.__LF_V39_CRITICAL_FIXES__ = 1;
+
+
+  function warn(msg){ try{ console.warn('[v39]', msg); }catch(_e){} }
+
+  function patchMobileGoPage(){
+    if(typeof window.mobileGoPage !== 'function' || window.mobileGoPage.__lfV39) return false;
+    window.mobileGoPage = function(p, btn){
+      try{ if(typeof window.closeMobileMenu === 'function') window.closeMobileMenu(); }catch(_e){}
+      setTimeout(function(){
+        try{
+          if(typeof window.goPage === 'function') window.goPage(p);
+        }catch(e){ warn('mobileGoPage → goPage erro: ' + e); }
+        requestAnimationFrame(function(){
+          try{ if(typeof window._safeWindowScrollTo === 'function') window._safeWindowScrollTo(0,0); else window.scrollTo(0,0); }catch(_e){}
+        });
+      }, 20);
+    };
+    window.mobileGoPage.__lfV39 = true;
+    return true;
+  }
+
+  function patchMobileSyncChrome(){
+    if(typeof window.mobileSyncChrome !== 'function' || window.mobileSyncChrome.__lfV39) return false;
+    var orig = window.mobileSyncChrome;
+    window.mobileSyncChrome = function(page){
+      requestAnimationFrame(function(){
+        try{ orig.call(window, page); }catch(e){ warn('mobileSyncChrome erro: ' + e); }
+      });
+    };
+    window.mobileSyncChrome.__lfV39 = true;
+    return true;
+  }
+
+  var _tries = 0;
+  var _iv = setInterval(function(){
+    _tries++;
+    var done = true;
+    if(!patchMobileGoPage()) done = false;
+    if(!patchMobileSyncChrome()) done = false;
+    if(done || _tries > 100){ clearInterval(_iv); }
+  }, 50);
+})();

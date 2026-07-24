@@ -65,6 +65,7 @@ export async function handleApi(request, env, url) {
     'x-request-id': requestId,
     'x-api-requested-version': normalized.requestedVersion,
     'x-api-version': normalized.normalizedVersion,
+    'X-Content-Type-Options': 'nosniff', // R5: prevent MIME sniffing
   });
 
   // Preflight CORS
@@ -134,7 +135,7 @@ export async function handleApi(request, env, url) {
   try {
     // Rate limit por IP + rota (janela em memória do isolate)
     const rlKey = getClientIp(request) + ':' + pathname;
-    const rlHeaders = enforceRateLimit(request, rlKey, cfg);
+    const rlHeaders = enforceRateLimit(request, rlKey, cfg, pathname);
     Object.assign(baseHeaders, rlHeaders);
 
     // Autenticação (exceto rotas públicas)

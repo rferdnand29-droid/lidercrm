@@ -25,10 +25,31 @@ export function getClientIp(request) {
     || 'unknown';
 }
 
-export function enforceRateLimit(request, key, cfg) {
+// R5: perfis de rate-limit por tipo de rota
+const LOGIN_WINDOW_S = 60;
+const LOGIN_MAX = 10; // 10 req/min para login (anti-brute-force)
+const DEFAULT_WINDOW_S = 60;
+const DEFAULT_MAX = 120;
+
+function getLimitsForPath(pathname, cfg) {
+  const isLogin = pathname && pathname.indexOf('/login') >= 0;
+  if (isLogin) {
+    return {
+      windowMs: LOGIN_WINDOW_S * 1000,
+      max: LOGIN_MAX,
+    };
+  }
+  return {
+    windowMs: (cfg && cfg.RATE_LIMIT_WINDOW_SECONDS ? cfg.RATE_LIMIT_WINDOW_SECONDS : DEFAULT_WINDOW_S) * 1000,
+    max: cfg && cfg.RATE_LIMIT_MAX ? cfg.RATE_LIMIT_MAX : DEFAULT_MAX,
+  };
+}
+
+export function enforceRateLimit(request, key, cfg, pathname) {
   const now = Date.now();
-  const windowMs = (cfg && cfg.RATE_LIMIT_WINDOW_SECONDS ? cfg.RATE_LIMIT_WINDOW_SECONDS : 60) * 1000;
-  const max = cfg && cfg.RATE_LIMIT_MAX ? cfg.RATE_LIMIT_MAX : 120;
+  const limits = getLimitsForPath(pathname, cfg);
+  const windowMs = limits.windowMs;
+  const max = limits.max;
 
   pruneIfNeeded(now);
   let bucket = BUCKETS.get(key);

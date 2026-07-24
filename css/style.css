@@ -1656,7 +1656,7 @@ tr:last-child td{border-bottom:none;}
 .mb-card{contain:layout style;transform:translateZ(0);}
 .mo{transform:translateZ(0);}
 .act-panel{transform:translateZ(0);}
-button,a,[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+[role="button"]{touch-action:manipulation;-webkit-tap-highlight-color:transparent;} /* R5: removed duplicate button,a (already covered by line 47) */
 button:focus-visible,a:focus-visible,[role="button"]:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--amber);outline-offset:2px;box-shadow:0 0 0 3px rgba(195,154,45,.16);}
 .pg{contain:layout style;}
 /* Scroll suave sem janking no iOS */
@@ -1917,54 +1917,9 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible,input:focus-v
 }
 body.theme-classic #pg-chat .ph h1{color:#EEE8D5!important;}
 body.theme-classic #pg-chat .ph p{color:#8B909E!important;}
-body.theme-classic .chat-side,body.theme-classic .chat-main{background:#1C2130!important;border:1px solid rgba(255,255,255,.08)!important;}
-body.theme-classic .chat-main{background:#111418!important;}
-body.theme-classic .chat-hd{border-bottom:1px solid rgba(255,255,255,.08)!important;background:linear-gradient(180deg,#1C2130 0%,#161a20 100%)!important;}
-body.theme-classic .chat-top-pill{background:#181C24!important;}
-body.theme-classic .chat-mini{background:#1C2130!important;color:#8B909E!important;}
-body.theme-classic .chat-mini:hover{background:#181C24!important;}
-body.theme-classic .chat-mini.on{background:#181C24!important;}
-body.theme-classic .chat-side-tools{border-bottom:1px solid rgba(255,255,255,.08)!important;background:#1C2130!important;}
-body.theme-classic .chat-input,body.theme-classic .chat-select{background:#1C2130!important;}
-body.theme-classic .chat-filter-row .chat-mini{background:#111418!important;}
-body.theme-classic .chat-room-list{background:#1C2130!important;}
-body.theme-classic .chat-room{background:#1C2130!important;}
-body.theme-classic .chat-room:hover{background:#161a20!important;}
-body.theme-classic .chat-top{background:#1C2130!important;}
-body.theme-classic .chat-pin-bar{background:#0d0f13!important;}
-body.theme-classic .chat-day{background:#1C2130!important;}
-body.theme-classic .chat-bubble{background:#1C2130!important;border:1px solid rgba(255,255,255,.08)!important;}
-body.theme-classic .chat-row.me .chat-bubble{background:linear-gradient(180deg,#2a3a12,#233008)!important;border-color:rgba(195,154,45,.30)!important;}
-body.theme-classic .chat-att{background:#1C2130!important;}
-body.theme-classic .chat-compose{background:#1C2130!important;}
-body.theme-classic .chat-qi{background:#181C24!important;color:#8B909E!important;}
-body.theme-classic .chat-empty-hero{background:linear-gradient(135deg,#181C24,#1C2130)!important;}
-body.theme-classic .chat-pop{background:#1C2130!important;}
-body.theme-classic .chat-pop-hd{border-bottom:1px solid rgba(255,255,255,.08)!important;background:#181C24!important;}
-body.theme-classic .chat-read-row{background:#1C2130!important;}body.theme-classic #app>nav.bx24-topbar{background:linear-gradient(180deg,#C22026 0%,#8A1519 62%,#6b0f12 100%)!important;box-shadow:0 2px 0 rgba(10,12,16,.08) inset,0 10px 24px rgba(7,49,115,.16)!important;}
-body.theme-classic #app>nav.bx24-topbar .nmo{background:rgba(10,12,16,.16)!important;box-shadow:0 1px 0 rgba(10,12,16,.18) inset!important;}
-body.theme-classic #app>nav.bx24-topbar .nt:hover,body.theme-classic #app>nav.bx24-topbar .nt.on{background:rgba(10,12,16,.13)!important;}
-body.theme-classic #app>nav.bx24-topbar .nt.at{background:rgba(10,12,16,.08)!important;}
-body.theme-classic #app>nav.bx24-topbar .nri>button[title*='Busca']{background:rgba(10,12,16,.10)!important;}
-body.theme-classic #app>nav.bx24-topbar .nav-sync{background:rgba(10,12,16,.94)!important;}
-body.theme-classic #app>nav.bx24-topbar .act-bell{background:rgba(10,12,16,.10)!important;}
-body.theme-classic #app>nav.bx24-topbar .act-bell:hover{background:rgba(10,12,16,.16)!important;}
-body.theme-classic #app>nav.bx24-topbar .bsair{background:rgba(10,12,16,.08)!important;}
-body.theme-classic #app>nav.bx24-topbar .bsair:hover{background:rgba(10,12,16,.14)!important;}
-body.theme-classic #app>nav.bx24-topbar .nav-av{box-shadow:0 1px 0 rgba(10,12,16,.28) inset!important;}
-body.theme-classic #pg-chat .chat-shell{background:#1C2130!important;}
-body.theme-classic #pg-chat .chat-side{background:linear-gradient(180deg,#1C2130 0%,#0d0f13 100%)!important;}
-body.theme-classic #pg-chat .chat-hd{background:#1C2130!important;border-bottom:1px solid rgba(255,255,255,.08)!important;}
-body.theme-classic #pg-chat .chat-mini{background:#1C2130!important;}
-body.theme-classic #pg-chat .chat-side-tools{background:#1C2130!important;border-bottom:1px solid rgba(255,255,255,.08)!important;}
-body.theme-classic #pg-chat .chat-filter-row .chat-mini{background:#1C2130!important;}
-body.theme-classic #pg-chat .chat-room-list{background:#1C2130!important;}
-body.theme-classic #pg-chat .chat-room:hover{background:#181C24!important;}
-body.theme-classic #pg-chat .chat-room.is-contact{background:#1C2130!important;}
-body.theme-classic #pg-chat .chat-room-sub{color:#8B909E!important;}
-body.theme-classic #pg-chat .chat-top{background:#1C2130!important;}
-body.theme-classic #pg-chat .chat-row.me .chat-bubble{background:#233008!important;border-color:rgba(195,154,45,.30)!important;}
-body.theme-classic #pg-chat .chat-compose{background:#1C2130!important;}
+/* [R4 2026-07-23] Removidas regras legadas theme-classic .chat-* — cobertas por lf-consolidated-mobile.css (versões #pg-chat mais recentes com paleta atual). */
+/* R5: removed legacy selectors: .chat-top-pill, .chat-mini:hover, .chat-room:hover, .chat-pin-bar, .chat-qi, .chat-empty-hero, .chat-pop, .chat-pop-hd, .chat-read-row (unused/covered) */
+/* R5: removed .bx24-topbar theme-classic rules (nav.bx24-topbar not in current DOM) */
 body.theme-classic .chat-bitrix-chip{background:#1C2130!important;}
 body.theme-classic .chat-bitrix-chip.on{background:#1C2130!important;}body.theme-classic #pg-chat .chat-sync-left.idle .chat-sync-spinner{border-color:rgba(255,255,255,.08)!important;}
 body.theme-classic #pg-chat .chat-sync-left.error .chat-sync-spinner{border-color:rgba(194,32,38,.30)!important;}

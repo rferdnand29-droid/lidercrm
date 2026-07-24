@@ -91,4 +91,41 @@ export const documentoCreateSchema = {
   content:     { required: false, type: 'string', maxLength: 200000 },
 };
 
+// R5: schemas adicionais para controllers que não tinham validação
+export const agendaSlotCreateSchema = {
+  title: { required: true, type: 'string', minLength: 1, maxLength: 300 },
+  start: { required: true, type: 'string', maxLength: 80 },
+  end:   { required: true, type: 'string', maxLength: 80 },
+  color: { required: false, type: 'string', maxLength: 20 },
+};
+
+export const kanbanListPutSchema = {
+  uid:  { required: true, type: 'string', minLength: 1, maxLength: 200 },
+  list: { required: true, type: 'array' },
+};
+
+export const atividadesListPutSchema = {
+  uid:  { required: true, type: 'string', minLength: 1, maxLength: 200 },
+  list: { required: true, type: 'array' },
+};
+
+export const ligacoesListPutSchema = {
+  uid:  { required: true, type: 'string', minLength: 1, maxLength: 200 },
+  list: { required: true, type: 'array' },
+};
+
+export const feedEventoCreateSchema = {
+  type:     { required: false, type: 'string', maxLength: 40 },
+  itemName: { required: false, type: 'string', maxLength: 300 },
+};
+
+export const settingPutSchema = {
+  key:   { required: true, type: 'string', minLength: 1, maxLength: 200 },
+  value: { required: true },
+};
+
+export const usuarioConfigPutSchema = {
+  uid: { required: false, type: 'string', maxLength: 200 },
+};
+
 export { EMAIL_PATTERN, UUID_PATTERN };

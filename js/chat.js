@@ -30,6 +30,21 @@ var _chatLastMsgTs={};
 var _chatNewConvMode='dm';       // 'dm' | 'group'
 var _chatNewGroupSel={};         // { uid: true }
 
+// R5: merged from patch lf-chat-switch-new-mode-v1-20260723.js
+// Handler inline dos botões "💬 Individual" / "👥 Novo Grupo" do modal #mo-chat-new.
+function chatSwitchNewMode(mode){
+  try{
+    var valid=(mode==='dm'||mode==='group')?mode:'dm';
+    _chatNewConvMode=valid;
+    var mo=document.getElementById('mo-chat-new');
+    if(mo&&mo.classList&&mo.classList.contains('on')&&typeof _chatRenderNewConvList==='function'){
+      _chatRenderNewConvList();
+    }
+  }catch(_e){
+    try{console.warn('[chat] chatSwitchNewMode falhou',_e);}catch(_e2){}
+  }
+}
+
 function _chatTrimId(v){ return String(v==null?'':v).trim(); }
 function _chatAliasMatch(a,b){
   a=_chatTrimId(a); b=_chatTrimId(b);
@@ -241,6 +256,253 @@ function _chatTouchConv(convId, ts){
   return conv;
 }
 
+
+function _chatNowIso(){ return new Date().toISOString(); }
+function _chatNewMsgId(){ return 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2,6); }
+function _chatFindConvById(list, convId){
+  return (Array.isArray(list)?list:[]).find(function(c){ return c && c.id === convId; }) || null;
+}
+function _chatGetPeerUid(conv){
+  return conv && conv.isGroup ? '' : _chatOtherUid(conv);
+}
+function _chatBuildMsg(conv, extra){
+  extra = extra || {};
+  var convId = extra.convId || _chatCurrentConv;
+  return Object.assign({
+    id: _chatNewMsgId(),
+    convId: convId,
+    fromUid: (S&&S.userId) || '',
+    fromName: (S&&S.nome) || '?',
+    toUid: _chatGetPeerUid(conv),
+    text: '',
+    ts: _chatNowIso(),
+    read: false
+  }, extra);
+}
+function _chatEnsureOverlayHost(id){
+  var host = document.getElementById(id);
+  if(host) return host;
+  host = document.createElement('div');
+  host.id = id;
+  host.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
+  document.body.appendChild(host);
+  return host;
+}
+function _chatGetSelectableUsers(excludedIds){
+  var myId = String((S && S.userId) || '');
+  var blocked = {};
+  [myId].concat(excludedIds || []).forEach(function(uid){
+    uid = String(uid || '').trim();
+    if(uid) blocked[uid] = true;
+  });
+  var raw = (typeof getUsers === 'function') ? (getUsers() || []) : [];
+  return raw.filter(function(u){
+    if(!u) return false;
+    var uid = u.id || u.uid || u.userId || u._id || u.email;
+    uid = String(uid || '').trim();
+    if(!uid || blocked[uid]) return false;
+    if(u.ativo === false) return false;
+    return true;
+  }).map(function(u){
+    return Object.assign({}, u, {
+      id: u.id || u.uid || u.userId || u._id || u.email
+    });
+  }).sort(function(a,b){
+    return (a.nome || a.email || '').localeCompare(b.nome || b.email || '');
+  });
+}
+function _chatReloadUsersWhenModalOpen(modalId, renderFn, contextLabel){
+  if(typeof loadUsersDB !== 'function') return;
+  try{
+    loadUsersDB(function(){
+      var modal = document.getElementById(modalId);
+      if(modal && modal.classList && modal.classList.contains('on') && typeof renderFn === 'function'){
+        renderFn();
+      }
+    });
+  }catch(e){
+    console.warn('[chat] loadUsersDB falhou em ' + contextLabel, e);
+  }
+}
+function _chatCreateCtxBackdrop(){
+  var backdrop = document.createElement('div');
+  backdrop.id = 'chat-ctx-backdrop';
+  document.body.appendChild(backdrop);
+  backdrop.addEventListener('click', _chatCloseCtxMenu, true);
+  backdrop.addEventListener('touchstart', function(ev){ ev.preventDefault(); _chatCloseCtxMenu(); }, {passive:false});
+  backdrop.addEventListener('contextmenu', function(ev){ ev.preventDefault(); _chatCloseCtxMenu(); }, true);
+  return backdrop;
+}
+function _chatCreateCtxMenuShell(){
+  var menu = document.createElement('div');
+  menu.id = 'chat-ctx-menu';
+  menu.className = 'chat-ctx-menu';
+  menu.style.cssText = 'position:fixed;z-index:99999;background:var(--bg2,#1a1e26);color:var(--tx,#eee);border:1px solid var(--b1,rgba(255,255,255,.18));border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.65);padding:6px;min-width:240px;max-width:92vw;max-height:80vh;overflow-y:auto;font-family:Outfit,sans-serif;font-size:.85rem;pointer-events:auto;-webkit-user-select:none;user-select:none';
+  menu.addEventListener('touchstart', function(ev){ ev.stopPropagation(); }, {passive:true});
+  menu.addEventListener('contextmenu', function(ev){ ev.preventDefault(); ev.stopPropagation(); }, true);
+  document.body.appendChild(menu);
+  return menu;
+}
+function _chatPlaceCtxMenu(menu, x, y, fallbackHeight){
+  var vw = window.innerWidth  || document.documentElement.clientWidth;
+  var vh = window.innerHeight || document.documentElement.clientHeight;
+  var mw = menu.offsetWidth  || 240;
+  var mh = menu.offsetHeight || fallbackHeight || 240;
+  var pad = 8;
+  var isTouchLike = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  var left = x;
+  var top = y;
+  if(left + mw + pad > vw) left = vw - mw - pad;
+  if(left < pad) left = pad;
+  var wantAbove = isTouchLike ? (y > vh * 0.55) : (y + mh + pad > vh);
+  if(wantAbove){
+    top = y - mh - 12;
+    if(top < pad) top = pad;
+  } else if(top + mh + pad > vh){
+    top = vh - mh - pad;
+  }
+  if(top < pad) top = pad;
+  menu.style.left = left + 'px';
+  menu.style.top = top + 'px';
+}
+function _chatCopyWithExecCommand(txt){
+  var ta = document.createElement('textarea');
+  ta.value = txt;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try{
+    return !!document.execCommand('copy');
+  }catch(_e){
+    return false;
+  }finally{
+    document.body.removeChild(ta);
+  }
+}
+function _chatCopyText(txt){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    return navigator.clipboard.writeText(txt).then(function(){ return true; }).catch(function(){
+      return _chatCopyWithExecCommand(txt);
+    });
+  }
+  return Promise.resolve(_chatCopyWithExecCommand(txt));
+}
+function _chatCountUnread(conv, msgs){
+  var myId = S && S.userId;
+  return (Array.isArray(msgs)?msgs:[]).filter(function(m){
+    if(!m || m.read) return false;
+    return conv && conv.isGroup ? (m.fromUid !== myId) : (m.toUid === myId);
+  }).length;
+}
+function _chatDeleteConvLocal(convId){
+  var convs = _chatGetConvs().filter(function(x){ return !(x && x.id === convId); });
+  _chatSaveConvs(convs);
+  try{ localStorage.removeItem(CHAT_MSG_PREFIX + convId); }catch(_e){}
+  if(_chatCurrentConv === convId) closeChatConv();
+  renderChatList();
+  _chatUpdateUnreadBadge();
+  if(typeof toast === 'function') toast('🗑 Conversa excluída');
+  _chatCloseCtxMenu();
+}
+function _chatRenderAttachmentHTML(m){
+  if(!m || !m.attachmentName) return '';
+  var ext = (m.attachmentName.split('.').pop() || '').toLowerCase();
+  var isImg = ['jpg','jpeg','png','gif','webp','svg'].indexOf(ext) >= 0;
+  var isAudio = ['mp3','wav','ogg','webm','m4a','aac'].indexOf(ext) >= 0 || m.attachmentKind === 'audio';
+  var src = m.attachmentData || m.attachmentUrl || '';
+  if(isAudio && src) return '<audio class="chat-msg-audio" controls preload="metadata" src="'+src+'" data-audio-src="'+src+'"></audio>';
+  if(isImg && src) return '<img class="chat-msg-img" src="'+src+'" alt="'+eH(m.attachmentName)+'" loading="lazy">';
+  if(src) return '<a href="'+src+'" target="_blank" class="chat-msg-file">📎 '+eH(m.attachmentName)+' ↗</a>';
+  return '<div class="chat-msg-file">📎 '+eH(m.attachmentName)+'</div>';
+}
+function _chatRenderReactionsHTML(m){
+  if(!(m && m.reactions && Object.keys(m.reactions).length)) return '';
+  var counts = {};
+  Object.keys(m.reactions).forEach(function(uid){
+    var emoji = m.reactions[uid];
+    counts[emoji] = (counts[emoji] || 0) + 1;
+  });
+  return '<div class="chat-msg-reactions">' + Object.keys(counts).map(function(emoji){
+    return '<span class="chat-msg-reaction" title="'+counts[emoji]+' reações">'+emoji+' '+counts[emoji]+'</span>';
+  }).join('') + '</div>';
+}
+function _chatRenderReplyHTML(m){
+  if(!(m && m.replyToId && m.replyMeta)) return '';
+  var preview = m.replyMeta.text || m.replyMeta.attachmentName || '📎 Anexo';
+  return '<div class="chat-msg-reply" onclick="return chatJumpToMsg(event,\''+_jsSq(m.replyToId)+'\')">'
+    + '<div class="chat-msg-reply-name">'+eH(m.replyMeta.fromName || 'Mensagem')+'</div>'
+    + '<div class="chat-msg-reply-text">'+eH(preview)+'</div>'
+    + '</div>';
+}
+function _chatRenderMsgHTML(m){
+  var isMe = m.fromUid === (S&&S.userId);
+  var senderName = (!isMe && m.senderName) ? '<div class="chat-msg-sender">'+eH(m.senderName)+'</div>' : '';
+  var statusIcon = isMe ? (m.read ? '✓✓' : '✓') : '';
+  var editedTag = m.editedAt ? ' <span class="chat-msg-edited" title="Editada">(editada)</span>' : '';
+  var pinTag = m.pinned ? ' 📌' : '';
+  var forwardedTag = m.forwardedFrom ? '<div class="chat-msg-forwarded" style="font-size:.66rem;color:var(--mu);opacity:.7;margin-bottom:2px">➡ Encaminhada</div>' : '';
+  return '<div class="chat-msg'+(isMe?' me':' them')+(m.pinned?' pinned':'')+'" data-msg-id="'+_jsSq(m.id)+'">'
+    + senderName
+    + forwardedTag
+    + _chatRenderReplyHTML(m)
+    + (m.text ? '<div class="chat-msg-text">'+eH(m.text)+'</div>' : '')
+    + _chatRenderAttachmentHTML(m)
+    + _chatRenderReactionsHTML(m)
+    + '<div class="chat-msg-meta">'+pinTag+_chatFmtTime(m.ts, true)+editedTag+' <span class="chat-msg-status">'+statusIcon+'</span></div>'
+    + '</div>';
+}
+function _chatPinnedSummaryHTML(pinnedCount){
+  if(!pinnedCount) return '';
+  return '<div class="chat-pinned-bar" style="position:sticky;top:0;z-index:5;background:rgba(195,154,45,.08);border-bottom:1px solid rgba(195,154,45,.2);padding:6px 10px;font-size:.7rem;color:var(--al,#c39a2d)">📌 '+pinnedCount+' mensagem'+(pinnedCount>1?'s':'')+' fixada'+(pinnedCount>1?'s':'')+'</div>';
+}
+function _chatScrollMsgsToBottom(container){
+  container.scrollTop = container.scrollHeight;
+  try{ container.scrollTo({top:container.scrollHeight, behavior:'smooth'}); }catch(_e){}
+}
+function _chatPollRemoteConv(wc, conv){
+  return wc.getConfig('chat_conv_' + conv.id).then(function(doc){
+    if(!(doc && doc.msgs)) return;
+    if(doc && (doc.participants || doc.participantNames || typeof doc.name === 'string')){
+      var convs = _chatGetConvs();
+      var idx = convs.findIndex(function(x){ return x && x.id === conv.id; });
+      if(idx >= 0){
+        convs[idx] = _chatNormalizeConv(Object.assign({}, convs[idx], {
+          isGroup: typeof doc.isGroup === 'boolean' ? doc.isGroup : convs[idx].isGroup,
+          name: typeof doc.name === 'string' ? doc.name : convs[idx].name,
+          participants: doc.participants || convs[idx].participants,
+          participantNames: Object.assign({}, (convs[idx].participantNames || {}), (doc.participantNames || {})),
+          admins: Array.isArray(doc.admins) ? doc.admins : convs[idx].admins,
+          createdBy: typeof doc.createdBy === 'string' && doc.createdBy ? doc.createdBy : convs[idx].createdBy
+        }));
+        _chatSaveConvs(convs);
+        conv = convs[idx];
+      }
+    }
+    var localMsgs = _chatGetMsgs(conv.id);
+    var known = new Set((localMsgs || []).map(function(m){ return m && m.id; }));
+    var incoming = (doc.msgs || []).filter(function(m){ return m && m.id && !known.has(m.id); });
+    if(!incoming.length) return;
+    var all = localMsgs.concat(incoming).filter(Boolean);
+    var byId = {};
+    all.forEach(function(m){ if(m && m.id) byId[m.id] = m; });
+    all = Object.keys(byId).map(function(k){ return byId[k]; }).sort(function(a,b){
+      return String(a.ts || '').localeCompare(String(b.ts || ''));
+    });
+    _chatSaveMsgs(conv.id, all);
+    _chatLastMsgTs[conv.id] = all.length ? all[all.length-1].ts : null;
+    if(_chatCurrentConv === conv.id) renderChatMsgs(conv.id);
+    renderChatList();
+    _chatUpdateUnreadBadge();
+    incoming.forEach(function(m){
+      if(m.fromUid !== S.userId && !conv.muted){
+        if(typeof _playNotifSound === 'function') _playNotifSound();
+        if(typeof fireNativeNotification === 'function') fireNativeNotification('💬 ' + (m.fromName || '?'), m.text || '📎 Arquivo', m.id);
+      }
+    });
+  }).catch(function(){});
+}
+
 /* ─── Conversa helpers ─── */
 function _chatConvId(a, b){
   return [a, b].sort().join('__');
@@ -258,18 +520,24 @@ function _chatGetOrCreateConv(otherUid, isGroup, groupName){
       return null;
     }
   }
+  var me = (S&&S.userId)||'';
+  var participants = isGroup
+    ? _chatNormalizeParticipants([me].concat(Array.isArray(otherUid) ? otherUid : [otherUid]))
+    : _chatNormalizeParticipants([me, otherUid]);
   var convs = _chatGetConvs();
   var cid;
   if(isGroup){
     cid = 'grp_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
   } else {
-    cid = _chatConvId((S&&S.userId)||'', otherUid);
+    cid = _chatConvId(me, otherUid);
   }
   var wantedConv = _chatNormalizeConv({
     id: cid,
     isGroup: !!isGroup,
     name: groupName || '',
-    participants: isGroup ? [(S&&S.userId)||'', otherUid] : [(S&&S.userId)||'', otherUid],
+    participants: participants,
+    admins: isGroup ? [me] : [],
+    createdBy: isGroup ? me : '',
     pinned: false,
     muted: false,
     archived: false,
@@ -324,7 +592,6 @@ function renderChatList(){
   var container = document.getElementById('chat-conv-list');
   if(!container) return;
   var convs = _chatGetConvs().filter(function(c){ return !c.archived; });
-  // Sort: pinned first, then by last message time
   convs.sort(function(a, b){
     if(a.pinned && !b.pinned) return -1;
     if(!a.pinned && b.pinned) return 1;
@@ -339,45 +606,32 @@ function renderChatList(){
   container.innerHTML = convs.map(function(c){
     var msgs = _chatGetMsgs(c.id);
     var lastMsg = msgs.length ? msgs[msgs.length-1] : null;
-    /* FIX R4 (2026-07-22): grupos usam toUid=''; checamos fromUid para não contar msgs enviadas por nós */
-    var _myId = S && S.userId;
-    var unread = msgs.filter(function(m){
-      if(m.read) return false;
-      return c.isGroup ? (m.fromUid !== _myId) : (m.toUid === _myId);
-    }).length;
+    var unread = _chatCountUnread(c, msgs);
     var preview = lastMsg ? (lastMsg.text || (lastMsg.attachmentName ? '📎 ' + lastMsg.attachmentName : '')) : '';
     if(preview.length > 40) preview = preview.slice(0, 40) + '...';
-    var timeStr = lastMsg ? _chatFmtTime(lastMsg.ts) : '';
     var name = eH(_chatOtherUserName(c));
-    var avatar = _chatOtherUserAvatar(c);
-    var color = _chatOtherUserColor(c);
     var isOnline = {};
     if(!c.isGroup){
-      // FIX #15 (2026-07-20): usar _chatOtherUid + _chatResolveUser em vez de
-      // participants.find direto → cobre conversa consigo mesmo e resolução por email/uid.
-      var _oUid=_chatOtherUid(c);
-      var _oUsr=_oUid?_chatResolveUser(_oUid):null;
-      isOnline=_oUsr||{};
+      var otherUid = _chatOtherUid(c);
+      isOnline = otherUid ? (_chatResolveUser(otherUid) || {}) : {};
     }
-    var onlineDot = (!c.isGroup && isOnline.ativo) ? '<span class="chat-online-dot"></span>' : '';
-    var pinIcon = c.pinned ? '📌' : '';
-    var muteIcon = c.muted ? '🔕' : '';
-    return '<div class="chat-conv-item'+(c.id===_chatCurrentConv?' active':'')+'" data-conv-id="'+_jsSq(c.id)+'" onclick="openChatConv(\''+_jsSq(c.id)+'\')">'+
-      '<div class="chat-conv-avatar" style="background:'+color+'">'+avatar+onlineDot+'</div>'+
-      '<div class="chat-conv-body">'+
-        '<div class="chat-conv-top">'+
-          '<span class="chat-conv-name">'+name+' '+pinIcon+' '+muteIcon+'</span>'+
-          '<span class="chat-conv-time">'+timeStr+'</span>'+
-        '</div>'+
-        '<div class="chat-conv-bottom">'+
-          '<span class="chat-conv-preview">'+eH(preview)+'</span>'+
-          (unread ? '<span class="chat-conv-badge">'+unread+'</span>' : '')+
-        '</div>'+
-      '</div>'+
-    '</div>';
+    return '<div class="chat-conv-item'+(c.id===_chatCurrentConv?' active':'')+'" data-conv-id="'+_jsSq(c.id)+'" onclick="openChatConv(\''+_jsSq(c.id)+'\')">'
+      + '<div class="chat-conv-avatar" style="background:'+_chatOtherUserColor(c)+'">'+_chatOtherUserAvatar(c)+((!c.isGroup && isOnline.ativo) ? '<span class="chat-online-dot"></span>' : '')+'</div>'
+      + '<div class="chat-conv-body">'
+        + '<div class="chat-conv-top">'
+          + '<span class="chat-conv-name">'+name+' '+(c.pinned ? '📌' : '')+' '+(c.muted ? '🔕' : '')+'</span>'
+          + '<span class="chat-conv-time">'+(lastMsg ? _chatFmtTime(lastMsg.ts) : '')+'</span>'
+        + '</div>'
+        + '<div class="chat-conv-bottom">'
+          + '<span class="chat-conv-preview">'+eH(preview)+'</span>'
+          + (unread ? '<span class="chat-conv-badge">'+unread+'</span>' : '')
+        + '</div>'
+      + '</div>'
+    + '</div>';
   }).join('');
   _chatUpdateUnreadBadge();
 }
+
 
 /* ─── Render: área de conversa ─── */
 function openChatConv(convId){
@@ -444,80 +698,17 @@ function renderChatMsgs(convId){
   var container = document.getElementById('chat-msgs');
   if(!container) return;
   var msgs = _chatGetMsgs(convId);
-  // FIX #12 (2026-07-20): mensagens fixadas primeiro no topo (sticky)
-  var pinned = msgs.filter(function(m){ return m && m.pinned; });
   if(!msgs.length){
     container.innerHTML = '<div class="chat-msgs-empty">💬 Inicie a conversa!</div>';
     _chatUpdateNavBtns();
     return;
   }
-  function _renderOne(m){
-    var isMe = m.fromUid === (S&&S.userId);
-    var time = _chatFmtTime(m.ts, true);
-    var senderName = '';
-    if(!isMe && m.senderName) senderName = '<div class="chat-msg-sender">'+eH(m.senderName)+'</div>';
-    var statusIcon = isMe ? (m.read ? '✓✓' : '✓') : '';
-    var editedTag = m.editedAt ? ' <span class="chat-msg-edited" title="Editada">(editada)</span>' : '';
-    var pinTag = m.pinned ? ' 📌' : '';
-    // Anexos
-    var attachHTML = '';
-    if(m.attachmentName){
-      var ext = (m.attachmentName.split('.').pop()||'').toLowerCase();
-      var isImg = ['jpg','jpeg','png','gif','webp','svg'].indexOf(ext) >= 0;
-      var isAudio = ['mp3','wav','ogg','webm','m4a','aac'].indexOf(ext) >= 0 || m.attachmentKind === 'audio';
-      var src = m.attachmentData || m.attachmentUrl || '';
-      if(isAudio && src){
-        // FIX #12: player de áudio com controles + long-press abre velocidades
-        attachHTML = '<audio class="chat-msg-audio" controls preload="metadata" src="'+src+'" data-audio-src="'+src+'"></audio>';
-      } else if(isImg && src){
-        attachHTML = '<img class="chat-msg-img" src="'+src+'" alt="'+eH(m.attachmentName)+'" loading="lazy">';
-      } else if(src){
-        attachHTML = '<a href="'+src+'" target="_blank" class="chat-msg-file">📎 '+eH(m.attachmentName)+' ↗</a>';
-      } else {
-        attachHTML = '<div class="chat-msg-file">📎 '+eH(m.attachmentName)+'</div>';
-      }
-    }
-    // FIX #12: reações
-    var reactionsHTML = '';
-    if(m.reactions && Object.keys(m.reactions).length){
-      var counts = {};
-      Object.keys(m.reactions).forEach(function(uid){ var e = m.reactions[uid]; counts[e] = (counts[e]||0) + 1; });
-      reactionsHTML = '<div class="chat-msg-reactions">' +
-        Object.keys(counts).map(function(e){ return '<span class="chat-msg-reaction" title="'+counts[e]+' reações">'+e+' '+counts[e]+'</span>'; }).join('') +
-      '</div>';
-    }
-    // FIX #12: mensagem encaminhada
-    var fwdTag = m.forwardedFrom ? '<div class="chat-msg-forwarded" style="font-size:.66rem;color:var(--mu);opacity:.7;margin-bottom:2px">➡ Encaminhada</div>' : '';
-    // FIX (2026-07-21) — Reply inline: bloco de citação clicável (usa chatJumpToMsg)
-    var replyHTML = '';
-    if(m.replyToId && m.replyMeta){
-      var _rPrev = m.replyMeta.text || m.replyMeta.attachmentName || '📎 Anexo';
-      replyHTML =
-        '<div class="chat-msg-reply" onclick="return chatJumpToMsg(event,\''+_jsSq(m.replyToId)+'\')">' +
-          '<div class="chat-msg-reply-name">'+eH(m.replyMeta.fromName || 'Mensagem')+'</div>' +
-          '<div class="chat-msg-reply-text">'+eH(_rPrev)+'</div>' +
-        '</div>';
-    }
-    return '<div class="chat-msg'+(isMe?' me':' them')+(m.pinned?' pinned':'')+'" data-msg-id="'+_jsSq(m.id)+'">'+
-      senderName+
-      fwdTag+
-      replyHTML+
-      (m.text ? '<div class="chat-msg-text">'+eH(m.text)+'</div>' : '')+
-      attachHTML+
-      reactionsHTML+
-      '<div class="chat-msg-meta">'+pinTag+time+editedTag+' <span class="chat-msg-status">'+statusIcon+'</span></div>'+
-    '</div>';
-  }
-  var pinnedHTML = '';
-  if(pinned.length){
-    pinnedHTML = '<div class="chat-pinned-bar" style="position:sticky;top:0;z-index:5;background:rgba(195,154,45,.08);border-bottom:1px solid rgba(195,154,45,.2);padding:6px 10px;font-size:.7rem;color:var(--al,#c39a2d)">📌 '+pinned.length+' mensagem'+(pinned.length>1?'s':'')+' fixada'+(pinned.length>1?'s':'')+'</div>';
-  }
-  container.innerHTML = pinnedHTML + msgs.map(_renderOne).join('');
-  // Scroll to bottom
-  container.scrollTop = container.scrollHeight;
-  try{container.scrollTo({top:container.scrollHeight,behavior:'smooth'});}catch(e){}
+  var pinnedCount = msgs.filter(function(m){ return m && m.pinned; }).length;
+  container.innerHTML = _chatPinnedSummaryHTML(pinnedCount) + msgs.map(_chatRenderMsgHTML).join('');
+  _chatScrollMsgsToBottom(container);
   _chatUpdateNavBtns();
 }
+
 
 // FIX #12 (2026-07-20): botões flutuantes de navegação (início/final da conversa)
 function _chatUpdateNavBtns(){
@@ -570,54 +761,23 @@ function _chatOpenConvCtxMenu(x, y, convEl){
   _chatCtxActiveMsg = convEl;
   if(convEl.classList) convEl.classList.add('ctx-target');
   var convId = convEl.getAttribute('data-conv-id');
-  var conv = _chatGetConvs().find(function(c){ return c && c.id === convId; });
+  var conv = _chatFindConvById(_chatGetConvs(), convId);
   if(!conv) return;
-  // FIX (2026-07-21) — Passo 3: ADM do grupo pode adicionar participantes
-  var _myUid = (S && S.userId) || '';
-  var _isGroupAdmin = !!(conv.isGroup && Array.isArray(conv.admins) && conv.admins.indexOf(_myUid) >= 0);
-  var backdrop = document.createElement('div');
-  backdrop.id = 'chat-ctx-backdrop';
-  document.body.appendChild(backdrop);
-  backdrop.addEventListener('click', _chatCloseCtxMenu, true);
-  backdrop.addEventListener('touchstart', function(ev){ ev.preventDefault(); _chatCloseCtxMenu(); }, {passive:false});
-  backdrop.addEventListener('contextmenu', function(ev){ ev.preventDefault(); _chatCloseCtxMenu(); }, true);
-  var menu = document.createElement('div');
-  menu.id = 'chat-ctx-menu';
-  menu.className = 'chat-ctx-menu';
-  menu.style.cssText = 'position:fixed;z-index:99999;background:var(--bg2,#1a1e26);color:var(--tx,#eee);border:1px solid var(--b1,rgba(255,255,255,.18));border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.65);padding:6px;min-width:240px;max-width:92vw;max-height:80vh;overflow-y:auto;font-family:Outfit,sans-serif;font-size:.85rem;pointer-events:auto;-webkit-user-select:none;user-select:none';
-  menu.addEventListener('touchstart', function(ev){ ev.stopPropagation(); }, {passive:true});
-  menu.addEventListener('contextmenu', function(ev){ ev.preventDefault(); ev.stopPropagation(); }, true);
+  var myUid = (S && S.userId) || '';
+  var isGroupAdmin = !!(conv.isGroup && Array.isArray(conv.admins) && conv.admins.indexOf(myUid) >= 0);
+  _chatCreateCtxBackdrop();
+  var menu = _chatCreateCtxMenuShell();
   menu.innerHTML = ''
     + '<button class="chat-ctx-btn" data-act="pin" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;color:inherit;padding:8px 10px;text-align:left;border-radius:6px;cursor:pointer;font-size:.82rem">'+(conv.pinned?'📌 Desafixar':'📌 Fixar no topo')+'</button>'
     + '<button class="chat-ctx-btn" data-act="mute" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;color:inherit;padding:8px 10px;text-align:left;border-radius:6px;cursor:pointer;font-size:.82rem">'+(conv.muted?'🔔 Reativar notificações':'🔕 Silenciar')+'</button>'
     + '<button class="chat-ctx-btn" data-act="archive" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;color:inherit;padding:8px 10px;text-align:left;border-radius:6px;cursor:pointer;font-size:.82rem">📦 Arquivar</button>'
-    + (_isGroupAdmin
+    + (isGroupAdmin
         ? '<div style="height:1px;background:var(--b1,rgba(255,255,255,.1));margin:4px 0"></div>'
-          +'<button class="chat-ctx-btn" data-act="add-member" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;color:inherit;padding:8px 10px;text-align:left;border-radius:6px;cursor:pointer;font-size:.82rem">➕ Adicionar participante</button>'
+          + '<button class="chat-ctx-btn" data-act="add-member" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;color:inherit;padding:8px 10px;text-align:left;border-radius:6px;cursor:pointer;font-size:.82rem">➕ Adicionar participante</button>'
         : '')
     + '<div style="height:1px;background:var(--b1,rgba(255,255,255,.1));margin:4px 0"></div>'
     + '<button class="chat-ctx-btn" data-act="delete-conv" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;color:var(--rl,#ef4444);padding:8px 10px;text-align:left;border-radius:6px;cursor:pointer;font-size:.82rem">🗑 Excluir conversa</button>';
-  document.body.appendChild(menu);
-  var vw = window.innerWidth  || document.documentElement.clientWidth;
-  var vh = window.innerHeight || document.documentElement.clientHeight;
-  var mw = menu.offsetWidth  || 240;
-  var mh = menu.offsetHeight || 220;
-  var pad = 8;
-  var isTouchLike = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-  var left = x;
-  var top  = y;
-  if(left + mw + pad > vw) left = vw - mw - pad;
-  if(left < pad) left = pad;
-  var wantAbove = isTouchLike ? (y > vh * 0.55) : (y + mh + pad > vh);
-  if(wantAbove){
-    top = y - mh - 12;
-    if(top < pad) top = pad;
-  } else if(top + mh + pad > vh){
-    top = vh - mh - pad;
-  }
-  if(top < pad) top = pad;
-  menu.style.left = left + 'px';
-  menu.style.top  = top  + 'px';
+  _chatPlaceCtxMenu(menu, x, y, 220);
   menu.querySelectorAll('.chat-ctx-btn').forEach(function(btn){
     btn.addEventListener('click', function(){
       var act = btn.getAttribute('data-act');
@@ -629,6 +789,7 @@ function _chatOpenConvCtxMenu(x, y, convEl){
     });
   });
 }
+
 function _chatOpenCtxMenu(x, y, msgEl){
   _chatCloseCtxMenu();
   if(!msgEl) return;
@@ -637,28 +798,15 @@ function _chatOpenCtxMenu(x, y, msgEl){
   var msgId = msgEl.getAttribute('data-msg-id');
   var isMine = msgEl.classList.contains('me');
   var isAudio = !!msgEl.querySelector('audio');
-  // Backdrop transparente por baixo do menu — captura clique/toque fora
-  // sem deixar o menu "vazar" para o scroll do chat.
-  var backdrop = document.createElement('div');
-  backdrop.id = 'chat-ctx-backdrop';
-  document.body.appendChild(backdrop);
-  backdrop.addEventListener('click', _chatCloseCtxMenu, true);
-  backdrop.addEventListener('touchstart', function(ev){ ev.preventDefault(); _chatCloseCtxMenu(); }, {passive:false});
-  backdrop.addEventListener('contextmenu', function(ev){ ev.preventDefault(); _chatCloseCtxMenu(); }, true);
-  var menu = document.createElement('div');
-  menu.id = 'chat-ctx-menu';
-  menu.className = 'chat-ctx-menu';
-  menu.style.cssText = 'position:fixed;z-index:99999;background:var(--bg2,#1a1e26);color:var(--tx,#eee);border:1px solid var(--b1,rgba(255,255,255,.18));border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.65);padding:6px;min-width:240px;max-width:92vw;max-height:80vh;overflow-y:auto;font-family:Outfit,sans-serif;font-size:.85rem;pointer-events:auto;-webkit-user-select:none;user-select:none';
-  // Impede que o toque no próprio menu re-dispare o long-press global
-  menu.addEventListener('touchstart', function(ev){ ev.stopPropagation(); }, {passive:true});
-  menu.addEventListener('contextmenu', function(ev){ ev.preventDefault(); ev.stopPropagation(); }, true);
+  _chatCreateCtxBackdrop();
+  var menu = _chatCreateCtxMenuShell();
   var html = '';
   if(isAudio){
     html += '<div class="chat-ctx-row" style="display:flex;gap:4px;padding:4px">'
          + '<button class="chat-ctx-spd" data-spd="0.5" style="flex:1;padding:6px;background:none;border:1px solid var(--b1);color:inherit;border-radius:6px;cursor:pointer;font-size:.78rem">0.5x</button>'
-         + '<button class="chat-ctx-spd" data-spd="1"   style="flex:1;padding:6px;background:none;border:1px solid var(--b1);color:inherit;border-radius:6px;cursor:pointer;font-size:.78rem">1x</button>'
+         + '<button class="chat-ctx-spd" data-spd="1" style="flex:1;padding:6px;background:none;border:1px solid var(--b1);color:inherit;border-radius:6px;cursor:pointer;font-size:.78rem">1x</button>'
          + '<button class="chat-ctx-spd" data-spd="1.5" style="flex:1;padding:6px;background:none;border:1px solid var(--b1);color:inherit;border-radius:6px;cursor:pointer;font-size:.78rem">1.5x</button>'
-         + '<button class="chat-ctx-spd" data-spd="2"   style="flex:1;padding:6px;background:none;border:1px solid var(--b1);color:inherit;border-radius:6px;cursor:pointer;font-size:.78rem">2x</button>'
+         + '<button class="chat-ctx-spd" data-spd="2" style="flex:1;padding:6px;background:none;border:1px solid var(--b1);color:inherit;border-radius:6px;cursor:pointer;font-size:.78rem">2x</button>'
          + '</div>'
          + '<div style="height:1px;background:var(--b1,rgba(255,255,255,.1));margin:4px 0"></div>'
          + '<button class="chat-ctx-btn" data-act="download" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;color:inherit;padding:8px 10px;text-align:left;border-radius:6px;cursor:pointer;font-size:.82rem">⬇ Baixar áudio</button>';
@@ -676,37 +824,12 @@ function _chatOpenCtxMenu(x, y, msgEl){
        + '<button class="chat-ctx-react" data-emoji="😢" style="flex:1;padding:6px;background:none;border:0;font-size:1.2rem;cursor:pointer">😢</button>'
        + '<button class="chat-ctx-react" data-emoji="😡" style="flex:1;padding:6px;background:none;border:0;font-size:1.2rem;cursor:pointer">😡</button>'
        + '</div>';
-  if(isMine) html += '<div style="height:1px;background:var(--b1,rgba(255,255,255,.1));margin:4px 0"></div>'
-                  + '<button class="chat-ctx-btn" data-act="delete" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;color:var(--rl,#ef4444);padding:8px 10px;text-align:left;border-radius:6px;cursor:pointer;font-size:.82rem">🗑 Apagar</button>';
-  menu.innerHTML = html;
-  document.body.appendChild(menu);
-  // Posicionamento inteligente: mede o menu real e evita sair da tela.
-  // Em mobile, se o toque ficou na metade inferior, ancora ACIMA do dedo
-  // para as opções não nascerem cobertas pela mão / teclado virtual.
-  var vw = window.innerWidth  || document.documentElement.clientWidth;
-  var vh = window.innerHeight || document.documentElement.clientHeight;
-  var mw = menu.offsetWidth  || 240;
-  var mh = menu.offsetHeight || 260;
-  var pad = 8;
-  var isTouchLike = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-  var left = x;
-  var top  = y;
-  // Horizontal: nunca vaza pela direita/esquerda
-  if(left + mw + pad > vw) left = vw - mw - pad;
-  if(left < pad) left = pad;
-  // Vertical: se toque está na metade de baixo (mobile) ou não cabe abaixo,
-  // ancora acima do ponto do toque.
-  var wantAbove = isTouchLike ? (y > vh * 0.55) : (y + mh + pad > vh);
-  if(wantAbove){
-    top = y - mh - 12;
-    if(top < pad) top = pad;
-  } else if(top + mh + pad > vh){
-    top = vh - mh - pad;
+  if(isMine){
+    html += '<div style="height:1px;background:var(--b1,rgba(255,255,255,.1));margin:4px 0"></div>'
+         + '<button class="chat-ctx-btn" data-act="delete" style="display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;color:var(--rl,#ef4444);padding:8px 10px;text-align:left;border-radius:6px;cursor:pointer;font-size:.82rem">🗑 Apagar</button>';
   }
-  if(top < pad) top = pad;
-  menu.style.left = left + 'px';
-  menu.style.top  = top  + 'px';
-  // Listeners
+  menu.innerHTML = html;
+  _chatPlaceCtxMenu(menu, x, y, 260);
   menu.querySelectorAll('.chat-ctx-btn').forEach(function(btn){
     btn.addEventListener('click', function(){ chatCtxAction(btn.getAttribute('data-act'), msgId, msgEl); });
   });
@@ -718,49 +841,16 @@ function _chatOpenCtxMenu(x, y, msgEl){
   });
 }
 
+
 function chatCtxAction(act, msgId, msgEl){
   try {
     var msgs = _chatGetMsgs(_chatCurrentConv);
     var m = msgs.find(function(x){ return x.id === msgId; });
     if(!m){ _chatCloseCtxMenu(); return; }
     if(act === 'copy'){
-      var txt = m.text || m.attachmentName || '';
-      // CORREÇÃO: usar fallback para clipboard API que pode falhar em contextos não seguros
-      if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(txt).then(function(){
-          if(typeof toast === 'function') toast('📋 Copiado');
-        }).catch(function(){
-          // Fallback para método antigo
-          var ta = document.createElement('textarea');
-          ta.value = txt;
-          ta.style.position = 'fixed';
-          ta.style.left = '-9999px';
-          document.body.appendChild(ta);
-          ta.select();
-          try{
-            document.execCommand('copy');
-            if(typeof toast === 'function') toast('📋 Copiado');
-          }catch(e){
-            if(typeof toast === 'function') toast('❌ Não foi possível copiar');
-          }
-          document.body.removeChild(ta);
-        });
-      }else{
-        // Fallback direto para navegadores antigos
-        var ta = document.createElement('textarea');
-        ta.value = txt;
-        ta.style.position = 'fixed';
-        ta.style.left = '-9999px';
-        document.body.appendChild(ta);
-        ta.select();
-        try{
-          document.execCommand('copy');
-          if(typeof toast === 'function') toast('📋 Copiado');
-        }catch(e){
-          if(typeof toast === 'function') toast('❌ Não foi possível copiar');
-        }
-        document.body.removeChild(ta);
-      }
+      _chatCopyText(m.text || m.attachmentName || '').then(function(ok){
+        if(typeof toast === 'function') toast(ok ? '📋 Copiado' : '❌ Não foi possível copiar');
+      });
     } else if(act === 'reply'){
       chatStartReply(msgId);
     } else if(act === 'forward'){
@@ -772,9 +862,9 @@ function chatCtxAction(act, msgId, msgEl){
       if(typeof toast === 'function') toast(m.pinned ? '📌 Fixada' : 'Desfixada');
     } else if(act === 'edit'){
       var nv = prompt('Editar mensagem:', m.text || '');
-      if(nv != null && nv !== (m.text||'')){
+      if(nv != null && nv !== (m.text || '')){
         m.text = nv;
-        m.editedAt = new Date().toISOString();
+        m.editedAt = _chatNowIso();
         _chatSaveMsgs(_chatCurrentConv, msgs);
         renderChatMsgs(_chatCurrentConv);
       }
@@ -789,13 +879,16 @@ function chatCtxAction(act, msgId, msgEl){
       if(au && au.src){
         var a = document.createElement('a');
         a.href = au.src;
-        a.download = 'audio-'+msgId+'.webm';
+        a.download = 'audio-' + msgId + '.webm';
         a.click();
       }
     }
-  } catch(e){ console.warn('[chat] ctx action', act, e); }
+  } catch(e){
+    console.warn('[chat] ctx action', act, e);
+  }
   _chatCloseCtxMenu();
 }
+
 
 function chatCtxReact(emoji, msgId){
   try {
@@ -832,14 +925,7 @@ function chatForwardMsg(msgId){
   if(!m) return;
   var convs = _chatGetConvs().filter(function(c){ return c.id !== _chatCurrentConv && !c.archived; });
   if(!convs.length){ if(typeof toast === 'function') toast('Nenhuma outra conversa'); return; }
-  // Modal simples de seleção
-  var host = document.getElementById('chat-forward-modal') || (function(){
-    var d = document.createElement('div');
-    d.id = 'chat-forward-modal';
-    d.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
-    document.body.appendChild(d);
-    return d;
-  })();
+  var host = _chatEnsureOverlayHost('chat-forward-modal');
   host.innerHTML = '<div style="background:var(--bg2,#1a1e26);color:var(--tx,#eee);border-radius:12px;padding:16px;max-width:400px;width:100%;max-height:70vh;overflow:auto;font-family:Outfit,sans-serif">'
     + '<h3 style="margin:0 0 12px 0;font-size:1rem">Encaminhar para...</h3>'
     + convs.map(function(c){
@@ -851,28 +937,25 @@ function chatForwardMsg(msgId){
   host.querySelectorAll('.chat-fwd-target').forEach(function(btn){
     btn.addEventListener('click', function(){
       var targetConvId = btn.getAttribute('data-conv');
+      var targetConv = _chatFindConvById(_chatGetConvs(), targetConvId);
+      if(!targetConv) return;
       var targetMsgs = _chatGetMsgs(targetConvId);
-      var newMsg = {
-        id: 'msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+      targetMsgs.push(_chatBuildMsg(targetConv, {
         convId: targetConvId,
-        fromUid: (S&&S.userId)||'',
-        fromName: (S&&S.nome)||'?',
         text: m.text || '',
         attachmentName: m.attachmentName || null,
         attachmentData: m.attachmentData || null,
         attachmentUrl: m.attachmentUrl || null,
         attachmentKind: m.attachmentKind || null,
-        forwardedFrom: m.fromName || m.fromUid || '?',
-        ts: new Date().toISOString(),
-        read: false
-      };
-      targetMsgs.push(newMsg);
+        forwardedFrom: m.fromName || m.fromUid || '?'
+      }));
       _chatSaveMsgs(targetConvId, targetMsgs);
       host.remove();
       if(typeof toast === 'function') toast('➡ Encaminhada');
     });
   });
 }
+
 
 // FIX #12: gravação de áudio (Web Audio API + MediaRecorder)
 var _chatMediaRecorder = null;
@@ -1109,44 +1192,40 @@ function chatCancelReply(){
 function sendChatMsg(){
   if(!S||!S.userId){toast('Sessão expirada. Faça login novamente.');return;}
   var input = document.getElementById('chat-input');
-  if(!input) return;
+  if(!input || !_chatCurrentConv) return;
   var text = input.value.trim();
-  if(!text || !_chatCurrentConv) return;
-  var conv = _chatGetConvs().find(function(c){ return c.id === _chatCurrentConv; });
+  if(!text) return;
+  var conv = _chatFindConvById(_chatGetConvs(), _chatCurrentConv);
   if(!conv) return;
-  var msg = {
-    id: 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
-    convId: _chatCurrentConv,
-    fromUid: (S&&S.userId) || '',
-    fromName: (S&&S.nome) || '?',
-    toUid: conv.isGroup ? '' : conv.participants.find(function(p){ return p !== (S&&S.userId); }),
+  var replyTo = _chatReplyTo ? {
+    id: _chatReplyTo.id,
+    text: _chatReplyTo.text || '',
+    fromName: _chatReplyTo.fromName || '',
+    attachmentName: _chatReplyTo.attachmentName || ''
+  } : null;
+  var msg = _chatBuildMsg(conv, {
     text: text,
-    ts: new Date().toISOString(),
-    read: false,
-    /* FIX (2026-07-21) — Reply inline: preserva referência à mensagem original */
-    replyToId: _chatReplyTo ? _chatReplyTo.id : null,
-    replyMeta: _chatReplyTo ? {
-      text: _chatReplyTo.text || '',
-      fromName: _chatReplyTo.fromName || '',
-      attachmentName: _chatReplyTo.attachmentName || ''
+    replyToId: replyTo ? replyTo.id : null,
+    replyMeta: replyTo ? {
+      text: replyTo.text,
+      fromName: replyTo.fromName,
+      attachmentName: replyTo.attachmentName
     } : null
-  };
-  /* Limpa o estado de reply após capturar no msg */
+  });
   _chatReplyTo = null;
   if(typeof chatCancelReply === 'function') chatCancelReply();
   var msgs = _chatGetMsgs(_chatCurrentConv);
   msgs.push(msg);
   _chatSaveMsgs(_chatCurrentConv, msgs);
-  // Update conv timestamp
   _chatTouchConv(conv.id, msg.ts);
   input.value = '';
-  input.style.height='auto';/* R16-18: reset altura do textarea */
+  input.style.height='auto';
   renderChatMsgs(_chatCurrentConv);
   renderChatList();
   _chatStopTyping();
-  // Sync to cloud / índice / notificação
   _chatSyncMsg(msg);
 }
+
 
 /* ─── Anexo de arquivo ─── */
 function chatAttachFile(){
@@ -1177,67 +1256,51 @@ function chatFileSelected(){
 function _chatSendAttachment(name, data, meta){
   if(!S||!S.userId){toast('Sessão expirada.');return;}
   if(!_chatCurrentConv) return;
-  var conv = _chatGetConvs().find(function(c){ return c.id === _chatCurrentConv; });
+  var conv = _chatFindConvById(_chatGetConvs(), _chatCurrentConv);
   if(!conv) return;
-  
-  /* R18-03: upload para Backblaze B2 se disponível */
-  if(typeof b2UploadBase64==='function'&&b2IsAvailable&&b2IsAvailable()&&data){
-    toast('Enviando arquivo...'); 
+  function sendLocal(){ _chatSendAttachmentLocal(name, data, conv, meta); }
+  if(typeof b2UploadBase64==='function' && b2IsAvailable && b2IsAvailable() && data){
+    toast('Enviando arquivo...');
     b2UploadBase64(data, name, null, function(err, res){
       if(err){
         console.warn('[chat] B2 upload falhou, salvando local:', err.message);
-        _chatSendAttachmentLocal(name, data, conv, meta);
-      }else{
-        _chatSendAttachmentRemote(name, res.url, res.path, conv, meta);
+        sendLocal();
+        return;
       }
+      _chatSendAttachmentRemote(name, res.url, res.path, conv, meta);
     }).catch(function(){
-      _chatSendAttachmentLocal(name, data, conv, meta);
+      sendLocal();
     });
-  }else{
-    _chatSendAttachmentLocal(name, data, conv, meta);
+    return;
   }
+  sendLocal();
 }
 
+
 function _chatSendAttachmentLocal(name, data, conv, meta){
-  var msg = {
-    id: 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
-    convId: _chatCurrentConv,
-    fromUid: (S&&S.userId) || '',
-    fromName: (S&&S.nome) || '?',
-    toUid: conv.isGroup ? '' : conv.participants.find(function(p){ return p !== (S&&S.userId); }),
-    text: '',
+  _chatPushMsg(_chatBuildMsg(conv, {
     attachmentName: name,
     attachmentData: data,
     attachmentUrl: null,
     attachmentKind: meta && meta.kind || null,
     attachmentDurationSec: meta && meta.durationSec || null,
-    attachmentMimeType: meta && meta.mimeType || null,
-    ts: new Date().toISOString(),
-    read: false
-  };
-  _chatPushMsg(msg, conv);
+    attachmentMimeType: meta && meta.mimeType || null
+  }), conv);
 }
 
+
 function _chatSendAttachmentRemote(name, url, filePath, conv, meta){
-  var msg = {
-    id: 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
-    convId: _chatCurrentConv,
-    fromUid: (S&&S.userId) || '',
-    fromName: (S&&S.nome) || '?',
-    toUid: conv.isGroup ? '' : conv.participants.find(function(p){ return p !== (S&&S.userId); }),
-    text: '',
+  _chatPushMsg(_chatBuildMsg(conv, {
     attachmentName: name,
     attachmentData: null,
     attachmentUrl: url,
     attachmentPath: filePath,
     attachmentKind: meta && meta.kind || null,
     attachmentDurationSec: meta && meta.durationSec || null,
-    attachmentMimeType: meta && meta.mimeType || null,
-    ts: new Date().toISOString(),
-    read: false
-  };
-  _chatPushMsg(msg, conv);
+    attachmentMimeType: meta && meta.mimeType || null
+  }), conv);
 }
+
 
 function _chatPushMsg(msg, conv){
   var msgs = _chatGetMsgs(_chatCurrentConv);
@@ -1283,99 +1346,122 @@ function _chatStopTyping(){
 // para permitir refresh após loadUsersDB retornar.
 function _chatRenderNewConvList(){
   if(!S||!S.userId) return;
-  var myId=S.userId;
   var isAdm = (typeof hasAdminAccess==='function') && hasAdminAccess();
-  var raw = (typeof getUsers === 'function') ? (getUsers()||[]) : [];
-  var users = raw.filter(function(u){
-    if(!u) return false;
-    var uid = u.id || u.uid || u.userId || u._id || u.email;
-    if(!uid || String(uid) === String(myId)) return false;
-    if(u.ativo === false) return false;
-    return true;
-  }).map(function(u){
-    u.id = u.id || u.uid || u.userId || u._id || u.email;
-    return u;
-  });
-  users.sort(function(a,b){ return (a.nome||a.email||'').localeCompare(b.nome||b.email||''); });
-
+  var users = _chatGetSelectableUsers();
   var modalBody = document.querySelector('#mo-chat-new .mb');
   if(!modalBody) return;
-
   var tabs = isAdm
     ? '<div class="chat-new-tabs" style="display:flex;gap:6px;margin-bottom:10px">'
       + '<button type="button" class="chat-new-tab'+(_chatNewConvMode==='dm'?' on':'')+'" onclick="chatSwitchNewMode(\'dm\')">💬 Individual</button>'
       + '<button type="button" class="chat-new-tab'+(_chatNewConvMode==='group'?' on':'')+'" onclick="chatSwitchNewMode(\'group\')">👥 Novo Grupo</button>'
       + '</div>'
     : '';
-
-  var listHTML;
+  var listHTML = '';
   if(!users.length){
     listHTML = '<div style="padding:20px;text-align:center;color:var(--mu);font-size:.85rem">Nenhum outro usuário cadastrado.</div>';
   } else if(_chatNewConvMode === 'group' && isAdm){
-    listHTML =
-      '<input id="chat-new-group-name" placeholder="Nome do grupo" '
-      +'style="width:100%;padding:10px;margin-bottom:10px;background:rgba(255,255,255,.04);border:1px solid rgba(195,154,45,.2);border-radius:8px;color:inherit;font-size:.9rem">'
-      +'<div style="font-size:.75rem;color:var(--mu);margin-bottom:6px">Marque os participantes:</div>'
-      +'<div class="chat-new-list">'
+    listHTML = '<input id="chat-new-group-name" placeholder="Nome do grupo" style="width:100%;padding:10px;margin-bottom:10px;background:rgba(255,255,255,.04);border:1px solid rgba(195,154,45,.2);border-radius:8px;color:inherit;font-size:.9rem">'
+      + '<div style="font-size:.75rem;color:var(--mu);margin-bottom:6px">Marque os participantes:</div>'
+      + '<div class="chat-new-list">'
       + users.map(function(u){
-          var nome=u.nome||u.email||'?', av=String(nome).charAt(0).toUpperCase();
-          var color=AVB[(u.cor||0)%AVB.length];
+          var nome = u.nome || u.email || '?';
           var checked = _chatNewGroupSel[u.id] ? 'checked' : '';
           return '<label class="chat-new-item" style="cursor:pointer">'
-            +'<input type="checkbox" '+checked+' onchange="chatToggleGroupMember(\''+_jsSq(u.id)+'\',this.checked)" style="margin-right:8px">'
-            +'<div class="chat-new-avatar" style="background:'+color+'">'+av+'</div>'
-            +'<div class="chat-new-info"><div class="chat-new-name">'+eH(nome)+'</div><div class="chat-new-role">'+eH(u.cargo||'Consultor')+'</div></div>'
-          +'</label>';
+            + '<input type="checkbox" '+checked+' onchange="chatToggleGroupMember(\''+_jsSq(u.id)+'\',this.checked)" style="margin-right:8px">'
+            + '<div class="chat-new-avatar" style="background:'+AVB[(u.cor||0)%AVB.length]+'">'+String(nome).charAt(0).toUpperCase()+'</div>'
+            + '<div class="chat-new-info"><div class="chat-new-name">'+eH(nome)+'</div><div class="chat-new-role">'+eH(u.cargo||'Consultor')+'</div></div>'
+          + '</label>';
         }).join('')
-      +'</div>';
+      + '</div>';
   } else {
     listHTML = '<div class="chat-new-list">'
       + users.map(function(u){
-          var nome=u.nome||u.email||'?', av=String(nome).charAt(0).toUpperCase();
-          var color=AVB[(u.cor||0)%AVB.length];
+          var nome = u.nome || u.email || '?';
           return '<div class="chat-new-item" onclick="chatStartConv(\''+_jsSq(u.id)+'\')">'
-            +'<div class="chat-new-avatar" style="background:'+color+'">'+av+'</div>'
-            +'<div class="chat-new-info"><div class="chat-new-name">'+eH(nome)+'</div><div class="chat-new-role">'+eH(u.cargo||'Consultor')+'</div></div>'
-          +'</div>';
+            + '<div class="chat-new-avatar" style="background:'+AVB[(u.cor||0)%AVB.length]+'">'+String(nome).charAt(0).toUpperCase()+'</div>'
+            + '<div class="chat-new-info"><div class="chat-new-name">'+eH(nome)+'</div><div class="chat-new-role">'+eH(u.cargo||'Consultor')+'</div></div>'
+          + '</div>';
         }).join('')
-      +'</div>';
+      + '</div>';
   }
-
   var footer = (_chatNewConvMode==='group' && isAdm)
-    ? '<div class="mbtns"><button class="bc" onclick="closeM(\'mo-chat-new\')">Cancelar</button>'
-      +'<button class="bp" onclick="chatCreateGroupFromModal()">Criar grupo</button></div>'
+    ? '<div class="mbtns"><button class="bc" onclick="closeM(\'mo-chat-new\')">Cancelar</button><button class="bp" onclick="chatCreateGroupFromModal()">Criar grupo</button></div>'
     : '<div class="mbtns"><button class="bc" onclick="closeM(\'mo-chat-new\')">Cancelar</button></div>';
-
   modalBody.innerHTML = '<h2>'+(_chatNewConvMode==='group'?'👥 Novo Grupo':'💬 Nova Conversa')+'</h2>'
     + tabs
     + '<div style="font-size:.78rem;color:var(--mu);margin-bottom:12px">'
-      +(_chatNewConvMode==='group' ? 'Somente ADM pode criar grupos.' : 'Selecione um colaborador ('+users.length+' disponíveis):')
-    +'</div>'
+      + (_chatNewConvMode==='group' ? 'Somente ADM pode criar grupos.' : 'Selecione um colaborador ('+users.length+' disponíveis):')
+    + '</div>'
     + listHTML + footer;
 }
 
+
 function chatNewConv(){
   if(!S||!S.userId){toast('Sessão expirada.');return;}
-  // FIX #16 (2026-07-20): abrir modal já com o que temos em cache e disparar
-  // loadUsersDB em paralelo. Antes, se o cache local só tivesse 1-2 usuários
-  // (comum logo após login), o modal ficava incompleto sem chance de refresh.
   _chatRenderNewConvList();
-  var modalBody = document.querySelector('#mo-chat-new .mb');
-  if(modalBody) openM('mo-chat-new');
-  if(typeof loadUsersDB === 'function'){
-    try{
-      loadUsersDB(function(){
-        // só re-renderiza se o modal ainda estiver aberto
-        var m = document.getElementById('mo-chat-new');
-        if(m && m.classList && m.classList.contains('on')) _chatRenderNewConvList();
-      });
-    }catch(e){ console.warn('[chat] loadUsersDB falhou em chatNewConv', e); }
-  }
+  if(document.querySelector('#mo-chat-new .mb')) openM('mo-chat-new');
+  _chatReloadUsersWhenModalOpen('mo-chat-new', _chatRenderNewConvList, 'chatNewConv');
 }
+
 
 function chatStartConv(uid){
   closeM('mo-chat-new');
   var conv = _chatGetOrCreateConv(uid, false);
+  openChatConv(conv.id);
+}
+
+function chatToggleGroupMember(uid, checked){
+  uid=String(uid||'').trim();
+  if(!uid) return;
+  if(checked) _chatNewGroupSel[uid]=true;
+  else delete _chatNewGroupSel[uid];
+}
+
+function chatCreateGroupFromModal(){
+  if(!S||!S.userId){ if(typeof toast==='function') toast('Sessão expirada.'); return; }
+  if(typeof hasAdminAccess !== 'function' || !hasAdminAccess()){
+    if(typeof toast==='function') toast('⚠ Somente administradores podem criar grupos.');
+    return;
+  }
+  var input=document.getElementById('chat-new-group-name');
+  var groupName=String(input&&input.value||'').trim();
+  var selected=Object.keys(_chatNewGroupSel).filter(function(uid){ return !!_chatNewGroupSel[uid]; });
+  if(!groupName){
+    if(typeof toast==='function') toast('Informe o nome do grupo.');
+    if(input&&typeof input.focus==='function') input.focus();
+    return;
+  }
+  if(selected.length < 2){
+    if(typeof toast==='function') toast('Selecione pelo menos 2 participantes.');
+    return;
+  }
+  var conv=_chatGetOrCreateConv(selected, true, groupName);
+  if(!conv) return;
+  conv=_chatNormalizeConv(Object.assign({}, conv, {
+    name: groupName,
+    participants: _chatNormalizeParticipants([(S&&S.userId)||''].concat(selected)),
+    admins: [String((S&&S.userId)||'')],
+    createdBy: String((S&&S.userId)||''),
+    updatedAt: new Date().toISOString()
+  }));
+  var convs=_chatGetConvs();
+  var idx=convs.findIndex(function(c){ return c&&c.id===conv.id; });
+  if(idx>=0) convs[idx]=conv;
+  else convs.push(conv);
+  _chatSaveConvs(convs);
+  var msgs=_chatGetMsgs(conv.id);
+  if(!msgs.length){
+    var systemMsg=_chatBuildMsg(conv,{convId:conv.id,text:'🔔 Grupo criado'});
+    msgs.push(systemMsg);
+    _chatSaveMsgs(conv.id,msgs);
+    if(typeof _chatSyncMsg==='function') _chatSyncMsg(systemMsg);
+  }else if(typeof _chatSyncMsg==='function'){
+    _chatSyncMsg(msgs[msgs.length-1]);
+  }
+  _chatNewGroupSel={};
+  if(input) input.value='';
+  closeM('mo-chat-new');
+  renderChatList();
   openChatConv(conv.id);
 }
 
@@ -1401,8 +1487,7 @@ var _chatAddMemberConvId = null;
 
 function chatOpenAddMemberModal(convId){
   if(!S||!S.userId){ if(typeof toast==='function') toast('Sessão expirada.'); return; }
-  var convs = _chatGetConvs();
-  var c = convs.find(function(x){ return x && x.id===convId; });
+  var c = _chatFindConvById(_chatGetConvs(), convId);
   if(!c || !c.isGroup){ if(typeof toast==='function') toast('Conversa inválida'); return; }
   if(!(Array.isArray(c.admins) && c.admins.indexOf(S.userId) >= 0)){
     if(typeof toast==='function') toast('Sem permissão');
@@ -1412,15 +1497,9 @@ function chatOpenAddMemberModal(convId){
   _chatEnsureAddMemberModal();
   _chatRenderAddMemberList();
   openM('mo-chat-add-member');
-  if(typeof loadUsersDB === 'function'){
-    try{
-      loadUsersDB(function(){
-        var m = document.getElementById('mo-chat-add-member');
-        if(m && m.classList && m.classList.contains('on')) _chatRenderAddMemberList();
-      });
-    }catch(e){ console.warn('[chat] loadUsersDB falhou em chatOpenAddMemberModal', e); }
-  }
+  _chatReloadUsersWhenModalOpen('mo-chat-add-member', _chatRenderAddMemberList, 'chatOpenAddMemberModal');
 }
+
 
 function _chatEnsureAddMemberModal(){
   if(document.getElementById('mo-chat-add-member')) return;
@@ -1438,50 +1517,28 @@ function _chatEnsureAddMemberModal(){
 function _chatRenderAddMemberList(){
   var convId = _chatAddMemberConvId;
   if(!convId) return;
-  var convs = _chatGetConvs();
-  var c = convs.find(function(x){ return x && x.id===convId; });
+  var c = _chatFindConvById(_chatGetConvs(), convId);
   if(!c) return;
   var modalBody = document.querySelector('#mo-chat-add-member .mb');
   if(!modalBody) return;
-  var myId = S && S.userId;
-  var raw = (typeof getUsers === 'function') ? (getUsers()||[]) : [];
-  var already = (c.participants||[]).slice();
-  var users = raw.filter(function(u){
-    if(!u) return false;
-    var uid = u.id || u.uid || u.userId || u._id || u.email;
-    if(!uid) return false;
-    if(String(uid) === String(myId)) return false;
-    if(u.ativo === false) return false;
-    if(already.indexOf(uid) >= 0) return false;
-    return true;
-  }).map(function(u){
-    u.id = u.id || u.uid || u.userId || u._id || u.email;
-    return u;
-  });
-  users.sort(function(a,b){ return (a.nome||a.email||'').localeCompare(b.nome||b.email||''); });
-
-  var listHTML;
-  if(!users.length){
-    listHTML = '<div style="padding:20px;text-align:center;color:var(--mu);font-size:.85rem">Nenhum usuário disponível para adicionar.</div>';
-  } else {
-    listHTML = '<div class="chat-new-list">'
+  var users = _chatGetSelectableUsers(c.participants || []);
+  var listHTML = !users.length
+    ? '<div style="padding:20px;text-align:center;color:var(--mu);font-size:.85rem">Nenhum usuário disponível para adicionar.</div>'
+    : '<div class="chat-new-list">'
       + users.map(function(u){
-          var nome=u.nome||u.email||'?', av=String(nome).charAt(0).toUpperCase();
-          var color=AVB[(u.cor||0)%AVB.length];
+          var nome = u.nome || u.email || '?';
           return '<div class="chat-new-item" onclick="chatAddGroupMember(\''+_jsSq(convId)+'\',\''+_jsSq(u.id)+'\')" style="cursor:pointer">'
-            +'<div class="chat-new-avatar" style="background:'+color+'">'+av+'</div>'
-            +'<div class="chat-new-info"><div class="chat-new-name">'+eH(nome)+'</div><div class="chat-new-role">'+eH(u.cargo||'Consultor')+'</div></div>'
-          +'</div>';
+            + '<div class="chat-new-avatar" style="background:'+AVB[(u.cor||0)%AVB.length]+'">'+String(nome).charAt(0).toUpperCase()+'</div>'
+            + '<div class="chat-new-info"><div class="chat-new-name">'+eH(nome)+'</div><div class="chat-new-role">'+eH(u.cargo||'Consultor')+'</div></div>'
+          + '</div>';
         }).join('')
-      +'</div>';
-  }
-
-  var gname = c.name || 'Grupo';
+      + '</div>';
   modalBody.innerHTML = '<h2>➕ Adicionar participante</h2>'
-    + '<div style="font-size:.78rem;color:var(--mu);margin-bottom:12px">Grupo: <b>'+eH(gname)+'</b> · Selecione um usuário para adicionar ('+users.length+' disponíveis):</div>'
+    + '<div style="font-size:.78rem;color:var(--mu);margin-bottom:12px">Grupo: <b>'+eH(c.name || 'Grupo')+'</b> · Selecione um usuário para adicionar ('+users.length+' disponíveis):</div>'
     + listHTML
     + '<div class="mbtns"><button class="bc" onclick="closeM(\'mo-chat-add-member\')">Fechar</button></div>';
 }
+
 
 function chatAddGroupMember(convId, uid){
   var convs = _chatGetConvs();
@@ -1536,38 +1593,22 @@ function chatArchive(convId){
 }
 
 function chatDeleteConv(convId){
-  var convs = _chatGetConvs();
-  var c = convs.find(function(x){ return x && x.id === convId; });
+  var c = _chatFindConvById(_chatGetConvs(), convId);
   if(!c){ _chatCloseCtxMenu(); return; }
-  // CORREÇÃO: usar _confirmModal se disponível para UX consistente
   if(typeof _confirmModal === 'function'){
     _confirmModal({
       title:'🗑 Excluir conversa?',
       msg:'Esta ação remove a conversa deste aparelho. As mensagens não podem ser recuperadas.',
-      okLabel:'Excluir',okClass:'bd',
-      onOk:function(){
-        convs = convs.filter(function(x){ return !(x && x.id === convId); });
-        _chatSaveConvs(convs);
-        try{ localStorage.removeItem(CHAT_MSG_PREFIX + convId); }catch(_e){}
-        if(_chatCurrentConv === convId) closeChatConv();
-        renderChatList();
-        _chatUpdateUnreadBadge();
-        if(typeof toast === 'function') toast('🗑 Conversa excluída');
-        _chatCloseCtxMenu();
-      }
+      okLabel:'Excluir',
+      okClass:'bd',
+      onOk:function(){ _chatDeleteConvLocal(convId); }
     });
-  }else{
-    if(!confirm('Excluir esta conversa deste aparelho?')){ _chatCloseCtxMenu(); return; }
-    convs = convs.filter(function(x){ return !(x && x.id === convId); });
-    _chatSaveConvs(convs);
-    try{ localStorage.removeItem(CHAT_MSG_PREFIX + convId); }catch(_e){}
-    if(_chatCurrentConv === convId) closeChatConv();
-    renderChatList();
-    _chatUpdateUnreadBadge();
-    if(typeof toast === 'function') toast('🗑 Conversa excluída');
-    _chatCloseCtxMenu();
+    return;
   }
+  if(!confirm('Excluir esta conversa deste aparelho?')){ _chatCloseCtxMenu(); return; }
+  _chatDeleteConvLocal(convId);
 }
+
 
 /* ─── Buscar conversas ─── */
 function chatSearch(q){
@@ -1607,6 +1648,8 @@ function _chatSyncConvIndex(conv, msg){
     name: conv.name || '',
     participants: participants,
     participantNames: conv.participantNames || {},
+    admins: Array.isArray(conv.admins) ? conv.admins.slice() : [],
+    createdBy: conv.createdBy || '',
     updatedAt: (msg && msg.ts) || conv.updatedAt || new Date().toISOString(),
     preview: _chatInboxPreview(msg)
   };
@@ -1690,6 +1733,8 @@ function _chatSyncMsg(msg){
       payload.name = conv.name || '';
       payload.participants = conv.participants || [];
       payload.participantNames = conv.participantNames || {};
+      payload.admins = Array.isArray(conv.admins) ? conv.admins.slice() : [];
+      payload.createdBy = conv.createdBy || '';
     }
     if(root && root.config && root.config.useWorkerApi && wc && typeof wc.putConfig === 'function'){
       wc.putConfig('chat_conv_' + msg.convId, payload).catch(function(e){ console.warn('[chat] sync falhou', e); });
@@ -1705,82 +1750,41 @@ function _chatPollNewMsgs(){
   if(!S || !S.userId) return;
   if(_chatPollInFlight) return;
   if(document && document.visibilityState==='hidden') return;
-  _chatPollInFlight=true;
+  _chatPollInFlight = true;
   try{
     var root = window.LiderCRM;
     var wc = root && root.api && root.api.workerClient;
     if(root && root.config && root.config.useWorkerApi && wc && typeof wc.getConfig === 'function'){
       _chatPullInboxConvs().then(function(){
         var convs = _chatGetConvs();
-        return Promise.all((convs||[]).map(function(c){
-        return wc.getConfig('chat_conv_' + c.id).then(function(doc){
-          if(!(doc && doc.msgs)) return;
-          if(doc && (doc.participants || doc.participantNames || typeof doc.name==='string')){
-            var convs=_chatGetConvs();
-            var idx=convs.findIndex(function(x){ return x && x.id===c.id; });
-            if(idx>=0){
-              convs[idx]=_chatNormalizeConv(Object.assign({},convs[idx],{
-                isGroup: typeof doc.isGroup==='boolean' ? doc.isGroup : convs[idx].isGroup,
-                name: typeof doc.name==='string' ? doc.name : convs[idx].name,
-                participants: doc.participants || convs[idx].participants,
-                participantNames: Object.assign({}, (convs[idx].participantNames||{}), (doc.participantNames||{})),
-                // FIX Passo 4 (2026-07-21) — receber metadados de grupo
-                admins: Array.isArray(doc.admins) ? doc.admins : convs[idx].admins,
-                createdBy: typeof doc.createdBy==='string' && doc.createdBy ? doc.createdBy : convs[idx].createdBy
-              }));
-              _chatSaveConvs(convs);
-              c=convs[idx];
-            }
-          }
-          var localMsgs = _chatGetMsgs(c.id);
-          var known = new Set((localMsgs||[]).map(function(m){ return m && m.id; }));
-          var incoming = (doc.msgs || []).filter(function(m){ return m && m.id && !known.has(m.id); });
-          if(!incoming.length) return;
-          var all = localMsgs.concat(incoming).filter(Boolean);
-          var byId = {};
-          all.forEach(function(m){ if(m && m.id) byId[m.id]=m; });
-          all = Object.keys(byId).map(function(k){ return byId[k]; }).sort(function(a,b){ return String(a.ts||'').localeCompare(String(b.ts||'')); });
-          _chatSaveMsgs(c.id, all);
-          _chatLastMsgTs[c.id] = all.length ? all[all.length-1].ts : null;
-          if(_chatCurrentConv === c.id) renderChatMsgs(c.id);
-          renderChatList();
-          _chatUpdateUnreadBadge();
-          incoming.forEach(function(m){
-            if(m.fromUid !== S.userId && !c.muted){
-              if(typeof _playNotifSound === 'function') _playNotifSound();
-              if(typeof fireNativeNotification === 'function') fireNativeNotification('💬 '+(m.fromName||'?'), m.text||'📎 Arquivo', m.id);
-            }
-          });
-        }).catch(function(){});
+        return Promise.all((convs || []).map(function(conv){
+          return _chatPollRemoteConv(wc, conv);
         }));
-      }).finally(function(){ _chatPollInFlight=false; });
+      }).finally(function(){
+        _chatPollInFlight = false;
+      });
       return;
     }
-  }catch(e){console.warn('[chat] poll error',e);}
-  _chatPollInFlight=false;
+  }catch(e){
+    console.warn('[chat] poll error', e);
+  }
+  _chatPollInFlight = false;
 }
+
 
 /* ─── Badge de não lidas ─── */
 function _chatUpdateUnreadBadge(){
   if(!S||!S.userId)return;
-  var convs = _chatGetConvs();
-  var total = 0;
-  convs.forEach(function(c){
-    var msgs = _chatGetMsgs(c.id);
-    /* FIX R4 (2026-07-22): grupos usam toUid=''; usar fromUid para grupos */
-    var _myIdBadge = S && S.userId;
-    total += msgs.filter(function(m){
-      if(m.read) return false;
-      return c.isGroup ? (m.fromUid !== _myIdBadge) : (m.toUid === _myIdBadge);
-    }).length;
-  });
+  var total = _chatGetConvs().reduce(function(sum, conv){
+    return sum + _chatCountUnread(conv, _chatGetMsgs(conv.id));
+  }, 0);
   _chatUnreadCount = total;
   var badge = document.getElementById('chat-badge');
   if(badge) badge.textContent = total > 0 ? (total > 99 ? '99+' : total) : '';
-  // Also update mobile nav badge
   var mobileBadge = document.querySelector('[data-page="chat"] .mbn-dot');
   if(mobileBadge) mobileBadge.style.opacity = total > 0 ? '1' : '0';
 }
+
 
 /* ─── Formatar tempo ─── */
 function _chatFmtTime(ts, withTime){

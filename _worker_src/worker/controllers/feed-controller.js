@@ -24,9 +24,10 @@
 //   POST /api/v1/feed
 // =====================================================================
 
-import { readJsonBody, sanitizeString } from '../validators/validate.js';
+import { readJsonBody, sanitizeString, validate } from '../validators/validate.js';
 import { setFsDocument, listFsChildren } from '../lib/fs-documents.js';
 import { ok, created } from '../utils/response.js';
+import { feedEventoCreateSchema } from '../schemas/index.js';
 
 const FEED_PARENT = 'feed';
 
@@ -64,6 +65,7 @@ export async function listFeed(request, ctx) {
 
 export async function createFeedEvento(request, ctx) {
   const body = await readJsonBody(request);
+  validate(body || {}, feedEventoCreateSchema); // R5: input validation
   const id = genId();
   const entry = {
     id,

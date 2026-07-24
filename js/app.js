@@ -14,7 +14,13 @@ function _lfUsuariosRuntime(){
   return ((((window.LiderCRM||{}).modules||{}).usuarios||{}).runtime)||{};
 }
 
+function _lfSharedRuntime(){
+  return (((window.LiderCRM||{}).shared||{}).runtime)||{};
+}
+
 function _lfResolveFn(name, legacyRef){
+  var shared=_lfSharedRuntime();
+  if(shared&&typeof shared.resolveFn==='function') return shared.resolveFn(name,legacyRef);
   if(typeof legacyRef==='function')return legacyRef;
   try{ if(typeof window[name]==='function') return window[name]; }catch(_e){}
   try{
@@ -25,6 +31,8 @@ function _lfResolveFn(name, legacyRef){
 }
 
 function _lfGetUsersSafe(){
+  var shared=_lfSharedRuntime();
+  if(shared&&typeof shared.getUsersSafe==='function') return shared.getUsersSafe();
   var fn=_lfResolveFn('getUsers',typeof getUsers!=='undefined'?getUsers:null);
   if(!fn) return [];
   try{
@@ -37,6 +45,8 @@ function _lfGetUsersSafe(){
 }
 
 function _lfGetUserSafe(uid){
+  var shared=_lfSharedRuntime();
+  if(shared&&typeof shared.getUserSafe==='function') return shared.getUserSafe(uid);
   var fn=_lfResolveFn('getUser',typeof getUser!=='undefined'?getUser:null);
   if(fn){
     try{return fn(uid)||null;}catch(e){console.warn('[app] getUser falhou',e);}
@@ -50,6 +60,8 @@ function _lfGetUserSafe(uid){
 }
 
 function _lfLoadUsersDBSafe(cb){
+  var shared=_lfSharedRuntime();
+  if(shared&&typeof shared.loadUsersDBSafe==='function') return shared.loadUsersDBSafe(cb);
   var fn=_lfResolveFn('loadUsersDB',typeof loadUsersDB!=='undefined'?loadUsersDB:null);
   if(typeof fn!=='function'){
     console.warn('[app] loadUsersDB indisponível — seguindo com cache local');
@@ -63,6 +75,8 @@ function _lfLoadUsersDBSafe(cb){
 }
 
 function _lfLoadDepartmentsRemoteSafe(cb){
+  var shared=_lfSharedRuntime();
+  if(shared&&typeof shared.loadDepartmentsRemoteSafe==='function') return shared.loadDepartmentsRemoteSafe(cb);
   var fn=_lfResolveFn('loadDepartmentsRemote',typeof loadDepartmentsRemote!=='undefined'?loadDepartmentsRemote:null);
   if(typeof fn!=='function') return;
   try{return fn(cb||function(){});}catch(e){console.warn('app: loadDepartmentsRemote failed',e);}
@@ -87,6 +101,7 @@ function _lfSoftResumeSync(reason){
   if(!S||!S.userId)return;
   console.debug('[CRM] soft resume sync:',reason||'resume');
   _lfSafeCall(function(){ if(window.LiderCRM&&window.LiderCRM.offline&&window.LiderCRM.offline.sync) window.LiderCRM.offline.sync.drain(); },'offline.sync.drain');
+  _lfSafeCall(function(){ if(window.SyncManager&&typeof window.SyncManager.drain==='function') window.SyncManager.drain(); },'legacy.sync.drain');
   _lfSafeCall(function(){ _lfLoadUsersDBSafe(function(){ try{ if(typeof renderUsers==='function')renderUsers(); }catch(_e){} try{ if(typeof buildNav==='function')buildNav(); }catch(_e){} }); },'loadUsersDB');
   _lfSafeCall(function(){ _lfLoadDepartmentsRemoteSafe(function(){}); },'loadDepartmentsRemote');
   _lfSafeCall(function(){ if(typeof _sessionsHeartbeat==='function')_sessionsHeartbeat(); },'_sessionsHeartbeat');
@@ -95,9 +110,49 @@ function _lfSoftResumeSync(reason){
   _lfSafeCall(function(){ if(window.LF&&typeof window.LF.fetchAndCacheActivities==='function') window.LF.fetchAndCacheActivities(S.userId).then(function(){ try{ if(typeof renderActPanel==='function')renderActPanel(); }catch(_e){} try{ if(typeof updateActBadge==='function')updateActBadge(); }catch(_e){} }).catch(function(e){console.warn('[app] soft activities sync falhou',e);}); },'fetchAndCacheActivities');
 }
 
+function _lfHandleCrossTabStorage(ev){
+  if(!S||!S.userId||!ev||!ev.key)return;
+  var key=String(ev.key||'');
+  var uid=String(S.userId||'');
+  var affectsCurrentUser = key==='lf6_s'
+    || key==='lidercrm_worker_jwt_v1'
+    || key==='lf_retry_q_v1'
+    || key==='lidercrm_retry_queue_v1'
+    || key.indexOf('lf_sessions_'+uid)===0
+    || key.indexOf('lf13_acts_'+uid)===0
+    || key.indexOf('lf13_lig_'+uid+'_')===0
+    || key.indexOf('lf6_c_'+uid)===0
+    || key.indexOf('lf13_pic_'+uid)===0
+    || key.indexOf('lf13_bg_'+uid)===0
+    || key.indexOf('lf13_bgphoto_'+uid)===0
+    || key.indexOf('lf6_kb_leads_'+uid)===0
+    || key.indexOf('lf6_kb_negocios_'+uid)===0
+    || key==='lf13_chat_convs'
+    || key.indexOf('lf13_chat_msgs_')===0
+    || key==='lf_chat_last_conv'
+    || key==='lf_custom_logo'
+    || key==='lf_custom_crm_name';
+  if(!affectsCurrentUser) return;
+  if((key==='lf6_s' || key==='lidercrm_worker_jwt_v1') && !ev.newValue){
+    _lfDefer(function(){ try{ _execLogout(); }catch(_e){} },0);
+    return;
+  }
+  _lfDefer(function(){ _lfSoftResumeSync('storage:'+key); },120);
+  if(key.indexOf('lf6_kb_')===0){
+    _lfDefer(function(){ try{ if(typeof renderKB==='function'&&document.getElementById('pg-leads')&&document.getElementById('pg-leads').classList.contains('on')) renderKB('leads'); }catch(_e){} try{ if(typeof renderKB==='function'&&document.getElementById('pg-negocios')&&document.getElementById('pg-negocios').classList.contains('on')) renderKB('negocios'); }catch(_e){} },160);
+  } else if(key.indexOf('lf6_c_'+uid)===0){
+    _lfDefer(function(){ try{ if(typeof renderDash==='function'&&document.getElementById('pg-dash')&&document.getElementById('pg-dash').classList.contains('on')) renderDash(); }catch(_e){} },160);
+  } else if(key.indexOf('lf13_chat_')===0 || key==='lf_chat_last_conv'){
+    _lfDefer(function(){ try{ if(typeof renderChatList==='function'&&document.getElementById('pg-chat')&&document.getElementById('pg-chat').classList.contains('on')) renderChatList(); }catch(_e){} },160);
+  } else if(key.indexOf('lf13_acts_'+uid)===0 || key.indexOf('lf13_lig_'+uid+'_')===0){
+    _lfDefer(function(){ try{ if(typeof renderActPanel==='function')renderActPanel(); }catch(_e){} try{ if(typeof updateActBadge==='function')updateActBadge(); }catch(_e){} },160);
+  }
+}
+
 
 function bootApp(){
   try{localStorage.setItem('lf_app_ver','lf_v13');}catch(e){console.warn("app: localStorage write failed",e);}
+  try{if(typeof smon==='function')smon();}catch(_e){} // R5: storage quota monitor on boot
   _lfGetUsersSafe();
   var le=document.getElementById('le'),lp=document.getElementById('lp');
   if(le){le.removeEventListener('keydown',_leKD);le.addEventListener('keydown',_leKD);}
@@ -177,7 +232,7 @@ function startApp(){
   if(d1)d1.value=y+'-'+m+'-01';if(d2)d2.value=today();if(nd)nd.value=today();
   try{buildNav();}catch(e){console.error('buildNav',e);}
   try{if(typeof loadThemeRemote==='function')loadThemeRemote(S.userId,function(mode){if(typeof setAppThemeMode==='function')setAppThemeMode(mode,true);});}catch(e){console.error('loadThemeRemote',e);}
-  try{if(typeof loadBGRemote==='function')loadBGRemote(S.userId,function(){try{if(typeof applyBG==='function')applyBG(sg('lf13_bg_'+S.userId)||'default');}catch(_e){}});}catch(e){console.error('loadBGRemote',e);}
+  try{if(typeof loadBGRemote==='function')loadBGRemote(S.userId,function(){try{if(typeof applyBG==='function')applyBG(sg('lf13_bg_'+S.userId)||'default');}catch(_e){console.warn('[app] applyBG falhou',_e);}});}catch(e){console.error('loadBGRemote',e);}
   try{
     if(window._actPanelClickHandler)document.removeEventListener('click',window._actPanelClickHandler,{passive:true});
     window._actPanelClickHandler=function(e){
@@ -216,7 +271,7 @@ function startApp(){
   });
 
   setTimeout(function(){
-    try{window.dispatchEvent(new CustomEvent('lf:app-started',{detail:{userId:S&&S.userId||null}}));}catch(_e){}
+    try{window.dispatchEvent(new CustomEvent('lf:app-started',{detail:{userId:S&&S.userId||null}}));}catch(_e){console.warn('[app] lf:app-started event falhou',_e);}
   },0);
 }
 
@@ -225,23 +280,23 @@ function startApp(){
 // ============================================================
 function buildNav(){
   var t=document.getElementById('ntabs');
-  var bingo='<button class="nt" onclick="goPage(\'dash\')">Bingo</button>';
-  var leads='<button class="nt" onclick="goPage(\'leads\')">Leads</button>';
-  var negs='<button class="nt" onclick="goPage(\'negocios\')">Neg\u00f3cios</button>';
-  var agenda='<button class="nt" onclick="goPage(\'agenda\')">\uD83D\uDCC5 Agenda</button>';
-  var chat='<button class="nt" onclick="goPage(\'chat\')">\uD83D\uDCAC Papo</button>';
-  var anal='<button class="nt" onclick="goPage(\'anal\')">Analytics</button>';
-  var dic='<button class="nt" onclick="goPage(\'dic\')">Dicion\u00e1rio</button>';
-  var cfg='<button class="nt" onclick="goPage(\'config\')">\u2699\uFE0F Config</button>';
-  var time='<button class="nt" onclick="goPage(\'time\')">\uD83D\uDC65 Time</button>';
-  var adm=hasAdminAccess()?'<button class="nt at" onclick="goPage(\'adm\')">ADM</button>':'';
-  var timeBtn=hasSupervisorAccess()?time:'';
-  // Documentos, Estrutura da Empresa e Dispositivos conectados deixaram de ser abas
-  // próprias no topo — agora vivem dentro da aba Config (ver settings-section
-  // "🧩 Ferramentas" em pg-config), a pedido do usuário, para reduzir a quantidade
-  // de abas na barra principal.
-  // Todos recebem as tabs de consultor + extras por nível; ADM sempre ao final
-  t.innerHTML=bingo+leads+negs+agenda+chat+timeBtn+anal+dic+cfg+adm;
+  if(!t)return;
+  var navigation=(((window.LiderCRM||{}).shared||{}).navigation)||{};
+  var tabs=(navigation&&typeof navigation.getNavTabs==='function')
+    ? navigation.getNavTabs({isAdmin:hasAdminAccess(),isSupervisor:hasSupervisorAccess()})
+    : [
+        {id:'dash',label:'Bingo',extraClass:''},
+        {id:'leads',label:'Leads',extraClass:''},
+        {id:'negocios',label:'Negócios',extraClass:''},
+        {id:'agenda',label:'📅 Agenda',extraClass:''},
+        {id:'chat',label:'💬 Papo',extraClass:''},
+        {id:'anal',label:'Analytics',extraClass:''},
+        {id:'dic',label:'Dicionário',extraClass:''},
+        {id:'config',label:'⚙️ Config',extraClass:''}
+      ];
+  t.innerHTML=tabs.map(function(tab){
+    return '<button class="nt'+(tab.extraClass?' '+tab.extraClass:'')+'" onclick="goPage(\''+tab.id+'\')">'+tab.label+'</button>';
+  }).join('');
 }
 
 function goPage(p){
@@ -389,6 +444,7 @@ if(!window._lfErrBoundaryInstalled){
 if(!window.__lfSoftResumeListeners){
   window.__lfSoftResumeListeners=1;
   window.addEventListener('online',function(){ _lfSoftResumeSync('browser-online'); },{passive:true});
+  window.addEventListener('storage',_lfHandleCrossTabStorage,{passive:true});
   document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') _lfDefer(function(){ _lfSoftResumeSync('visibility-visible'); },600); },{passive:true});
   window.addEventListener('pageshow',function(ev){ if(ev&&ev.persisted) _lfDefer(function(){ _lfSoftResumeSync('pageshow'); },400); },{passive:true});
 }
@@ -406,6 +462,9 @@ if(!window._capNetworkListener){
             var root=window.LiderCRM;
             if(root&&root.offline&&root.offline.sync){
               root.offline.sync.drain();
+            }
+            if(window.SyncManager&&typeof window.SyncManager.drain==='function'){
+              window.SyncManager.drain();
             }
           }catch(e){console.warn('[CRM] sync.drain falhou',e);}
           try{toast('✅ Conexão restaurada — sincronizando...');}catch(_e){}
@@ -548,7 +607,9 @@ function openInNewTab(page){
   try{
     var params=new URLSearchParams(window.location.search);
     var p=params.get('page');
-    if(p&&['dash','anal','adm','leads','negocios','agenda','time','config','docs','estrutura','chat','dic'].indexOf(p)>=0){
+    var navigation=(((window.LiderCRM||{}).shared||{}).navigation)||{};
+    var allowed=(navigation&&navigation.DEEP_LINK_PAGES)||['dash','anal','adm','leads','negocios','agenda','time','config','docs','estrutura','chat','dic'];
+    if(p&&allowed.indexOf(p)>=0){
       setTimeout(function(){if(typeof goPage==='function')goPage(p);},800);
     }
   }catch(e){}

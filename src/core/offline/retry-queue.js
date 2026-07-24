@@ -14,6 +14,9 @@
   function saveToStorage(items){
     try{ global.localStorage.setItem(STORAGE_KEY, JSON.stringify(items || [])); }catch(_e){}
   }
+  function syncFromStorage(){
+    return loadFromStorage();
+  }
 
   // Fila persistente de operações a re-tentar quando offline.
   // Item = { id, method, path, body, attempts, nextAt, meta }
@@ -45,8 +48,12 @@
     this._flush();
     return item;
   };
-  RetryQueue.prototype.list = function(){ return this.items.slice(); };
-  RetryQueue.prototype.size = function(){ return this.items.length; };
+  RetryQueue.prototype._syncFromStorage = function(){
+    this.items = syncFromStorage();
+    return this.items;
+  };
+  RetryQueue.prototype.list = function(){ this._syncFromStorage(); return this.items.slice(); };
+  RetryQueue.prototype.size = function(){ this._syncFromStorage(); return this.items.length; };
   RetryQueue.prototype.clear = function(){ this.items = []; this._flush(); };
   RetryQueue.prototype.remove = function(id){
     this.items = this.items.filter(function(i){ return i.id !== id; });
@@ -63,10 +70,19 @@
     this._flush();
   };
   RetryQueue.prototype.due = function(){
+    this._syncFromStorage();
     var now = Date.now();
     return this.items.filter(function(i){ return (i.nextAt || 0) <= now; });
   };
 
   offline.RetryQueue = RetryQueue;
   offline.retryQueue = new RetryQueue();
+  try{
+    if(typeof global.addEventListener === 'function'){
+      global.addEventListener('storage', function(ev){
+        if(!ev || ev.key !== STORAGE_KEY) return;
+        try{ offline.retryQueue._syncFromStorage(); offline.retryQueue._notify(); }catch(_e){}
+      }, { passive:true });
+    }
+  }catch(_e){}
 })(window);

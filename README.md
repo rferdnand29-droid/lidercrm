@@ -149,3 +149,19 @@ _lfApplyWallpaperTransparency(!!photoUrl);
 ---
 
 Depois de testar, me diga o que funcionou. Se algum item específico não funcionar, me manda o console (F12) — como está tudo em arquivos originais, dá pra debugar direto.
+
+---
+
+## Histórico de Refatoração
+
+### R5 — Refatoração Final (2026-07-23)
+
+**Missão concluída.** Pasta `js/patches/` eliminada completamente.
+
+Todos os 14 patches foram incorporados ao código principal:
+
+- **Novos módulos** `js/`: `display.js`, `sync.js`, `performance.js`,
+  `chat-fixes.js`, `attachments.js`, `bingo-sync.js`
+- **Reforços em módulos existentes**: `js/auth.js`, `js/kanban.js`, `js/utils.js`
+- `index.html` e `app.html` atualizados: `<script src>` apontam para os novos módulos
+- Ver `ARQUITETURA_FINAL_R5.md` para documentação completa da arquitetura.

@@ -12,11 +12,12 @@
 // =====================================================================
 
 import { ok } from '../utils/response.js';
-import { readJsonBody, sanitizeString } from '../validators/validate.js';
+import { readJsonBody, sanitizeString, validate } from '../validators/validate.js';
 import { BadRequestError } from '../errors/http-errors.js';
 import {
   getSetting, setSetting, deleteSetting, listSettings,
 } from '../repositories/settings-relational-repository.js';
+import { settingPutSchema } from '../schemas/index.js';
 
 function readParams(request) {
   const url = new URL(request.url);
@@ -41,6 +42,8 @@ export async function putSettingCtrl(request, ctx) {
   if (!key) throw new BadRequestError('key é obrigatório.');
   const body = await readJsonBody(request);
   const value = (body && (body.value !== undefined)) ? body.value : body;
+  // R5: input validation
+  validate({ key, value }, settingPutSchema);
   const row = await setSetting(ctx.cfg, scope, scopeId, key, value);
   return ok(row ? row.value : value, {
     endpoint: '/api/v1/settings', scope, scope_id: scopeId, key,

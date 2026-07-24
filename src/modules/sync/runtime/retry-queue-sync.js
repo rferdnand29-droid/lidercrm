@@ -93,6 +93,11 @@
   if (!Array.isArray(_q)) _q = [];
 
   function _saveQ() { _ss(QKEY, _q); }
+  function _reloadQ() {
+    var latest = _sg(QKEY);
+    _q = Array.isArray(latest) ? latest : [];
+    return _q;
+  }
   function _mkId(prefix) { return (prefix || 'op') + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5); }
 
   var RetryQueue = {
@@ -108,11 +113,12 @@
       var i = _q.findIndex(function (o) { return o.id === id; });
       if (i >= 0) { _q.splice(i, 1); _saveQ(); _paint(); }
     },
-    list: function () { return _q.slice(); },
+    list: function () { _reloadQ(); return _q.slice(); },
     clear: function () { _q = []; _saveQ(); _paint(); },
-    pending: function () { return _q.length; },
-    _raw: function () { return _q; },
+    pending: function () { _reloadQ(); return _q.length; },
+    _raw: function () { _reloadQ(); return _q; },
     _persist: _saveQ,
+    _reload: _reloadQ,
   };
 
   // -----------------------------------------------------------------
@@ -169,6 +175,7 @@ async function _syncFetchWithTimeout(url, init, timeoutMs) {
 
   async function SyncManager_drain() {
     if (_dranning) return;
+    _reloadQ();
     if (!_q.length) return;
     if (!_realOnline()) return;
     _dranning = true;
@@ -445,5 +452,14 @@ async function _syncFetchWithTimeout(url, init, timeoutMs) {
   if(typeof _enqueueActivities === 'function') global._enqueueActivities = _enqueueActivities;
   if(typeof _enqueueLigacoes === 'function') global._enqueueLigacoes = _enqueueLigacoes;
   if(typeof fetchAndCacheActivities === 'function') global.fetchAndCacheActivities = fetchAndCacheActivities;
+
+  try {
+    if(typeof global.addEventListener === 'function'){
+      global.addEventListener('storage', function(ev){
+        if(!ev || ev.key !== QKEY) return;
+        try { _reloadQ(); _paint(); } catch(_e){}
+      }, { passive:true });
+    }
+  } catch(_e) {}
 
 })(window);

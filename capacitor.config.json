@@ -1,7 +1,7 @@
 {
   "appId": "com.liderfinanceira.lidercrm",
   "appName": "Lider CRM",
-  "webDir": "www",
+  "webDir": ".",
   "bundledWebRuntime": false,
   "backgroundColor": "#0A0C10",
   "android": {
