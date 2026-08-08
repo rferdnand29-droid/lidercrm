@@ -1,0 +1,73 @@
+/* =====================================================================
+ * lf-cacador-4bugs-20260730.css
+ * Corrige BUG 3 (transparência do login + texto branco negrito).
+ * Deve ser carregado DEPOIS de:
+ *   - css/style.css
+ *   - css/lf-login-transparent.css
+ *   - css/lf-cacador-erro-especifico-20260730.css
+ * ===================================================================== */
+
+/* Botão "Entrar" totalmente transparente, texto branco negrito */
+#login-screen #btn-login,
+#login-screen .btn-in {
+  background: transparent !important;
+  background-image: none !important;
+  border: 1.5px solid rgba(255,255,255,.55) !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,.75) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(2px) !important;
+  -webkit-backdrop-filter: blur(2px) !important;
+}
+#login-screen #btn-login:hover,
+#login-screen .btn-in:hover {
+  background: rgba(255,255,255,.08) !important;
+}
+
+/* Barras (inputs) transparentes; valor e placeholder brancos e negrito */
+#login-screen .lf input,
+#login-screen .lf-pw input {
+  background: transparent !important;
+  border: 1.5px solid rgba(255,255,255,.55) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,.65) !important;
+  caret-color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+#login-screen .lf input::placeholder,
+#login-screen .lf-pw input::placeholder {
+  color: rgba(255,255,255,.85) !important;
+  font-weight: 700 !important;
+  opacity: 1 !important;
+}
+#login-screen .lf input:focus,
+#login-screen .lf-pw input:focus {
+  border-color: #fff !important;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.18) !important;
+}
+
+/* Rótulos "E-MAIL" / "SENHA" — brancos negrito, para compensar transparência */
+#login-screen .lf label {
+  color: #fff !important;
+  font-weight: 700 !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,.75) !important;
+  opacity: 1 !important;
+}
+
+/* Botão "olho" (mostrar senha) integrado ao input transparente */
+#login-screen .lf-pw .eye {
+  background: transparent !important;
+  color: #fff !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,.75) !important;
+}
+
+/* Autofill do Chrome NÃO pode voltar a pintar de amarelo/azul */
+#login-screen .lf input:-webkit-autofill,
+#login-screen .lf-pw input:-webkit-autofill {
+  -webkit-text-fill-color: #fff !important;
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  transition: background-color 9999s ease-in-out 0s;
+  font-weight: 700 !important;
+}

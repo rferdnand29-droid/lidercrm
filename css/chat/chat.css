@@ -1,0 +1,687 @@
+/* =====================================================================
+ * css/chat.css — Módulo "Papo da Empresa" (Chat Corporativo)
+ * Layout: 3 colunas no desktop, 1 coluna no mobile
+ * ===================================================================== */
+
+/* ─── Container principal ─── */
+/* R16-06: sobrescrever .pg base para chat */
+#pg-chat{display:none!important;padding:0!important;max-width:none!important;height:calc(100vh - 60px);height:calc(100dvh - 60px);overflow:hidden;padding-top:env(safe-area-inset-top,0px);}
+#pg-chat.on{display:flex!important;margin:0!important;animation:none!important;}
+
+/* ─── Painel de lista (coluna central) ─── */
+#chat-list-panel{
+  width:320px;min-width:320px;
+  border-right:1.5px solid var(--b2);
+  display:flex;flex-direction:column;
+  background:var(--bg2);
+  transition:width .2s;
+}
+#chat-list-panel.full{width:100%;min-width:100%;flex:1;height:100%;}
+
+.chat-list-header{
+  padding:12px 14px;border-bottom:1px solid var(--b2);
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg2);
+  flex-shrink:0;
+}
+.chat-list-header h2{font-size:1.05rem;font-weight:700;color:var(--tx);margin:0;flex:1;}
+/* FIX (2026-08-02): escondido por padrão — no desktop a barra .ntabs já
+   resolve a navegação. position:fixed de propósito: não é filho de
+   .chat-list-header (esse container é escondido com !important por
+   lf-chat-hotfix-20260731.css, incondicionalmente — um botão dentro
+   dele ficaria escondido junto, mesmo problema que motivou este fix).
+   Ver regra que mostra em @media(max-width:768px) mais abaixo. */
+#chat-exit-mobile-btn{
+  display:none;
+  position:fixed;
+  top:calc(10px + env(safe-area-inset-top,0px));
+  left:10px;
+  z-index:40;
+  background:var(--bg2,#1a1d24);border:1.5px solid var(--b1);border-radius:50%;
+  color:var(--tx);font-size:1.2rem;line-height:1;
+  width:38px;height:38px;
+  align-items:center;justify-content:center;
+  cursor:pointer;
+  box-shadow:0 2px 10px rgba(0,0,0,.25);
+}
+.chat-new-btn{
+  background:linear-gradient(135deg,var(--ad),var(--amber));
+  color:#0A0C10;border:none;border-radius:8px;
+  width:32px;height:32px;font-size:1.1rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  touch-action:manipulation;flex-shrink:0;
+}
+.chat-search{
+  padding:8px 14px;border-bottom:1px solid var(--b2);
+  flex-shrink:0;
+}
+.chat-search input{
+  width:100%;padding:8px 12px;border-radius:8px;
+  background:var(--bg3);border:1px solid var(--b1);
+  color:var(--tx);font-size:.82rem;outline:none;
+  -webkit-appearance:none;appearance:none;
+}
+.chat-search input:focus{border-color:var(--amber);}
+
+#chat-conv-list{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  min-height:0;
+}
+
+/* ─── Item de conversa ─── */
+.chat-conv-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;cursor:pointer;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  transition:background .15s;
+  min-height:60px;
+  touch-action:manipulation;
+}
+.chat-conv-item:hover{background:rgba(255,255,255,.03);}
+.chat-conv-item.active{background:rgba(195,154,45,.08);}
+
+.chat-conv-avatar{
+  width:42px;height:42px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.9rem;font-weight:700;color:#fff;
+  flex-shrink:0;position:relative;
+  text-transform:uppercase;
+}
+.chat-online-dot{
+  position:absolute;bottom:1px;right:1px;
+  width:10px;height:10px;border-radius:50%;
+  background:#20A46F;border:2px solid var(--bg2);
+}
+
+.chat-conv-body{flex:1;min-width:0;}
+.chat-conv-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;}
+.chat-conv-name{font-size:.83rem;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chat-conv-time{font-size:.65rem;color:var(--mu);flex-shrink:0;margin-left:6px;}
+.chat-conv-bottom{display:flex;justify-content:space-between;align-items:center;}
+.chat-conv-preview{font-size:.75rem;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+.chat-conv-badge{
+  background:var(--amber);color:#0A0C10;
+  border-radius:10px;padding:1px 7px;
+  font-size:.65rem;font-weight:700;
+  flex-shrink:0;margin-left:6px;
+  min-width:20px;text-align:center;
+}
+
+.chat-empty{
+  padding:40px 20px;text-align:center;
+  color:var(--mu);font-size:.82rem;line-height:1.6;
+}
+
+/* ─── Painel de conversa (coluna direita) ─── */
+#chat-conv-panel{
+  flex:1;display:flex;flex-direction:column;
+  background:var(--bg);
+  min-width:0;
+  position:relative; /* 2026-08-05: ancoragem pro header/input absolutos — ver bloco mobile abaixo */
+}
+#chat-conv-panel:not(.open){display:none;}
+
+#chat-conv-header{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;border-bottom:1px solid var(--b2);
+  background:var(--bg2);flex-shrink:0;
+  min-height:56px;
+}
+.chat-back-btn{
+  display:none;background:none;border:none;
+  color:var(--tx);font-size:1.6rem;cursor:pointer;
+  padding:0 4px;touch-action:manipulation;
+}
+.chat-conv-hd-avatar{
+  width:38px;height:38px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.82rem;font-weight:700;color:#fff;
+  flex-shrink:0;text-transform:uppercase;
+}
+.chat-conv-hd-info{flex:1;min-width:0;}
+.chat-conv-hd-name{font-size:.88rem;font-weight:600;color:var(--tx);}
+.chat-conv-hd-status{font-size:.68rem;color:var(--ok);}
+.chat-conv-hd-menu{
+  background:none;border:none;color:var(--tx);
+  font-size:1.2rem;cursor:pointer;padding:4px 8px;
+  touch-action:manipulation;
+}
+
+#chat-msgs{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  padding:14px;display:flex;flex-direction:column;gap:6px;
+  -webkit-overflow-scrolling:touch;
+  min-height:0;
+}
+
+.chat-msgs-empty{
+  margin:auto;text-align:center;color:var(--mu);
+  font-size:.85rem;padding:40px 20px;
+}
+
+/* ─── Bolhas de mensagem ─── */
+.chat-msg{max-width:72%;display:flex;flex-direction:column;gap:2px;position:relative;}
+.chat-msg.me{align-self:flex-end;align-items:flex-end;}
+.chat-msg.them{align-self:flex-start;align-items:flex-start;}
+
+/* 2026-08-06: botão ⋮ fixo — alternativa confiável ao toque-e-segure/
+   botão direito pra abrir editar/apagar/etc, principalmente em cima de
+   áudio (o player nativo pode interceptar o toque longo). Só aparece
+   em mensagens próprias (onde essas ações fazem sentido). */
+.chat-msg-menu-btn{
+  position:absolute;top:-2px;left:-30px;
+  width:26px;height:26px;min-width:26px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg3,rgba(255,255,255,.06));border:1px solid var(--b1,rgba(255,255,255,.12));
+  border-radius:50%;color:var(--mu);font-size:1rem;line-height:1;
+  cursor:pointer;padding:0;
+  opacity:0;transition:opacity .12s ease;
+}
+.chat-msg:hover .chat-msg-menu-btn{opacity:1;}
+@media (max-width:768px){
+  /* Sem hover no toque — fica sempre visível, mas discreto */
+  .chat-msg-menu-btn{opacity:.55;left:-32px;width:28px;height:28px;min-width:28px;}
+}
+
+.chat-msg-sender{font-size:.65rem;color:var(--bl);font-weight:600;margin-bottom:1px;}
+.chat-msg-text{
+  padding:8px 12px;border-radius:14px;
+  font-size:.83rem;line-height:1.4;word-wrap:break-word;word-break:break-word;overflow-wrap:break-word;
+  white-space:pre-wrap;
+}
+.chat-msg.me .chat-msg-text{
+  background:linear-gradient(135deg,var(--bd),var(--blue));
+  color:#fff;border-bottom-right-radius:4px;
+}
+.chat-msg.them .chat-msg-text{
+  background:var(--card);color:var(--tx);
+  border-bottom-left-radius:4px;border:1px solid var(--b2);
+}
+.chat-msg-meta{font-size:.6rem;color:var(--mu);display:flex;align-items:center;gap:4px;}
+.chat-msg-status{color:var(--bl);}
+.chat-msg.me .chat-msg-status{color:var(--ok);}
+
+.chat-msg-img{
+  max-width:240px;max-height:200px;border-radius:10px;
+  cursor:pointer;display:block;margin-bottom:2px;
+}
+.chat-msg-file{
+  padding:8px 12px;border-radius:10px;
+  background:var(--card);border:1px solid var(--b2);
+  font-size:.78rem;color:var(--bl);cursor:pointer;
+}
+
+/* ─── FIX (2026-07-21) — Reply inline: preview + citação na bolha ─── */
+#chat-reply-preview{
+  position:relative;
+  margin:0 14px;
+  padding:8px 34px 8px 12px;
+  border-left:3px solid var(--amber,#c39a2d);
+  background:rgba(195,154,45,.08);
+  border-radius:8px 8px 0 0;
+  font-family:Outfit,sans-serif;
+  font-size:.78rem;
+  color:var(--tx,#eee);
+  flex-shrink:0;
+}
+#chat-reply-preview .chat-reply-head{
+  font-size:.7rem;font-weight:600;
+  color:var(--amber,#c39a2d);
+  margin-bottom:2px;
+}
+#chat-reply-preview .chat-reply-body{
+  opacity:.85;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:100%;
+}
+#chat-reply-preview .chat-reply-cancel{
+  position:absolute;top:4px;right:6px;
+  background:none;border:0;color:var(--mu,#9aa);
+  font-size:1rem;cursor:pointer;padding:4px 6px;
+  line-height:1;border-radius:6px;
+}
+#chat-reply-preview .chat-reply-cancel:hover{
+  background:rgba(255,255,255,.06);color:var(--tx);
+}
+.chat-msg-reply{
+  margin:0 0 4px 0;padding:5px 8px;
+  border-left:3px solid var(--amber,#c39a2d);
+  background:rgba(255,255,255,.05);
+  border-radius:6px;
+  cursor:pointer;
+  font-size:.72rem;
+  max-width:100%;
+  transition:background .15s ease;
+}
+.chat-msg.me .chat-msg-reply{
+  background:rgba(0,0,0,.18);
+}
+.chat-msg-reply:hover{
+  background:rgba(195,154,45,.14);
+}
+.chat-msg-reply-name{
+  font-weight:600;
+  color:var(--amber,#c39a2d);
+  margin-bottom:2px;
+  font-size:.68rem;
+}
+.chat-msg-reply-text{
+  opacity:.85;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:100%;
+}
+
+/* ─── Área de input ─── */
+#chat-input-area{
+  display:none;align-items:flex-end;gap:8px;
+  padding:10px 14px;border-top:1px solid var(--b2);
+  background:var(--bg2);flex-shrink:0;
+  padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+}
+.chat-input-btn{
+  background:none;border:none;color:var(--mu);
+  font-size:1.3rem;cursor:pointer;padding:6px;
+  touch-action:manipulation;flex-shrink:0;
+  min-width:44px;min-height:44px;
+  display:flex;align-items:center;justify-content:center;
+}
+.chat-input-btn:hover,.chat-input-btn:active{color:var(--amber);}
+#chat-input{
+  flex:1;padding:10px 14px;border-radius:20px;
+  background:var(--bg3);border:1.5px solid var(--b1);
+  color:var(--tx);font-size:.83rem;outline:none;
+  font-family:Outfit,sans-serif;resize:none;
+  max-height:100px;min-height:40px;line-height:1.4;
+  -webkit-appearance:none;appearance:none;
+}
+#chat-input:focus{border-color:var(--amber);}
+.chat-send-btn{
+  background:linear-gradient(135deg,var(--ad),var(--amber));
+  color:#0A0C10;border:none;border-radius:50%;
+  width:44px;height:44px;font-size:1.1rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  touch-action:manipulation;flex-shrink:0;
+}
+
+/* CORREÇÃO 2026-08-07 (relatado: "conversa bugada, botões flutuando
+   soltos e sobrepostos"): #chat-nav-top/#chat-nav-bot (atalhos de
+   rolar pro início/fim da conversa) existiam no HTML e já tinham
+   lógica JS de mostrar/esconder (_chatUpdateNavBtns, ver js/chat.js)
+   — mas NUNCA tiveram CSS nenhum. Sem posição definida, caíam no
+   fluxo normal da página como botões padrão do navegador, soltos,
+   exatamente a bagunça visual relatada (mistura com a barra de
+   digitar, botão de voltar, etc.). display:none aqui casa com o que
+   o JS já assume como estado inicial (só troca pra flex quando
+   relevante) — antes disso nunca ter sido definido no CSS, o botão
+   ficava visível por padrão até o primeiro evento de rolagem rodar. */
+#chat-nav-top,#chat-nav-bot{
+  display:none;position:absolute;right:14px;z-index:18;
+  width:38px;height:38px;border-radius:50%;
+  background:var(--bg2);border:1.5px solid var(--b2);
+  color:var(--tx);font-size:1.05rem;cursor:pointer;
+  align-items:center;justify-content:center;
+  box-shadow:0 4px 14px rgba(0,0,0,.35);
+  touch-action:manipulation;
+}
+#chat-nav-top{top:78px;}
+#chat-nav-bot{bottom:calc(90px + env(safe-area-inset-bottom,0px));}
+#chat-nav-top:hover,#chat-nav-bot:hover{border-color:var(--amber);color:var(--amber);}
+
+/* ─── Context menu (FIX #12 — sem sobreposição PC/mobile) ─── */
+#chat-ctx-menu{
+  position:fixed;z-index:99999;display:block;
+  background:var(--bg2,#1a1e26);border:1.5px solid var(--b2,rgba(255,255,255,.18));
+  border-radius:10px;padding:6px;min-width:240px;max-width:92vw;
+  box-shadow:0 12px 40px rgba(0,0,0,.65);
+  pointer-events:auto;overscroll-behavior:contain;
+  -webkit-user-select:none;user-select:none;
+  max-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 24px);overflow-y:auto;
+}
+.chat-ctx-item{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;border-radius:7px;cursor:pointer;
+  font-size:.82rem;color:var(--tx);width:100%;
+  background:none;border:none;text-align:left;
+  touch-action:manipulation;
+}
+.chat-ctx-item:hover,.chat-ctx-btn:hover,.chat-ctx-react:hover{background:rgba(255,255,255,.08);}
+/* Impede o menu nativo de "copiar/selecionar" durante o long-press */
+.chat-msg{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+.chat-msg .chat-msg-text{-webkit-user-select:text;user-select:text;}
+/* Backdrop leve para dar contraste em mobile e capturar clique fora */
+#chat-ctx-backdrop{
+  position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.22);
+  pointer-events:auto;
+}
+
+/* ─── Nova conversa modal ─── */
+.chat-new-list{max-height:400px;overflow-y:auto;}
+.chat-new-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;cursor:pointer;border-radius:8px;
+  transition:background .15s;
+}
+.chat-new-item:hover{background:rgba(255,255,255,.04);}
+.chat-new-avatar{
+  width:38px;height:38px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.82rem;font-weight:700;color:#fff;flex-shrink:0;
+  text-transform:uppercase;
+}
+.chat-new-info{flex:1;}
+.chat-new-name{font-size:.83rem;font-weight:600;color:var(--tx);}
+.chat-new-role{font-size:.68rem;color:var(--mu);}
+
+/* ─── Tema claro adaptações ─── */
+body:not(.theme-classic) .chat-msg.them .chat-msg-text{
+  background:#e8edf2;color:#23354d;border-color:#d0d8e0;
+}
+body:not(.theme-classic) .chat-msg.me .chat-msg-text{
+  background:linear-gradient(135deg,#094F7A,#3A9FE0);color:#fff;
+}
+body:not(.theme-classic) #chat-list-panel,
+body:not(.theme-classic) #chat-conv-header,
+body:not(.theme-classic) #chat-input-area{
+  background:#f0f4f8;
+}
+body:not(.theme-classic) .chat-conv-item{
+  border-bottom-color:rgba(0,0,0,.06);
+}
+body:not(.theme-classic) .chat-conv-item:hover{
+  background:rgba(0,0,0,.03);
+}
+body:not(.theme-classic) .chat-conv-item.active{
+  background:rgba(15,122,191,.08);
+}
+body:not(.theme-classic) #chat-input{
+  background:#fff;color:#23354d;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE LAYOUT — single column
+   ═══════════════════════════════════════════════════════════════════ */
+@media(max-width:768px){
+  /* R17-02: chat ocupa toda a tela no mobile — bottom nav escondida */
+  #pg-chat.on ~ #mobile-bottom-nav,
+  body:has(#pg-chat.on) #mobile-bottom-nav{display:none!important;}
+  /* FIX (2026-08-02): a regra acima tira a ÚNICA navegação visível no
+     mobile sem dar nenhum jeito de voltar — mostra o botão de sair
+     especificamente aqui, no mesmo breakpoint que escondeu a bottom-nav. */
+  #chat-exit-mobile-btn{display:flex!important;}
+  #pg-chat{flex-direction:column!important;height:calc(100vh - 52px);height:calc(100dvh - 52px);padding:0!important;margin-top:0!important;}
+  #chat-list-panel{
+    width:100%;min-width:0;
+    border-right:none;
+  }
+  #chat-list-panel:not(.full){display:none;}
+  #chat-conv-panel{
+    width:100%;flex:1;
+    flex-direction:column!important;
+    display:flex;
+  }
+  #chat-conv-panel.open{display:flex;}
+  .chat-back-btn{display:flex!important;min-width:44px;min-height:44px;align-items:center;justify-content:center;}
+  .chat-msg{max-width:85%;word-break:break-word;overflow-wrap:break-word;}
+  .chat-msg-img{max-width:200px;max-height:160px;}
+  #chat-input-area{
+    padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));
+  }
+}
+
+@media(min-width:769px) and (max-width:1024px){
+  #chat-list-panel{width:280px;min-width:280px;}
+}
+
+@media(min-width:1025px){
+  #pg-chat{height:calc(100vh - 60px);height:calc(100dvh - 60px);}
+}
+
+/* R16-16: tema claro extra */
+body:not(.theme-classic) .chat-conv-item.active{
+  background:rgba(15,122,191,.10)!important;
+}
+body:not(.theme-classic) #chat-msgs{
+  background:linear-gradient(180deg,#eef3f8,#e8edf2);
+}
+body:not(.theme-classic) .chat-msgs-empty{
+  color:#8a9bb0;
+}
+body:not(.theme-classic) .chat-msg.them .chat-msg-text{
+  background:#fff!important;border:1px solid #d0d8e0!important;color:#23354d!important;
+}
+body:not(.theme-classic) .chat-input-btn{
+  color:#6a7d92;
+}
+body:not(.theme-classic) .chat-search input{
+  background:#fff;border-color:#d0d8e0;
+}
+body:not(.theme-classic) .chat-new-item:hover{
+  background:rgba(0,0,0,.04);
+}
+body:not(.theme-classic) .chat-ctx-item:hover{
+  background:rgba(0,0,0,.05);
+}
+
+/* R16-25: mobile keyboard safe — input visível acima do teclado */
+@media(max-width:768px){
+  /* CORREÇÃO 2026-08-05 (revisão 2, "não sinto muito bom, ainda tem que
+     arrastar pra achar a barra de digitar"): position:sticky depende
+     do elemento estar dentro do container que realmente rola, e do
+     browser calcular certo qual é esse container — testado à exaustão
+     e continuou falhando no WebView real do Capacitor mesmo depois de
+     reforços (prefixo -webkit-, especificidade alta, exclusão de
+     rolagem aninhada). Trocado por position:absolute, ancorado direto
+     em #chat-conv-panel (que ganhou position:relative pra isso) — não
+     depende de NENHUMA relação de scroll container pra funcionar,
+     sempre gruda no rodapé do painel independente do que #chat-msgs
+     estiver fazendo. #chat-msgs ganha padding-bottom equivalente pra
+     nunca ficar escondida atrás. */
+  #chat-input-area{
+    position:absolute!important;
+    left:0;right:0;bottom:0;
+    padding:8px 12px;
+    padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));
+    z-index:10;
+    border-top:1px solid var(--b2);
+    background:var(--bg2);
+  }
+  #chat-msgs{
+    flex:1;overflow-y:auto;
+    padding:10px 12px;
+    /* espaço reservado pro header (68px) + input absolutos, ver acima
+       e css/lf-consolidated-mobile.css — evita mensagem escondida atrás */
+    padding-top:76px;
+    padding-bottom:calc(78px + env(safe-area-inset-bottom,0px));
+    -webkit-overflow-scrolling:touch;
+  }
+  /* Em Capacitor, o teclado redimensiona o viewport — sticky garante visibilidade */
+}
+
+/* R17-11: iOS textarea zoom fix — iOS Safari zoom se font-size < 16px */
+@media(max-width:768px){
+  #chat-input{font-size:16px!important;}
+  .chat-search input{font-size:16px!important;}
+}
+
+/* R17-24: header compacto no mobile */
+@media(max-width:768px){
+  .chat-list-header{padding:8px 10px;gap:6px;}
+  .chat-list-header h2{font-size:.92rem;}
+  .chat-search{padding:6px 10px;}
+  .chat-conv-item{padding:8px 10px;gap:8px;}
+  .chat-conv-avatar{width:38px;height:38px;font-size:.82rem;}
+  .chat-conv-name{font-size:.82rem;}
+  .chat-conv-preview{font-size:.72rem;}
+  .chat-conv-hd-avatar{width:34px;height:34px;font-size:.78rem;}
+  .chat-conv-hd-name{font-size:.84rem;}
+  #chat-input{border-radius:18px;padding:8px 12px;}
+  .chat-msg-text{font-size:.84rem;padding:8px 11px;}
+  .chat-msg-meta{font-size:.58rem;}
+  .chat-msg-img{max-width:180px;max-height:140px;border-radius:8px;}
+}
+
+/* FIX #12: destaque ao pular para uma mensagem via grade de mídias */
+.chat-msg-highlight{ animation: chatMsgFlash 1.5s ease-out; }
+@keyframes chatMsgFlash{
+  0%   { background: rgba(195,154,45,.35); box-shadow:0 0 0 2px rgba(195,154,45,.6); }
+  100% { background: transparent; box-shadow:none; }
+}
+
+/* LF-CHAT-POLISH-MARKER v1.0-20260730 ─────────────────────────────────────────
+ * Polish do bate-papo — não substitui o original, só complementa.
+ *  • Day separator
+ *  • Cluster de mensagens consecutivas do mesmo autor
+ *  • Wrapper visual do <audio> nativo (sem mexer no JS do player)
+ *  • Indicador "digitando..." fixo lateral
+ *  • Sidebar: divisor de grupos fixados + preview inteligente (ícone + texto)
+ * Aplicado por: tools/chat_polish_patch.py — marcador acima impede reaplicação.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/* ─── Day separator (pílula central) ─── */
+.chat-day-sep{
+  align-self:center;
+  display:inline-flex;align-items:center;gap:8px;
+  margin:14px 0 6px;
+  padding:4px 12px;
+  background:var(--bg3,#11151c);
+  border:1px solid var(--b2,rgba(255,255,255,.12));
+  border-radius:999px;
+  font-family:Outfit,sans-serif;
+  font-size:.65rem;font-weight:600;
+  color:var(--mu,#9aa);
+  letter-spacing:.02em;text-transform:uppercase;
+  box-shadow:0 1px 2px rgba(0,0,0,.25);
+  position:sticky;top:6px;z-index:2;
+  user-select:none;
+}
+.chat-day-sep::before,
+.chat-day-sep::after{
+  content:"";width:18px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--b2,rgba(255,255,255,.18)));
+  opacity:.5;
+}
+.chat-day-sep::after{background:linear-gradient(90deg,var(--b2,rgba(255,255,255,.18)),transparent);}
+body:not(.theme-classic) .chat-day-sep{
+  background:#e6edf5;border-color:#d0d8e0;color:#6a7d92;
+  box-shadow:0 1px 2px rgba(15,38,80,.08);
+}
+
+/* ─── Cluster (bolhas consecutivas do mesmo autor) ─── */
+.chat-msg.cluster-first{margin-top:8px;}
+.chat-msg.cluster-mid   {margin-top:1px;}
+.chat-msg.cluster-last  {margin-bottom:8px;}
+.chat-msg.cluster-mid .chat-msg-sender{display:none;}
+
+/* Sender label só no primeiro do cluster */
+.chat-msg-sender{
+  font-size:.66rem;font-weight:600;
+  color:var(--bl,#3A9FE0);
+  margin:0 0 3px 4px;
+  letter-spacing:.01em;
+}
+
+/* ─── Player de áudio nativo (restyling via CSS, sem trocar <audio>) ─── */
+.chat-audio{
+  display:flex;align-items:center;gap:10px;
+  padding:6px 10px;border-radius:12px;
+  min-width:220px;max-width:280px;
+  background:rgba(255,255,255,.06);
+}
+.chat-msg.me .chat-audio{background:rgba(0,0,0,.20);}
+.chat-msg.them .chat-audio{
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--b2,rgba(255,255,255,.10));
+}
+.chat-audio audio{
+  width:100%;height:32px;
+  outline:none;flex:1;
+  filter:invert(.05) hue-rotate(180deg);
+  border-radius:8px;
+}
+.chat-audio-meta{
+  display:flex;flex-direction:column;gap:1px;
+  font-size:.66rem;color:rgba(255,255,255,.85);
+  min-width:54px;
+}
+.chat-audio-meta .dur{font-weight:600;}
+.chat-audio-meta .lbl{opacity:.7;font-size:.6rem;}
+.chat-msg.me .chat-audio-meta{color:#d8ecff;}
+.chat-msg.them .chat-audio-meta{color:var(--mu,#9aa);}
+
+/* ─── Indicador "digitando..." (lateral fixo abaixo do header) ─── */
+.chat-typing-indicator{
+  position:absolute;left:14px;right:14px;bottom:64px;
+  display:flex;align-items:center;gap:8px;
+  padding:6px 14px;border-radius:999px;
+  background:var(--bg2,rgba(15,18,26,.85));
+  border:1px solid var(--b2,rgba(255,255,255,.12));
+  font-size:.72rem;color:var(--mu,#9aa);
+  font-family:Outfit,sans-serif;
+  pointer-events:none;user-select:none;
+  opacity:0;transform:translateY(6px);
+  transition:opacity .2s ease, transform .2s ease;
+  z-index:3;
+  max-width:260px;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
+}
+.chat-typing-indicator.on{opacity:1;transform:translateY(0);}
+.chat-typing-dots{display:inline-flex;gap:3px;align-items:center;}
+.chat-typing-dots span{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--amber,#c39a2d);
+  animation:lfTyping 1.1s infinite ease-in-out both;
+}
+.chat-typing-dots span:nth-child(2){animation-delay:.16s;}
+.chat-typing-dots span:nth-child(3){animation-delay:.32s;}
+.chat-typing-indicator .who{color:var(--tx,#eee);font-weight:600;}
+.chat-typing-indicator .who-avatar{
+  width:18px;height:18px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:.6rem;font-weight:700;color:#fff;
+  background:var(--bl,#3A9FE0);text-transform:uppercase;
+  flex-shrink:0;
+}
+
+/* ─── Sidebar: realce de fixados + divisor de "Arquivadas" + smart preview ─── */
+.chat-conv-item.pinned{position:relative;}
+.chat-conv-item.pinned::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;
+  width:3px;background:var(--amber,#c39a2d);
+  border-radius:0 2px 2px 0;opacity:.7;
+}
+.chat-conv-item.archived-divider{
+  margin-top:6px;
+  padding:8px 14px 4px;
+  font-size:.62rem;font-weight:600;
+  color:var(--mu,#9aa);text-transform:uppercase;letter-spacing:.06em;
+  cursor:default;border-bottom:none;
+}
+.chat-conv-item.archived-divider:hover{background:transparent;}
+
+.chat-conv-preview .pv-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:.78rem;margin-right:4px;opacity:.8;
+}
+.chat-conv-preview .pv-text{display:inline;}
+
+/* ─── Composer — feedback visual ao focar ─── */
+#chat-input{
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+#chat-input:focus{
+  border-color:var(--amber,#c39a2d);
+  box-shadow:0 0 0 3px rgba(195,154,45,.18);
+}
+
+/* ─── Meta da bolha .me mais respirável ─── */
+.chat-msg.me .chat-msg-meta{gap:6px;}
+
+/* ─── Compactação mobile ─── */
+@media (max-width:768px){
+  .chat-day-sep{margin:10px 0 4px;padding:3px 10px;font-size:.62rem;}
+  .chat-msg.cluster-first{margin-top:6px;}
+  .chat-msg.cluster-last{margin-bottom:6px;}
+  .chat-audio{min-width:180px;max-width:240px;}
+  .chat-typing-indicator{bottom:58px;font-size:.7rem;padding:5px 12px;}
+}

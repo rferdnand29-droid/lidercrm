@@ -1,0 +1,98 @@
+/* =============================================================
+   css/lf-login-transparent.css
+   -------------------------------------------------------------
+   Override CIRÚRGICO da tela de login:
+     • Some com o quadrado (.lbox): fundo, borda, blur, sombra.
+     • Some com o véu escuro do #login-screen quando o fundo
+       animado (vídeo) está ativo — o vídeo aparece 100%.
+     • Mantém os CAMPOS centralizados na viewport.
+     • Não toca em nada fora do escopo de login.
+   Carregar SEMPRE depois de style.css e lf-auth-bg-animation.css.
+   ============================================================= */
+
+/* 1) Container do login: 100% transparente e centralizado.
+      Vale mesmo quando body.lf-auth-bg-on aplica o gradiente
+      escuro do arquivo lf-auth-bg-animation.css. */
+#login-screen,
+body.lf-auth-bg-on #login-screen,
+body.theme-light.lf-auth-bg-on #login-screen {
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+          backdrop-filter: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 24px !important;
+}
+
+/* 2) O "quadrado" do login (.lbox) some visualmente,
+      mas continua sendo o wrapper dos campos (mantém o
+      empilhamento vertical do form, o max-width dos inputs
+      e o comportamento de JS existente). */
+#login-screen .lbox,
+#login-screen .login-box,
+#login-screen .box,
+#login-screen .login-card {
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+          backdrop-filter: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  width: 100% !important;
+  max-width: 360px !important;   /* mesma largura do card original */
+  margin: 0 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  gap: 14px;
+}
+
+/* 3) Reforço de legibilidade sobre o vídeo:
+      um leve text-shadow nos rótulos + os inputs mantêm
+      seu próprio fundo translúcido (herdado do style.css). */
+#login-screen label,
+#login-screen .lbl,
+#login-screen h1,
+#login-screen h2,
+#login-screen .brand,
+#login-screen .title {
+  text-shadow: 0 1px 3px rgba(0,0,0,.55);
+}
+
+/* 4) MOBILE: o style.css força .lbox a virar “tela cheia”
+      (width:100vw / height:100vh / padding 32px 22px).
+      Como não queremos mais uma “caixa”, neutralizamos essa
+      regra e mantemos o form centralizado. */
+@media (max-width: 768px) {
+  #login-screen {
+    padding: 24px !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  #login-screen .lbox,
+  #login-screen .login-box,
+  #login-screen .box {
+    width: 100% !important;
+    max-width: 380px !important;
+    height: auto !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+}
+
+/* 5) Tema claro: também mantém tudo transparente
+      (o vídeo continua sendo o fundo real). */
+body.theme-light #login-screen .lbox,
+body.theme-light #login-screen .login-card {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* 6) Impressão: nada disso importa. */
+@media print {
+  #login-screen, #login-screen .lbox { background: transparent !important; }
+}

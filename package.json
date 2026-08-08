@@ -1,0 +1,49 @@
+{
+  "name": "lidercrm",
+  "version": "1.0.0",
+  "description": "Lider CRM — Cloudflare Pages + Supabase + Backblaze",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx --yes wrangler pages dev . --port 8788",
+    "dev": "npm run start",
+    "build": "echo 'Static site — no build step needed. Cloudflare Pages serves files as-is.'",
+    "preview": "npx --yes wrangler pages dev .",
+    "test": "vitest run",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "cap:www": "node scripts/build-capacitor-www.mjs",
+    "cap:assets": "capacitor-assets generate --android --ios --iconBackgroundColor '#3A0E17' --iconBackgroundColorDark '#3A0E17' --splashBackgroundColor '#0A0C10' --splashBackgroundColorDark '#0A0C10' --assetPath resources",
+    "cap:sync": "npm run cap:www && cap sync",
+    "cap:sync:android": "npm run cap:www && cap sync android",
+    "cap:sync:ios": "npm run cap:www && cap sync ios",
+    "cap:open:android": "cap open android",
+    "cap:open:ios": "cap open ios",
+    "cap:android": "npm run cap:sync:android && cap open android",
+    "cap:ios": "npm run cap:sync:ios && cap open ios"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.0",
+    "@capacitor/app": "8.1.1",
+    "@capacitor/core": "8.5.0",
+    "@capacitor/ios": "8.5.0",
+    "@capacitor/keyboard": "8.0.5",
+    "@capacitor/network": "8.0.1",
+    "@capacitor/push-notifications": "8.1.2",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.0",
+    "@eslint/js": "10.0.1",
+    "eslint": "10.8.0",
+    "globals": "17.8.0",
+    "happy-dom": "20.11.1",
+    "prettier": "3.9.6",
+    "vitest": "4.1.10"
+  }
+}

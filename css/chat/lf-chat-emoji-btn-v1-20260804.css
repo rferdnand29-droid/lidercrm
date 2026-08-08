@@ -1,0 +1,104 @@
+/* ================================================================
+ * lf-chat-emoji-btn-v1-20260804.css
+ * --------------------------------------------------------------
+ * Adiciona o botão de EMOJI (😊) na aba "Papo da Empresa",
+ * posicionado à direita do campo de texto e à esquerda do botão
+ * de enviar — igual ao mock enviado pelo usuário.
+ *
+ * • PC   → abre um picker leve (grade de emojis) acima do input.
+ * • Mobile → foca o textarea e dispara o teclado nativo do
+ *            aparelho (que já inclui a aba de emoji do sistema).
+ *
+ * Aditivo, idempotente, reversível. Não altera IDs/funções JS
+ * existentes. Reverter = remover CSS + JS + as duas linhas
+ * de <link>/<script> em app.html e index.html.
+ * ================================================================ */
+
+/* --- Botão emoji (herda .chat-input-btn) --- */
+#chat-emoji-btn{
+  /* mesmo tamanho/comportamento dos outros ícones */
+  order: 3; /* após textarea, mas o order do textarea é 0; ver ajuste abaixo */
+}
+
+/* Reordena os itens do input-area para: 📎 🎤 [texto] 😊 ➤
+   Sem alterar HTML original; usa flex order. */
+#chat-input-area > .chat-input-btn[onclick*="chatAttachFile"]{ order: 1; }
+#chat-input-area > #chat-audio-btn{ order: 2; }
+#chat-input-area > #chat-input{ order: 3; }
+#chat-input-area > #chat-emoji-btn{ order: 4; }
+#chat-input-area > .chat-send-btn{ order: 5; }
+
+/* Micro polimento do ícone emoji */
+#chat-emoji-btn{
+  font-size: 1.35rem;
+  line-height: 1;
+  transition: transform .12s ease, color .12s ease;
+  /* 2026-08-07 (reforço defensivo): testei extensivamente em isolado
+     (inclusive já com #chat-input-area em position:absolute) e o botão
+     sempre funcionou — não consegui reproduzir "não funciona no PC"
+     de nenhum jeito. Reforça mesmo assim posição/z-index/pointer-events
+     explícitos, caso exista algum conflito sutil específico do
+     ambiente real que não aparece em teste isolado (algum outro
+     elemento cobrindo por cima sem eu saber). Custo zero, só proteção
+     a mais. */
+  position: relative;
+  z-index: 5;
+  pointer-events: auto;
+}
+#chat-emoji-btn:hover{ transform: scale(1.08); }
+#chat-emoji-btn:active{ transform: scale(.94); }
+#chat-emoji-btn.is-open{ color: var(--amber); }
+
+/* --- Picker (apenas PC) --- */
+#lf-emoji-picker{
+  position: fixed; /* FIX 2026-08-04: era absolute; fixed casa com coords de viewport do JS */
+  z-index: 9998;
+  display: none;
+  width: 300px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 8px;
+  background: var(--bg2, #1a1e26);
+  border: 1.5px solid var(--b2, rgba(255,255,255,.18));
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  font-family: "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+}
+#lf-emoji-picker.is-open{ display: grid; }
+
+#lf-emoji-picker button{
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.25rem;
+  padding: 4px 0;
+  border-radius: 6px;
+  line-height: 1;
+  color: inherit;
+}
+#lf-emoji-picker button:hover{
+  background: rgba(255,255,255,.08);
+}
+
+/* Tema claro */
+body:not(.theme-classic) #lf-emoji-picker{
+  background: #fff;
+  border-color: #d0d8e0;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+}
+body:not(.theme-classic) #lf-emoji-picker button:hover{
+  background: rgba(0,0,0,.06);
+}
+
+/* --- Mobile: esconde o picker (usa teclado nativo) --- */
+@media (max-width: 768px){
+  #lf-emoji-picker{ display: none !important; }
+  #chat-emoji-btn{ font-size: 1.3rem; }
+  /* CORREÇÃO 2026-08-05: botão de emoji tirado do mobile por completo
+     (fica só no PC) — o JS (lf-chat-emoji-btn-v1-20260804.js) já nem
+     injeta mais o botão no mobile; isso aqui é só reforço defensivo,
+     caso o botão já exista de uma sessão/versão anterior em cache. */
+  #chat-emoji-btn{ display: none !important; }
+}

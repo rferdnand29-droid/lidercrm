@@ -1,0 +1,69 @@
+# =====================================================================
+# LIDER CRM — Cloudflare Pages headers (2026-07-27)
+# ---------------------------------------------------------------------
+# ATUALIZAÇÃO — cap PBKDF2 do runtime Cloudflare Workers (workerd)
+# =====================================================================
+# • expõe X-LF-Iter-Cap em /api/* e assets (debug do runtime)
+# • Access-Control-Expose-Headers atualizado p/ incluir X-LF-Iter-Cap
+# • Tools (tools/*.html) NÃO recebe cache de 1 ano (devem ser frescas)
+# =====================================================================
+
+/*
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: geolocation=(), microphone=(self), camera=()
+  Access-Control-Allow-Origin: *
+
+/index.html
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/app.html
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/functions/*
+  Cache-Control: no-store, no-cache, must-revalidate
+  Content-Type: application/javascript; charset=UTF-8
+
+#/api/*
+  Cache-Control: no-store, no-cache, must-revalidate
+  Access-Control-Allow-Origin: *
+  Access-Control-Expose-Headers: X-LF-Iter-Cap, X-LF-Login-Source, ETag
+  X-LF-Iter-Cap: 100000
+
+/js/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/css/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/js/vendor/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/js/patches/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+  Content-Type: application/javascript; charset=UTF-8
+
+/tools/*
+  Cache-Control: no-store, no-cache, must-revalidate
+  Access-Control-Allow-Origin: *
+
+/assets/*
+  Cache-Control: public, max-age=86400
+  Access-Control-Allow-Origin: *
+
+/sql/*
+  Cache-Control: public, max-age=300
+  Access-Control-Allow-Origin: *
+
+/*.js
+  Content-Type: application/javascript; charset=UTF-8
+
+/src/*
+  Content-Type: application/javascript; charset=UTF-8
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=31536000, immutable

@@ -1,0 +1,12 @@
+/* lf-fix-login-bg-20260803 | garante o background institucional na tela de login */
+body.view-login,
+body.lf-clean-bg,
+body[data-view="login"]{
+  background-image: url('/assets/login-bg.jpg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+/* Esconde imediatamente qualquer elemento marcado como tombed pelo patch de usuarios */
+[data-lf-tombed="1"]{ display:none !important; }
