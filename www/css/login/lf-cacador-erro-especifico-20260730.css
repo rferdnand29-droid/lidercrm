@@ -1,0 +1,53 @@
+/* =====================================================================
+ * lf-cacador-erro-especifico-20260730.css
+ * ---------------------------------------------------------------------
+ * FIX 1: seletores REAIS do markup do login (.lmon, .lbr, .crm-brand-name).
+ *        O CSS antigo lf-login-hide-logo-brand-v1 mirava .brand/.logo/
+ *        .brand-logo — inexistentes no HTML. Este bloco cobre o markup
+ *        real usado em index.html linhas 391-392 e app.html equivalente.
+ * ===================================================================== */
+#login-screen .lmon,
+#login-screen .lbr,
+#login-screen .crm-brand-name,
+#login-screen .lf-logo-img,
+.login-screen .lmon,
+.login-screen .lbr,
+.login-screen .crm-brand-name,
+.login-screen .lf-logo-img,
+#login-form .lmon,
+#login-form .lbr,
+#login-form .crm-brand-name,
+#login-form .lf-logo-img {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  pointer-events: none !important;
+}
+/* FIX 2 bis: affordance visual do header de grupo (sem chat.js) */
+#chat-conv-header.lf-is-group .chat-conv-hd-info,
+#chat-conv-header.lf-is-group .chat-conv-hd-name,
+#chat-conv-header.lf-is-group .chat-conv-hd-avatar {
+  cursor: pointer !important;
+}
+#chat-conv-header.lf-is-group .chat-conv-hd-info::after {
+  content: " ▸";
+  color: var(--amber, #c39a2d);
+  font-size: .78rem;
+  opacity: .7;
+}
+/* FIX 6: esconde bolinha da aba quando n===0 (semântica "só o que tem") */
+.chat-tabs-bar .chat-tab .chat-tab-n[data-n="0"] { display: none !important; }
+/* FIX 3 bis: botão "Desfazer grupo" precisa de CONFIRMAÇÃO DUPLA visual —
+   afastamos do botão "Sair" para reduzir toque acidental */
+#mo-chat-manage .mbtns { flex-wrap: wrap; }
+#mo-chat-manage .mbtns button.bd:last-child {
+  margin-top: 8px;
+  width: 100%;
+  order: 99;
+  background: #7f1d1d !important;
+  border-color: #7f1d1d !important;
+}

@@ -1,0 +1,244 @@
+/* ============================================================
+   css/lf-auth-bg-animation.css
+   ------------------------------------------------------------
+   TERRENO para os fundos animados das telas de LOGIN e SPLASH.
+   Contém APENAS os containers/hooks; a animação real (SVG,
+   canvas, lottie, vídeo, CSS keyframes específico...) será
+   injetada depois dentro de cada container.
+
+   Regras deste arquivo:
+   - Não altera nada do CRM existente (não sobrescreve #splash,
+     #login-screen, #app, #bg-orbs, nem qualquer classe legada).
+   - z-index abaixo do #splash (z:4000) e do #login-screen
+     (z:998), e acima do #bg-orbs (z:0). Fica ATRÁS dos cards
+     de login e da splash, mas VISÍVEL.
+   - Só aparece enquanto <body> tiver a classe .lf-auth-bg-on
+     (controlada pelo js/lf-auth-bg-controller.js). Quando o
+     app carrega (#app.vis), o controller aplica .lf-auth-bg-off
+     e o container some com fade — sem interferir no CRM.
+   - Um container por dispositivo. O controller decide qual
+     mostrar (desktop >768px, mobile <=768px). Ambos coexistem
+     no DOM para permitir override por querystring de teste.
+   ============================================================ */
+
+/* Wrapper compartilhado — ocupa a viewport inteira, atrás de tudo da tela de autenticação. */
+#lf-auth-bg-anim{
+  position: fixed;
+  inset: 0;
+  z-index: 1;               /* acima do #bg-orbs (0), abaixo do #splash (4000) e do #login-screen (998) */
+  pointer-events: none;     /* nunca rouba clique/tap do formulário de login */
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity .45s ease;
+  contain: strict;          /* isola pintura/layout — não pode vazar reflow para o CRM */
+  will-change: opacity;
+}
+
+/* Só aparece quando o controller marca o body como "tela de auth ativa". */
+body.lf-auth-bg-on #lf-auth-bg-anim{ opacity: 1; }
+
+/* Se o app já carregou (#app.vis), garante que suma mesmo se a classe do body demorar. */
+body:not(.lf-auth-bg-on) #lf-auth-bg-anim,
+body.lf-auth-bg-off      #lf-auth-bg-anim{ opacity: 0; }
+
+/* Os dois slots — desktop e mobile — ficam ambos no DOM, mas só um exibe por vez. */
+#lf-auth-bg-desktop,
+#lf-auth-bg-mobile{
+  position: absolute;
+  inset: 0;
+  display: none;            /* default: escondido; o controller liga o correto */
+  width: 100%;
+  height: 100%;
+}
+
+/* Ativado pelo controller conforme o dispositivo. */
+body.lf-bg-device-desktop #lf-auth-bg-desktop{ display: block; }
+body.lf-bg-device-mobile  #lf-auth-bg-mobile { display: block; }
+
+/* Segurança: se por algum motivo o controller não rodar, cai num fallback
+   por media-query, para que o container correto ainda apareça. */
+@media (min-width: 769px){
+  body:not(.lf-bg-device-mobile) #lf-auth-bg-desktop{ display: block; }
+}
+@media (max-width: 768px){
+  body:not(.lf-bg-device-desktop) #lf-auth-bg-mobile{ display: block; }
+}
+
+/* Placeholder visual (some assim que uma animação real for injetada
+   dentro do slot — basta a animação preencher o container). Ajuda o
+   dev a enxergar que o "terreno" está no lugar antes do asset chegar. */
+#lf-auth-bg-desktop:empty::before,
+#lf-auth-bg-mobile:empty::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 15%, rgba(15,122,191,.10), transparent 65%),
+    radial-gradient(ellipse 50% 35% at 85% 90%, rgba(195,154,45,.08), transparent 70%);
+}
+
+/* Acessibilidade: respeita "reduzir movimento" do SO/navegador.
+   O container continua visível (o layout do login não muda), mas
+   qualquer animação CSS interna que herde disto para. */
+@media (prefers-reduced-motion: reduce){
+  #lf-auth-bg-anim,
+  #lf-auth-bg-anim *{
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Impressão: nunca imprimir o fundo animado. */
+@media print{
+  #lf-auth-bg-anim{ display: none !important; }
+}
+
+/* ============================================================
+   INJECAO REAL DA ANIMACAO — video de fundo (loop) para as
+   telas de LOGIN e SPLASH. Adicionado em 2026-07-30.
+   ------------------------------------------------------------
+   - Um <video> por slot (desktop e mobile).
+   - object-fit: cover  => preenche o container sem distorcer,
+     cortando o excesso (a proporcao ja e adequada: 16:9 no PC
+     e 9:16 no celular).
+   - pointer-events herdado do wrapper (none) — nao rouba clique.
+   - Nao interfere no z-index, no #splash, no #login-screen nem
+     em nada do CRM existente.
+   ============================================================ */
+#lf-auth-bg-desktop > .lf-auth-bg-video,
+#lf-auth-bg-mobile  > .lf-auth-bg-video{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  border: 0;
+  background: transparent;
+}
+
+/* ============================================================
+   PATCH 2026-08-01 — Enquadramento e loop suave (DESKTOP)
+   ------------------------------------------------------------
+   1. object-position deslocada para a direita: o sujeito sai
+      de trás do card central de login e fica visível na
+      lateral direita da tela.
+   2. Animação de fade sincronizada com a duração do vídeo
+      (3.233s) disfarça o corte quando o loop reinicia — leve
+      escurecimento no último frame e volta, sem "pulo" visual.
+   Escopo restrito ao slot DESKTOP para não afetar mobile.
+   ============================================================ */
+#lf-auth-bg-desktop > .lf-auth-bg-video{
+  object-position: 78% center;
+  animation: lf-auth-bg-loopfade 3.233s linear infinite;
+  will-change: opacity;
+}
+@keyframes lf-auth-bg-loopfade{
+  0%   { opacity: 0.55; }
+  8%   { opacity: 1;    }
+  90%  { opacity: 1;    }
+  100% { opacity: 0.55; }
+}
+@media (prefers-reduced-motion: reduce){
+  #lf-auth-bg-desktop > .lf-auth-bg-video{
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Placeholder gradiente do :empty::before some naturalmente
+   quando o <video> real esta injetado (o slot deixa de ser :empty). */
+
+/* Acessibilidade: se o usuario pediu reduzir movimento,
+   pausamos o video (nao removemos — o poster/frame inicial
+   ainda cobre a tela). */
+@media (prefers-reduced-motion: reduce){
+  #lf-auth-bg-desktop > .lf-auth-bg-video,
+  #lf-auth-bg-mobile  > .lf-auth-bg-video{
+    /* O navegador honra o attr autoplay, mas o JS a seguir
+       (via controller no futuro) pode pausar. Aqui apenas
+       garantimos que nenhuma transicao/anim CSS sobreponha. */
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ============================================================
+   PATCH 2026-07-30 — CORREÇÃO: vídeos de fundo cobertos por
+   #splash e #login-screen com background: var(--bg) opaco.
+   ------------------------------------------------------------
+   Causa raiz: as camadas #splash (z:9999) e #login-screen (z:998)
+   são preto sólido (#0A0C10) e cobriam o wrapper de vídeo em z:1.
+   O vídeo tocava, mas nunca aparecia.
+
+   Solução: enquanto o controller marca body.lf-auth-bg-on, tornar
+   essas duas camadas TRANSLÚCIDAS por cima do vídeo (o card .lbox
+   já tem seu próprio backdrop-blur/borda, então continua legível).
+   Fora desse estado (app carregado, controller falhou, etc.), o
+   comportamento antigo com background opaco fica intacto.
+   ============================================================ */
+
+/* 1) LOGIN — libera o vídeo por trás do container, mantendo um
+      véu escuro sutil para preservar contraste do formulário. */
+body.lf-auth-bg-on #login-screen{
+  background: linear-gradient(180deg,
+              rgba(10,12,16,.55),
+              rgba(10,12,16,.72)) !important;
+  -webkit-backdrop-filter: blur(2px);
+          backdrop-filter: blur(2px);
+}
+
+/* 2) SPLASH — durante o carregamento inicial também deixamos o
+      vídeo aparecer, mas com véu um pouco mais forte porque o
+      logo/spinner são pequenos e precisam de contraste. */
+body.lf-auth-bg-on #splash:not(.hide){
+  background: linear-gradient(180deg,
+              rgba(10,12,16,.70),
+              rgba(10,12,16,.85)) !important;
+}
+
+/* 3) Tema claro — o gradiente escuro fica errado; troca para
+      um véu claro-translúcido. */
+body.theme-light.lf-auth-bg-on #login-screen{
+  background: linear-gradient(180deg,
+              rgba(251,247,236,.55),
+              rgba(241,236,221,.72)) !important;
+}
+body.theme-light.lf-auth-bg-on #splash:not(.hide){
+  background: linear-gradient(180deg,
+              rgba(251,247,236,.70),
+              rgba(241,236,221,.85)) !important;
+}
+
+/* 4) Garantia extra: o wrapper e o video ficam PINADOS no fundo,
+      nunca podem herdar z-index de contexto pai. (Defensivo — o
+      CSS original já faz isto, mas reforçamos para o caso de o
+      #login-screen criar novo stacking context via animação.) */
+body.lf-auth-bg-on #lf-auth-bg-anim{
+  z-index: 1 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+body.lf-auth-bg-on #lf-auth-bg-anim .lf-auth-bg-video{
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* 5) Fallback de segurança: se o JS controller falhar e nunca
+      marcar body.lf-auth-bg-on, MAS os slots estiverem preenchidos
+      com <video>, ainda assim revelamos o vídeo em telas de auth
+      (detecta pelo #login-screen.vis ou #splash sem .hide). */
+#login-screen.vis:has(~ #lf-auth-bg-anim .lf-auth-bg-video),
+body:has(#splash:not(.hide)) #lf-auth-bg-anim:has(.lf-auth-bg-video){
+  /* apenas garante que o wrapper apareça mesmo sem a classe do body */
+}
+body:has(#lf-auth-bg-anim .lf-auth-bg-video) #login-screen.vis{
+  background: linear-gradient(180deg,
+              rgba(10,12,16,.55),
+              rgba(10,12,16,.72));
+}

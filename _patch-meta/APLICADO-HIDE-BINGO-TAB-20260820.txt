@@ -1,0 +1,26 @@
+LF-HIDE-BINGO-TAB-TOGGLE-V1-20260820 — APLICADO
+================================================
+Pedido (2026-08-20): opcao de ocultar a aba BINGO nas Configuracoes do
+usuario; ao ativar e salva no sistema e a aba so volta se desmarcada.
+
+Arquivos alterados:
+  + js/patches/usuarios-auth/lf-hide-bingo-tab-toggle-v1-20260820.js
+  + www/js/patches/usuarios-auth/lf-hide-bingo-tab-toggle-v1-20260820.js
+  M index.html, www/index.html, app.html, www/app.html, src/index.html
+      - nova secao "Aba Bingo (Inicio)" (checkbox cfg-hide-bingo-tab)
+        em pg-config, antes de "Notificacoes";
+      - id="mbn-inicio-btn" no botao Inicio da nav inferior mobile;
+      - <script> do patch logo apos lf-administrativo-hide-tabs.
+
+Como funciona:
+  - Persistencia por usuario, cloud-first: servidor em
+    config/prefs_<uid> campo bingoTabHidden (merge, preserva
+    livreAutoMoveOn etc.), cache local localStorage
+    lf_hide_bingo_tab_<uid> e espelho S.prefs.bingoTabHidden.
+    Hidratacao no boot via wrap de startApp (hidrataBingoTabPref).
+  - UI: wrap de buildNav() remove o item "Bingo" da #ntabs; esconde o
+    botao Inicio do mobile; wraps de goPage()/mobileGoPage()
+    redirecionam 'dash' -> negocios|leads|chat|config; guard de URL no
+    boot (#/dash) redireciona antes do render inicial.
+  - Nao altera o comportamento do cargo ADMINISTRATIVO (patch
+    lf-administrativo-hide-tabs continua mandando).

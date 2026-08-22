@@ -1,0 +1,61 @@
+/* =====================================================================
+ * lf-login-hide-logo-brand-v1-20260730.css
+ * ---------------------------------------------------------------------
+ * Causa raiz: na tela de login (#login-screen) o par logo/brand continua
+ *   visível em cima do fundo animado + card transparente, quebrando a
+ *   diagramação limpa pretendida pelo lf-login-transparent.css.
+ *
+ * Fix (100% aditivo, carregar DEPOIS de lf-login-transparent.css):
+ *   - Esconde .brand, .logo, img.brand-logo, [data-role="brand"] e
+ *     qualquer heading h1/h2 marcado como brand dentro de #login-screen.
+ *   - Também zera possíveis pseudo-elementos ::before/::after usados
+ *     para renderizar a marca por background-image.
+ *   - NÃO afeta a tela principal (só #login-screen / .login-screen).
+ * ===================================================================== */
+
+#login-screen .brand,
+#login-screen .logo,
+#login-screen .brand-logo,
+#login-screen .login-logo,
+#login-screen .login-brand,
+#login-screen img.brand,
+#login-screen img.logo,
+#login-screen img.brand-logo,
+#login-screen [data-role="brand"],
+#login-screen [data-role="logo"],
+#login-screen h1.brand,
+#login-screen h2.brand,
+.login-screen .brand,
+.login-screen .logo,
+.login-screen .brand-logo,
+.login-screen .login-logo,
+.login-screen .login-brand,
+.login-screen img.brand,
+.login-screen img.logo,
+.login-screen img.brand-logo,
+.login-screen [data-role="brand"],
+.login-screen [data-role="logo"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  pointer-events: none !important;
+}
+
+#login-screen .brand::before,
+#login-screen .brand::after,
+#login-screen .logo::before,
+#login-screen .logo::after,
+#login-screen .login-brand::before,
+#login-screen .login-brand::after,
+.login-screen .brand::before,
+.login-screen .brand::after,
+.login-screen .logo::before,
+.login-screen .logo::after {
+  content: none !important;
+  background-image: none !important;
+  display: none !important;
+}

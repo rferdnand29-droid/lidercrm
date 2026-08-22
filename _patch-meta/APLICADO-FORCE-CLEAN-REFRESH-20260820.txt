@@ -1,0 +1,31 @@
+Patch aplicado: lf-force-clean-refresh-v1-20260820
+Data:            2026-08-20
+Idempotência:    window.__LF_FORCE_CLEAN_REFRESH_V1__
+Escopo:          monkey-patch de window.lfCheckForUpdateNow
+                 (clique manual → limpeza profunda + hard reload).
+                 Ciclo automático do checker permanece intacto.
+
+Núcleo NÃO tocado:
+  - js/app-update-checker.js (política somente leitura)
+
+Arquivos novos:
+  - js/patches/lf-force-clean-refresh-v1-20260820.js
+  - www/js/patches/lf-force-clean-refresh-v1-20260820.js
+  - RELATORIO-FIX-FORCE-CLEAN-REFRESH-20260820.md
+  - _patch-meta/APLICADO-FORCE-CLEAN-REFRESH-20260820.txt (este arquivo)
+
+Arquivos alterados (+1 tag <script> em cada, logo após app-update-checker.js):
+  - index.html         (linha 129)
+  - app.html           (linha 128)
+  - www/index.html     (linha 129)
+  - www/app.html       (linha 128)
+
+Classificação de localStorage:
+  PRESERVA: sb-*, lf-user-pref-*, lf-wallpaper-*, lf-theme-*, lf-scope-*
+  REMOVE:   lf-cache-*, lf-tmp-*, _cache_*, lf-feed-cache-*, lf-kanban-cache-*
+
+Classificação de IndexedDB:
+  Apaga só cache técnico (workbox-*, lf-cache-*, lf-tmp-*, _cache_*,
+  lf-feed-cache*, lf-kanban-cache*). Bancos de aplicação intactos.
+
+Rollback: comentar as 4 tags <script> nos HTMLs listados.

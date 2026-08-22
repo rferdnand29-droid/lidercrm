@@ -1,0 +1,87 @@
+# =====================================================================
+# LIDER CRM — Cloudflare Pages headers (2026-08-18 r2)
+# ---------------------------------------------------------------------
+# ATUALIZAÇÃO 2026-08-18 (r2) — REFORÇO DE INVALIDAÇÃO DE CACHE NO DEPLOY
+# ---------------------------------------------------------------------
+# Motivo: fix de notif órfã (20260818orfanotifR2) altera JS já servido
+# como `immutable, max-age=31536000`. Precisa que:
+#   1) TODAS as entradas HTML (index/app/app-lite) sejam SEMPRE no-store,
+#      pra que o `<meta name="lf-build-id">` novo chegue no browser.
+#   2) O checker (js/app-update-checker.js) veja o build-id diferente e
+#      dispare _doCleanReload(), que também limpa Cache Storage.
+#   3) O querystring `?v=20260818orfanotifR2` nas <script> mude a URL dos
+#      arquivos afetados — URL nova = fora de cache, mesmo com immutable.
+# ---------------------------------------------------------------------
+# ATUALIZAÇÃO — cap PBKDF2 do runtime Cloudflare Workers (workerd)
+# =====================================================================
+# • expõe X-LF-Iter-Cap em /api/* e assets (debug do runtime)
+# • Access-Control-Expose-Headers atualizado p/ incluir X-LF-Iter-Cap
+# • Tools (tools/*.html) NÃO recebe cache de 1 ano (devem ser frescas)
+# • /app-lite.html AGORA também é no-store (era omissão)
+# =====================================================================
+
+/*
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: geolocation=(), microphone=(self), camera=()
+  Access-Control-Allow-Origin: *
+
+/index.html
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/app.html
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/app-lite.html
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/404.html
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/functions/*
+  Cache-Control: no-store, no-cache, must-revalidate
+  Content-Type: application/javascript; charset=UTF-8
+
+#/api/*
+  Cache-Control: no-store, no-cache, must-revalidate
+  Access-Control-Allow-Origin: *
+  Access-Control-Expose-Headers: X-LF-Iter-Cap, X-LF-Login-Source, ETag
+  X-LF-Iter-Cap: 100000
+
+/js/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/css/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/js/vendor/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+/js/patches/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+  Content-Type: application/javascript; charset=UTF-8
+
+/tools/*
+  Cache-Control: no-store, no-cache, must-revalidate
+  Access-Control-Allow-Origin: *
+
+/assets/*
+  Cache-Control: public, max-age=86400
+  Access-Control-Allow-Origin: *
+
+/sql/*
+  Cache-Control: public, max-age=300
+  Access-Control-Allow-Origin: *
+
+/*.js
+  Content-Type: application/javascript; charset=UTF-8
+
+/src/*
+  Content-Type: application/javascript; charset=UTF-8
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=31536000, immutable

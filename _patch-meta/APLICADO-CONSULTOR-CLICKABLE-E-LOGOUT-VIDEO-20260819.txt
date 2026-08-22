@@ -1,0 +1,35 @@
+LF-CONSULTOR-CLICKABLE-LIG + LF-FIX-LOGOUT-VIDEO-RESTORE — 20260819
+====================================================================
+Aplicado a partir de: lidercrm_consultor_clickable_lig_e_logout_video_20260819.zip
+Sobre:                lidercrm_fix_logout_video_restore.zip
+Data:                 2026-08-19
+
+Arquivos NOVOS (3):
+  www/css/lf-consultor-clickable-lig-v1-20260819.css                                    (7.521 bytes)
+  www/js/patches/kanban-leads/lf-consultor-clickable-lig-v1-20260819.js                (18.931 bytes)
+  www/js/patches/auth/lf-fix-logout-video-restore-v1-20260819.js                        (9.026 bytes)
+
+Arquivos ALTERADOS (2):
+  www/index.html    +1 <link> CSS (linha 190) + 2 <script> (linhas 2657 e 2676)
+  www/app.html      +1 <link> CSS (linha 179) + 2 <script> (linhas 2494 e 2512)
+
+Escopo: apenas www/ (js/ raiz é espelho parcial, deixado intocado — decisão do relatório).
+
+Validação:
+  patch -p1 --dry-run   : OK (5/5 arquivos)
+  patch -p1             : OK (aplicado limpo)
+  node --check          : OK nos 2 JS novos
+  Idempotência          : flags __LF_CONS_CLICK_LIG_V1__ e __LF_FIX_LOGOUT_VIDEO_V1__ presentes
+  Ordem em index.html   : consultor-clickable APÓS lf-fix-console-errors-v1-20260818 e lf-fix-rolante-order-adm-lig-total-v1
+                          logout-video-restore APÓS lf-fix-logout-wallpaper-reset-v1-20260803
+
+Limpeza:
+  Removidos 3 .bak-20260804 (versões antigas de kanban.js/kanban-controller.js — arquivos-atual presentes e íntegros):
+    - _worker_src/worker/controllers/kanban-controller.js.bak-20260804
+    - www/js/kanban.js.bak-20260804
+    - js/kanban.js.bak-20260804
+  Varredura final: 0 arquivos .bak/.orig/.rej/.swp/.DS_Store/Thumbs.db
+
+Rollback:
+  Comentar as 3 novas linhas em www/index.html e www/app.html + apagar os 3 arquivos novos.
+  Nenhuma escrita foi feita (patches read-only + wrappers defensivos).

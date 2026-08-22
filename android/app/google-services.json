@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "737362448021",
+    "project_id": "lider-crm-7f44f",
+    "storage_bucket": "lider-crm-7f44f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:737362448021:android:8c86e17ea567636fd2159c",
+        "android_client_info": {
+          "package_name": "com.liderfinanceira.lidercrm"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAh9OU0DUV6ZqMOeXbeR9gyCHsFPkeFpJs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

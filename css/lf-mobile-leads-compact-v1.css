@@ -1,0 +1,418 @@
+/* ==========================================================================
+   REDESENHO — Cards mobile de Leads/Negócios (v2)
+   Arquivo: css/lf-mobile-leads-compact-v1.css
+   Atualizado: 2026-08-05 (v1 era de 2026-07-31, ver histórico abaixo)
+
+   PEDIDO (2026-08-05): redesenho visual completo do card mobile, inspirado
+   em Bitrix24/Hubspot/ClickUp/Linear/Notion mobile — nome do cliente como
+   maior elemento, badge de etapa compacta (não mais chevron em largura
+   total), sub-etapa como barra segmentada (5 blocos, estilo Bitrix),
+   telefone e responsável em uma linha cada, ações em botões menores.
+   Meta: pelo menos 2 cards inteiros visíveis por tela em celulares comuns
+   (~35-40% menos altura que antes).
+
+   NENHUMA classe foi renomeada e NENHUM comportamento mudou — só o visual.
+   O HTML gerado por renderKBMobile() (js/kanban.js) já vem na nova ordem/
+   estrutura; este arquivo só estiliza. Se precisar conferir o que cada
+   classe faz, ver js/kanban.js função renderKBMobile().
+
+   HISTÓRICO — v1 (2026-07-31): primeira rodada de compactação (escondia
+   labels "CLIENTE"/"RESPONSÁVEL", ocultava a barra de sub-etapa, reduzia
+   paddings). Esta v2 substitui totalmente aquelas regras — a barra de
+   sub-etapa volta a aparecer (agora segmentada, não mais escondida).
+   ========================================================================== */
+
+@media (max-width: 768px) {
+
+  /* -----------------------------------------------------------------
+     RESET — neutraliza `.kanban-col .card, .kc, [class*="card"]{padding:10px}`
+     (style.css, bloco de responsividade genérica por substring de nome de
+     classe) — esse seletor curinga bate em QUALQUER classe que contenha a
+     palavra "card", inclusive mb-card-header/mb-card-client/etc., porque
+     todas contêm "card" no nome. Sem este reset, cada sub-elemento do card
+     ganhava 10px de padding extra (topo+baixo) vindo dessa regra genérica,
+     inflando a altura do card inteiro bem além do previsto. Zera tudo
+     dentro do card primeiro; cada seletor abaixo redeclara o padding que
+     realmente precisa. */
+  #pg-leads .mb-card *,
+  #pg-negocios .mb-card * {
+    padding: 0;
+  }
+
+  /* -----------------------------------------------------------------
+     CONTAINER da lista
+     ----------------------------------------------------------------- */
+  #leads-mobile-list,
+  #negocios-mobile-list {
+    padding: 4px 0 calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* -----------------------------------------------------------------
+     CARD principal
+     ----------------------------------------------------------------- */
+  #pg-leads .mb-card,
+  #pg-negocios .mb-card {
+    display: block !important;
+    padding: 10px 12px 11px !important;
+    margin: 0 0 8px !important;
+    border-radius: 14px !important;
+    border: 1px solid var(--b1) !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,.14) !important;
+    transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease !important;
+  }
+  /* Press feedback (mobile) — leve, sem exagero */
+  #pg-leads .mb-card:active,
+  #pg-negocios .mb-card:active {
+    transform: scale(.988) !important;
+    box-shadow: 0 1px 5px rgba(0,0,0,.18) !important;
+  }
+  @media (hover:hover) {
+    #pg-leads .mb-card:hover,
+    #pg-negocios .mb-card:hover {
+      border-color: rgba(195,154,45,.35) !important;
+    }
+  }
+
+  #pg-leads .mb-card-main,
+  #pg-negocios .mb-card-main {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* -----------------------------------------------------------------
+     1) NOME — maior elemento do card — + badge "repetido" + menu ⋮
+     ----------------------------------------------------------------- */
+  #pg-leads .mb-card-header,
+  #pg-negocios .mb-card-header {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    margin-bottom: 3px !important;
+  }
+  #pg-leads .mb-card-name-row,
+  #pg-negocios .mb-card-name-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    min-width: 0 !important;
+    flex: 1 !important;
+  }
+  #pg-leads .mb-card-client,
+  #pg-negocios .mb-card-client {
+    display: block !important;
+    font-size: 1.05rem !important;
+    line-height: 1.2 !important;
+    font-weight: 800 !important;
+    color: var(--tx) !important;
+    font-family: Outfit, sans-serif !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  #pg-leads .mb-card-dup-badge,
+  #pg-negocios .mb-card-dup-badge {
+    flex-shrink: 0;
+    font-size: .58rem !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    padding: 2px 7px !important;
+    border-radius: 20px !important;
+    background: rgba(195,154,45,.16);
+    color: var(--al);
+    border: 1px solid rgba(195,154,45,.3);
+  }
+  #pg-leads .mb-card-menu-btn,
+  #pg-negocios .mb-card-menu-btn {
+    flex-shrink: 0;
+    min-width: 30px !important;
+    min-height: 30px !important;
+    padding: 0 !important;
+    font-size: 1.15rem !important;
+    line-height: 1 !important;
+    color: var(--mu) !important;
+    border-radius: 8px !important;
+  }
+  @media (hover:hover) {
+    #pg-leads .mb-card-menu-btn:hover,
+    #pg-negocios .mb-card-menu-btn:hover { background: var(--bg3) !important; }
+  }
+
+  /* -----------------------------------------------------------------
+     2) ID + tempo (esquerda) / Valor do negócio (direita, só Negócios)
+     ----------------------------------------------------------------- */
+  #pg-leads .mb-card-meta-row,
+  #pg-negocios .mb-card-meta-row {
+    display: flex !important;
+    align-items: baseline !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    margin-bottom: 7px !important;
+  }
+  #pg-leads .mb-card-num,
+  #pg-negocios .mb-card-num {
+    font-size: .68rem !important;
+    line-height: 1.2 !important;
+    color: var(--mu) !important;
+    letter-spacing: .01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #pg-leads .mb-card-meta,
+  #pg-negocios .mb-card-meta {
+    color: var(--mu) !important;
+    opacity: .8;
+  }
+  #pg-negocios .mb-card-value {
+    flex-shrink: 0;
+    font-size: .82rem !important;
+    font-weight: 800 !important;
+    color: var(--ok) !important;
+    white-space: nowrap;
+  }
+
+  /* -----------------------------------------------------------------
+     3) BADGE da etapa — compacta, largura pelo conteúdo (não mais 100%)
+     ----------------------------------------------------------------- */
+  #pg-leads .mb-card-stage-row,
+  #pg-negocios .mb-card-stage-row {
+    display: block !important;
+    margin: 0 0 6px !important;
+  }
+  #pg-leads .mb-card-chevron,
+  #pg-negocios .mb-card-chevron {
+    display: inline-flex !important;
+    align-items: center !important;
+    width: auto !important;
+    padding: 5px 13px !important;
+    font-size: .72rem !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+    border-radius: 8px !important;
+    color: #fff !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,.35);
+    clip-path: none !important;
+    min-height: 0 !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,.2);
+  }
+
+  /* -----------------------------------------------------------------
+     4) SUB-ETAPA — barra segmentada (5 blocos) + rótulo abaixo
+     ----------------------------------------------------------------- */
+  #pg-leads .mb-card-sub,
+  #pg-negocios .mb-card-sub {
+    margin: 0 0 7px !important;
+  }
+  #pg-leads .mb-card-sub-bar,
+  #pg-negocios .mb-card-sub-bar {
+    display: flex !important;
+    gap: 3px !important;
+    height: 4px !important;
+    margin-bottom: 4px !important;
+    background: none !important;
+  }
+  #pg-leads .mb-card-sub-seg,
+  #pg-negocios .mb-card-sub-seg {
+    flex: 1 1 0;
+    height: 100% !important;
+    border-radius: 3px !important;
+    background: var(--b1) !important;
+  }
+  #pg-leads .mb-card-sub-seg.filled,
+  #pg-negocios .mb-card-sub-seg.filled {
+    background: linear-gradient(90deg,#36c6f0,#1b8ade) !important;
+  }
+  #pg-leads .mb-card-sub-btn,
+  #pg-negocios .mb-card-sub-btn {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    font-size: .68rem !important;
+    line-height: 1.2 !important;
+    color: var(--mu) !important;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  #pg-leads .mb-card-sub-btn.filled,
+  #pg-negocios .mb-card-sub-btn.filled {
+    color: var(--tx) !important;
+    font-weight: 600 !important;
+  }
+
+  /* -----------------------------------------------------------------
+     5) LABELS "CLIENTE"/"RESPONSÁVEL" — não são mais geradas no HTML
+        (renderKBMobile não emite mais .mb-card-section)
+     ----------------------------------------------------------------- */
+
+  /* -----------------------------------------------------------------
+     6) TELEFONE — uma linha só, com ícone
+     ----------------------------------------------------------------- */
+  #pg-leads .mb-card-contact-badge,
+  #pg-negocios .mb-card-contact-badge {
+    display: block !important;
+    font-size: .76rem !important;
+    line-height: 1.3 !important;
+    color: var(--tx) !important;
+    opacity: .92;
+    margin: 0 0 6px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* -----------------------------------------------------------------
+     7) RESPONSÁVEL — avatar pequeno + nome · cargo, uma linha
+     ----------------------------------------------------------------- */
+  #pg-leads .mb-card-resp,
+  #pg-negocios .mb-card-resp {
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    margin: 0 !important;
+  }
+  #pg-leads .mb-card-resp-av,
+  #pg-negocios .mb-card-resp-av {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: .58rem !important;
+    font-weight: 700;
+    flex-shrink: 0 !important;
+  }
+  #pg-leads .mb-card-resp-info,
+  #pg-negocios .mb-card-resp-info {
+    display: flex !important;
+    align-items: baseline !important;
+    gap: 4px !important;
+    flex-wrap: nowrap !important;
+    min-width: 0;
+    flex: 1;
+  }
+  #pg-leads .mb-card-resp-name,
+  #pg-negocios .mb-card-resp-name {
+    font-size: .76rem !important;
+    line-height: 1.2 !important;
+    font-weight: 700 !important;
+    color: var(--tx) !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #pg-leads .mb-card-resp-cargo,
+  #pg-negocios .mb-card-resp-cargo {
+    font-size: .66rem !important;
+    line-height: 1.2 !important;
+    color: var(--mu) !important;
+    opacity: .8;
+    white-space: nowrap;
+  }
+  #pg-leads .mb-card-resp-cargo::before,
+  #pg-negocios .mb-card-resp-cargo::before {
+    content: "· ";
+    margin-right: 1px;
+    opacity: .7;
+  }
+
+  /* -----------------------------------------------------------------
+     8) BOTÃO "Assumir Lead"
+     ----------------------------------------------------------------- */
+  #pg-leads .mb-assume-btn,
+  #pg-negocios .mb-assume-btn {
+    display: block !important;
+    width: 100% !important;
+    margin-top: 8px !important;
+    padding: 9px 12px !important;
+    font-size: .76rem !important;
+    font-weight: 700 !important;
+    min-height: 40px !important;
+    border-radius: 9px !important;
+  }
+
+  /* -----------------------------------------------------------------
+     9) AÇÕES — divisor sutil + 5 botões, 44×44 mínimo de toque
+     ----------------------------------------------------------------- */
+  #pg-leads .mb-card-actions,
+  #pg-negocios .mb-card-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 6px !important;
+    margin: 9px 0 0 !important;
+    padding: 9px 0 0 !important;
+    border-top: 1px solid var(--b1) !important;
+  }
+  #pg-leads .mb-card-actions > *,
+  #pg-negocios .mb-card-actions > * {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    min-height: 44px !important;
+  }
+  #pg-leads .mb-action-btn,
+  #pg-negocios .mb-action-btn {
+    width: 100% !important;
+    height: 40px !important;
+    border-radius: 10px !important;
+    font-size: 1rem !important;
+    box-shadow: none !important;
+    transition: transform .1s ease, background .12s ease !important;
+  }
+  #pg-leads .mb-action-btn:active,
+  #pg-negocios .mb-action-btn:active {
+    transform: scale(.92) !important;
+  }
+  #pg-leads .mb-action-btn.call,
+  #pg-negocios .mb-action-btn.call,
+  #pg-leads .mb-action-btn.whatsapp,
+  #pg-negocios .mb-action-btn.whatsapp {
+    background: rgba(37,211,102,.16) !important;
+    color: #25D366 !important;
+  }
+  #pg-leads .mb-action-btn.timeline,
+  #pg-negocios .mb-action-btn.timeline,
+  #pg-leads .mb-action-btn.reorder-up,
+  #pg-negocios .mb-action-btn.reorder-up,
+  #pg-leads .mb-action-btn.reorder-down,
+  #pg-negocios .mb-action-btn.reorder-down {
+    background: var(--bg3) !important;
+    border: 1px solid var(--b1) !important;
+    color: var(--mu) !important;
+  }
+
+  /* -----------------------------------------------------------------
+     10) TEMA CLARO
+     ----------------------------------------------------------------- */
+  body.theme-light #pg-leads .mb-card-meta,
+  body.theme-light #pg-negocios .mb-card-meta,
+  body.theme-light #pg-leads .mb-card-resp-cargo,
+  body.theme-light #pg-negocios .mb-card-resp-cargo {
+    color: #708197 !important;
+  }
+  body.theme-light #pg-leads .mb-card,
+  body.theme-light #pg-negocios .mb-card {
+    box-shadow: 0 2px 10px rgba(15,23,42,.06) !important;
+  }
+
+  /* -----------------------------------------------------------------
+     11) Chips de filtro no topo — mantido do v1
+     ----------------------------------------------------------------- */
+  #leads-mb-chips,
+  #negocios-mb-chips {
+    padding-bottom: 4px !important;
+  }
+  .stage-summary-bar {
+    padding: 7px 11px !important;
+    margin-bottom: 6px !important;
+    border-radius: 9px !important;
+  }
+  .ssb-lbl { font-size: .54rem !important; }
+  .ssb-val { font-size: .78rem !important; margin-top: 0 !important; }
+}
+
+/* Desktop/tablet: nada aqui muda (as regras estão em @media max-width:768px) */

@@ -1,0 +1,33 @@
+/* Hotfix final do chat — 2026-07-31 */
+#pg-chat .chat-list-header{
+  display:none !important;
+}
+#pg-chat > div[style*="display:flex"]{
+  min-height:0 !important;
+}
+#pg-chat,
+#pg-chat #chat-list-panel,
+#pg-chat #chat-conv-panel,
+#pg-chat #chat-conv-list,
+#pg-chat #chat-msgs{
+  min-height:0 !important;
+}
+#pg-chat #chat-list-panel,
+#pg-chat #chat-conv-panel{
+  height:100% !important;
+}
+#pg-chat #chat-actions-bar{
+  position:sticky;
+  top:0;
+  z-index:3;
+}
+#chat-conv-manage-btn{
+  display:none !important;
+}
+.chat-tabs-bar .chat-tab .chat-tab-n[data-n="0"]{
+  display:none !important;
+}
+/* evita sobra/rolagem fantasma no painel esquerdo */
+#pg-chat #chat-conv-list{
+  overscroll-behavior:contain;
+}

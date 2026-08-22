@@ -1,0 +1,105 @@
+/* =====================================================================
+ * lf-login-input-transparent-final-20260730.css
+ * ---------------------------------------------------------------------
+ * Patch final do login:
+ *   - inputs continuam transparentes ao focar, digitar e autofill
+ *   - cobre index.html E app.html
+ *   - vence body.theme-light .lf input e outras regras genéricas de style.css
+ * ===================================================================== */
+
+#login-screen,
+body.theme-light #login-screen,
+body.lf-auth-bg-on #login-screen,
+body.theme-light.lf-auth-bg-on #login-screen{
+  background: transparent !important;
+}
+
+#login-screen .lf input,
+#login-screen .lf-pw input,
+#login-screen input[type="email"],
+#login-screen input[type="password"],
+body.theme-light #login-screen .lf input,
+body.theme-light #login-screen .lf-pw input,
+body.theme-light #login-screen input[type="email"],
+body.theme-light #login-screen input[type="password"]{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #fff !important;
+  border: 1.5px solid rgba(255,255,255,.58) !important;
+  font-weight: 700 !important;
+  caret-color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  box-shadow: 0 0 0 1000px rgba(0,0,0,0) inset !important;
+  -webkit-box-shadow: 0 0 0 1000px rgba(0,0,0,0) inset !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,.68) !important;
+}
+
+#login-screen .lf input:hover,
+#login-screen .lf-pw input:hover,
+#login-screen .lf input:active,
+#login-screen .lf-pw input:active,
+#login-screen .lf input:focus,
+#login-screen .lf-pw input:focus,
+#login-screen input[type="email"]:focus,
+#login-screen input[type="password"]:focus,
+#login-screen .lf input:not(:placeholder-shown),
+#login-screen .lf-pw input:not(:placeholder-shown),
+body.theme-light #login-screen .lf input:focus,
+body.theme-light #login-screen .lf-pw input:focus,
+body.theme-light #login-screen .lf input:not(:placeholder-shown),
+body.theme-light #login-screen .lf-pw input:not(:placeholder-shown){
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  box-shadow: 0 0 0 1000px rgba(0,0,0,0) inset, 0 0 0 3px rgba(255,255,255,.18) !important;
+  -webkit-box-shadow: 0 0 0 1000px rgba(0,0,0,0) inset, 0 0 0 3px rgba(255,255,255,.18) !important;
+  border-color: rgba(255,255,255,.92) !important;
+}
+
+#login-screen .lf input::placeholder,
+#login-screen .lf-pw input::placeholder,
+#login-screen input[type="email"]::placeholder,
+#login-screen input[type="password"]::placeholder{
+  color: rgba(255,255,255,.86) !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+}
+
+#login-screen .lf input:-webkit-autofill,
+#login-screen .lf input:-webkit-autofill:hover,
+#login-screen .lf input:-webkit-autofill:focus,
+#login-screen .lf-pw input:-webkit-autofill,
+#login-screen .lf-pw input:-webkit-autofill:hover,
+#login-screen .lf-pw input:-webkit-autofill:focus,
+#login-screen input[type="email"]:-webkit-autofill,
+#login-screen input[type="password"]:-webkit-autofill{
+  -webkit-text-fill-color: #fff !important;
+  -webkit-box-shadow: 0 0 0 1000px rgba(0,0,0,0) inset, 0 0 0 3px rgba(255,255,255,.18) !important;
+  box-shadow: 0 0 0 1000px rgba(0,0,0,0) inset, 0 0 0 3px rgba(255,255,255,.18) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  transition: background-color 99999s ease-in-out 0s;
+}
+
+#login-screen .btn-in,
+#login-screen #btn-login,
+body.theme-light #login-screen .btn-in,
+body.theme-light #login-screen #btn-login{
+  background: rgba(255,255,255,.06) !important;
+  background-image: none !important;
+  color: #fff !important;
+  border: 1.5px solid rgba(255,255,255,.58) !important;
+  box-shadow: none !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,.75) !important;
+}
+
+#login-screen .btn-in:hover,
+#login-screen #btn-login:hover{
+  background: rgba(255,255,255,.12) !important;
+}

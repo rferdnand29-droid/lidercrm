@@ -1,0 +1,119 @@
+/* =====================================================================
+ * lf-login-input-forcetransp-20260801.css
+ * ---------------------------------------------------------------------
+ * Override FINAL — força os campos de login (E-mail / Senha) a ficarem
+ * 100% transparentes em qualquer estado (normal, hover, focus, filled,
+ * autofill do Chrome/Edge/Safari), permitindo enxergar o fundo por
+ * completo. NÃO altera nenhum outro elemento.
+ * ===================================================================== */
+
+/* Wrappers dos campos: sem fundo, sem sombra interna */
+html body #login-screen .lf,
+html body #login-screen .lf-pw,
+html body.theme-light #login-screen .lf,
+html body.theme-light #login-screen .lf-pw,
+html body.theme-classic #login-screen .lf,
+html body.theme-classic #login-screen .lf-pw{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Inputs — estado base */
+html body #login-screen .lf input,
+html body #login-screen .lf-pw input,
+html body #login-screen input#le,
+html body #login-screen input#lp,
+html body #login-screen input[type="email"],
+html body #login-screen input[type="password"],
+html body #login-screen input[type="text"],
+html body.theme-light #login-screen .lf input,
+html body.theme-light #login-screen .lf-pw input,
+html body.theme-light #login-screen input#le,
+html body.theme-light #login-screen input#lp,
+html body.theme-classic #login-screen .lf input,
+html body.theme-classic #login-screen .lf-pw input{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  background-clip: padding-box !important;
+  -webkit-background-clip: padding-box !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+}
+
+/* Inputs — hover / focus / active / preenchido */
+html body #login-screen .lf input:hover,
+html body #login-screen .lf input:focus,
+html body #login-screen .lf input:active,
+html body #login-screen .lf input:focus-visible,
+html body #login-screen .lf input:not(:placeholder-shown),
+html body #login-screen .lf-pw input:hover,
+html body #login-screen .lf-pw input:focus,
+html body #login-screen .lf-pw input:active,
+html body #login-screen .lf-pw input:focus-visible,
+html body #login-screen .lf-pw input:not(:placeholder-shown),
+html body #login-screen input#le:hover,
+html body #login-screen input#le:focus,
+html body #login-screen input#le:not(:placeholder-shown),
+html body #login-screen input#lp:hover,
+html body #login-screen input#lp:focus,
+html body #login-screen input#lp:not(:placeholder-shown),
+html body.theme-light #login-screen .lf input:focus,
+html body.theme-light #login-screen .lf input:not(:placeholder-shown),
+html body.theme-light #login-screen .lf-pw input:focus,
+html body.theme-light #login-screen .lf-pw input:not(:placeholder-shown){
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+
+/* Autofill (Chrome/Edge/Safari pintam fundo amarelo/branco) — anular */
+html body #login-screen .lf input:-webkit-autofill,
+html body #login-screen .lf input:-webkit-autofill:hover,
+html body #login-screen .lf input:-webkit-autofill:focus,
+html body #login-screen .lf input:-webkit-autofill:active,
+html body #login-screen .lf-pw input:-webkit-autofill,
+html body #login-screen .lf-pw input:-webkit-autofill:hover,
+html body #login-screen .lf-pw input:-webkit-autofill:focus,
+html body #login-screen .lf-pw input:-webkit-autofill:active,
+html body #login-screen input#le:-webkit-autofill,
+html body #login-screen input#lp:-webkit-autofill,
+html body #login-screen input[type="email"]:-webkit-autofill,
+html body #login-screen input[type="password"]:-webkit-autofill{
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  box-shadow: 0 0 0 1000px transparent inset !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  transition: background-color 99999s ease-in-out 0s, color 99999s ease-in-out 0s !important;
+  -webkit-text-fill-color: #fff !important;
+  caret-color: #fff !important;
+}
+
+/* Firefox */
+html body #login-screen .lf input:autofill,
+html body #login-screen .lf-pw input:autofill{
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Garantia: nenhum ::before/::after criado por temas pinta o fundo */
+html body #login-screen .lf input::before,
+html body #login-screen .lf input::after,
+html body #login-screen .lf-pw input::before,
+html body #login-screen .lf-pw input::after{
+  background: transparent !important;
+  background-color: transparent !important;
+}

@@ -1,0 +1,20 @@
+Data: 2026-08-18
+Verificação dos patches Bug 1 (Bingo supervisor) + Bug 2 (Tremelique):
+
+[OK] js/patches/kanban-leads/lf-fix-supervisor-bingo-aggregate-v1-20260818.js
+     md5 b27844bb08596edd42278995d5d81639 — idêntico ao especificado
+     (guard __LF_SUPERVISOR_BINGO_AGG_V1__, _aggregated, wrap de
+     renderTable / toggleStep / openDelCli / openTimeline,
+     reimplementação de confirmDC com resolução de dono real).
+
+[OK] js/patches/kanban-leads/lf-fix-rolante-order-adm-lig-total-v1-20260728.js
+     md5 a9731fa06986440b4ce5950900c15640 — comparador _sortCardsForColumn
+     já sem updatedAt, com createdAt DESC como chave e tiebreak estável
+     por id. Comentário interno cita "CORREÇÃO 2026-08-18 (Bug tremelique)".
+
+[OK] Espelho em www/js/patches/kanban-leads/ — checksums coincidem.
+
+[OK] Inclusão nos HTMLs (após clientes.js/dashboard.js/relatorios.js):
+     - index.html linhas 2502 (rolante-order) e 2511 (supervisor-bingo)
+     - app.html  linhas 2342 (rolante-order) e 2346 (supervisor-bingo)
+     - www/index.html e www/app.html idem.
