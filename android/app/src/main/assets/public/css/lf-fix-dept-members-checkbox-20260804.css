@@ -1,0 +1,97 @@
+/* lf-fix-dept-members-checkbox-20260804
+ * ---------------------------------------------------------------------
+ * BUG: no modal "Novo/Editar Departamento" (#mo-dept) a lista de
+ * Colaboradores renderiza <input type="checkbox"> dentro de um bloco .mf.
+ * O css/style.css tem regras GENERICAS de campo de formulario que pegam
+ * qualquer <input> dentro de .mf:
+ *
+ *   .mf input,.mf select{width:100%;padding:10px 12px;...;appearance:none}   (linha 205)
+ *   .lf input,.mf input,...{min-height:40px}                                  (linha 2054)
+ *   @media mobile: .mf input,...{min-height:46px;...!important}               (linha 1832)
+ *
+ * Com appearance:none o checkbox PERDE o desenho nativo (nao aparece o
+ * quadradinho / o "check"), e com width:100% + min-height:40px ele vira
+ * uma CAIXA VAZIA GIGANTE do lado do nome — exatamente o que se ve na tela:
+ * retangulos vazios ao lado de HUDSON / RHUAN / LUIS CARLOS.
+ * Resultado pro usuario: "nao tem caixa de selecao", impossivel marcar
+ * varios colaboradores de uma vez.
+ *
+ * FIX: devolver a aparencia nativa e o tamanho de checkbox/radio dentro
+ * de modais, sem tocar em nenhum outro campo de formulario.
+ * ---------------------------------------------------------------------
+ */
+
+.mf input[type="checkbox"],
+.mf input[type="radio"],
+.mb input[type="checkbox"],
+.mb input[type="radio"]{
+  -webkit-appearance:auto!important;
+  -moz-appearance:auto!important;
+  appearance:auto!important;
+  width:18px!important;
+  height:18px!important;
+  min-width:18px!important;
+  min-height:18px!important;
+  max-width:18px!important;
+  flex:0 0 18px!important;
+  padding:0!important;
+  margin:0!important;
+  border:none!important;
+  border-radius:4px!important;
+  background:none!important;
+  accent-color:var(--amber,#E8B44F);
+  cursor:pointer;
+  vertical-align:middle;
+}
+
+/* Lista de colaboradores do modal de departamento */
+#dept-members-list{ background:var(--bg3); }
+#dept-members-list .dept-member-row{
+  display:flex;align-items:center;gap:9px;
+  padding:7px 8px;border-radius:8px;
+  font-size:.78rem;cursor:pointer;
+  user-select:none;-webkit-user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  min-height:38px;
+}
+#dept-members-list .dept-member-row:hover{ background:rgba(255,255,255,.05); }
+#dept-members-list .dept-member-row.on{ background:rgba(232,180,79,.12); }
+#dept-members-list .dept-member-name{ flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+#dept-members-list .dept-member-cargo{ font-size:.66rem;color:var(--mu);margin-left:6px;flex:0 0 auto; }
+#dept-members-list .dept-empty{ padding:12px 6px;text-align:center;color:var(--mu);font-size:.75rem; }
+
+/* Barra de acoes acima da lista (buscar / marcar todos / limpar / contador) */
+.dept-mem-tools{ display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap; }
+.dept-mem-tools .dept-mem-search{
+  flex:1 1 130px;min-width:110px;
+  padding:8px 10px!important;min-height:36px!important;
+  border-radius:9px;background:var(--bg3);
+  border:1.5px solid var(--b1);color:var(--tx);
+  font-family:Outfit,sans-serif;font-size:.8rem;outline:none;
+}
+.dept-mem-tools .dept-mem-search:focus{ border-color:var(--amber,#E8B44F); }
+.dept-mem-tools .dept-mem-btn{
+  padding:7px 10px;border-radius:9px;
+  border:1.5px solid var(--b1);background:transparent;
+  color:var(--mu);font-family:Outfit,sans-serif;
+  font-size:.72rem;font-weight:600;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;white-space:nowrap;
+}
+.dept-mem-tools .dept-mem-btn:hover{ color:var(--tx);border-color:var(--amber,#E8B44F); }
+#dept-mem-count{ font-size:.68rem;color:var(--mu);margin-top:5px;display:block; }
+
+/* Tema claro (mobile / theme-light usam !important no style.css) */
+@media (max-width:820px){
+  .mf input[type="checkbox"],.mf input[type="radio"],
+  .mb input[type="checkbox"],.mb input[type="radio"]{
+    width:20px!important;height:20px!important;
+    min-width:20px!important;min-height:20px!important;
+    max-width:20px!important;flex:0 0 20px!important;
+    background:none!important;border:none!important;
+  }
+  #dept-members-list .dept-member-row{ min-height:44px; }
+}
+body.theme-light #dept-members-list,
+body.theme-light .dept-mem-tools .dept-mem-search{ background:#fff; }
+body.theme-light #dept-members-list .dept-member-row:hover{ background:rgba(35,53,77,.06); }
+body.theme-light #dept-members-list .dept-member-row.on{ background:rgba(53,200,246,.12); }

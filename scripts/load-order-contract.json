@@ -1,0 +1,202 @@
+{
+  "entrypoint": "index.html",
+  "groups": [
+    "bootstrap",
+    "core-legacy",
+    "screens",
+    "core-services",
+    "patches",
+    "patches-late",
+    "screen-chat-lazy"
+  ],
+  "allowedTransitions": [
+    ["bootstrap", "core-legacy"],
+    ["core-legacy", "screens"],
+    ["screens", "core-services"],
+    ["core-services", "patches"],
+    ["patches", "patches-late"],
+    ["patches-late", "screen-chat-lazy"],
+    ["screen-chat-lazy", "patches-late"]
+  ],
+  "allowedUnloaded": {
+    "js/shared/data-worker.js": "instanciado dinamicamente por js/shared/popup-state.js"
+  },
+  "dependencies": [
+    {
+      "script": "js/shared/popup-state.js",
+      "after": ["js/lf-config.js"]
+    },
+    {
+      "script": "src/modules/storage/runtime/supabase-bootstrap.js",
+      "after": ["js/storage.js", "js/utils.js"]
+    },
+    {
+      "script": "src/modules/storage/runtime/fs-compat-engine.js",
+      "after": ["src/modules/storage/runtime/supabase-bootstrap.js"]
+    },
+    {
+      "script": "js/supabase.js",
+      "after": ["src/modules/storage/runtime/supabase-bootstrap.js"]
+    },
+    {
+      "script": "src/modules/sync/runtime/retry-queue-sync.js",
+      "after": ["js/supabase.js"]
+    },
+    {
+      "script": "js/patches/lf-retryqueue-sync-v1-20260717.js",
+      "after": ["src/modules/sync/runtime/retry-queue-sync.js"]
+    },
+    {
+      "script": "js/api.js",
+      "after": ["js/supabase.js"]
+    },
+    {
+      "script": "js/auth.js",
+      "after": ["js/api.js"]
+    },
+    {
+      "script": "src/modules/usuarios/runtime/users-store.js",
+      "after": ["js/auth.js"]
+    },
+    {
+      "script": "js/usuarios.js",
+      "after": ["src/modules/usuarios/runtime/users-store.js"]
+    },
+    {
+      "script": "src/modules/configuracoes/runtime/preferences-runtime.js",
+      "after": ["js/usuarios.js"]
+    },
+    {
+      "script": "js/configuracoes.js",
+      "after": ["src/modules/configuracoes/runtime/preferences-runtime.js"]
+    },
+    {
+      "script": "src/modules/agenda/runtime/activities-store.js",
+      "after": ["js/configuracoes.js"]
+    },
+    {
+      "script": "src/modules/agenda/runtime/linked-activities-view.js",
+      "after": ["src/modules/agenda/runtime/activities-store.js"]
+    },
+    {
+      "script": "src/modules/agenda/runtime/ligacoes-store.js",
+      "after": ["src/modules/agenda/runtime/linked-activities-view.js"]
+    },
+    {
+      "script": "js/agenda.js",
+      "after": ["src/modules/agenda/runtime/ligacoes-store.js"]
+    },
+    {
+      "script": "src/modules/kanban/runtime/kanban-helpers.js",
+      "after": ["js/agenda.js"]
+    },
+    {
+      "script": "js/kanban.js",
+      "after": ["src/modules/kanban/runtime/kanban-helpers.js"]
+    },
+    {
+      "script": "src/modules/leads/data/objections-dictionary.js",
+      "after": ["js/kanban.js"]
+    },
+    {
+      "script": "src/modules/leads/runtime/objections-runtime.js",
+      "after": ["src/modules/leads/data/objections-dictionary.js"]
+    },
+    {
+      "script": "js/leads.js",
+      "after": ["src/modules/leads/runtime/objections-runtime.js"]
+    },
+    {
+      "script": "src/modules/documentos/runtime/attachments-helpers.js",
+      "after": ["js/clientes.js"]
+    },
+    {
+      "script": "src/modules/documentos/runtime/audio-helper.js",
+      "after": ["src/modules/documentos/runtime/attachments-helpers.js"]
+    },
+    {
+      "script": "js/documentos.js",
+      "after": ["src/modules/documentos/runtime/audio-helper.js"]
+    },
+    {
+      "script": "src/modules/relatorios/runtime/feed-runtime.js",
+      "after": ["js/whatsapp.js"]
+    },
+    {
+      "script": "js/relatorios.js",
+      "after": ["src/modules/relatorios/runtime/feed-runtime.js"]
+    },
+    {
+      "script": "src/shared/utils/namespace.js",
+      "after": ["js/dashboard.js"]
+    },
+    {
+      "script": "src/shared/http/worker-client.js",
+      "after": ["src/shared/http/http-client.js"]
+    },
+    {
+      "script": "src/repositories/base-repository.js",
+      "after": ["src/shared/http/worker-client.js"]
+    },
+    {
+      "script": "src/services/base-service.js",
+      "after": ["src/repositories/base-repository.js"]
+    },
+    {
+      "script": "src/services/auth-service.js",
+      "after": ["src/services/base-service.js"]
+    },
+    {
+      "script": "src/services/cliente-service.js",
+      "after": ["src/services/base-service.js"]
+    },
+    {
+      "script": "src/services/lead-service.js",
+      "after": ["src/services/base-service.js"]
+    },
+    {
+      "script": "src/services/dashboard-service.js",
+      "after": ["src/services/base-service.js"]
+    },
+    {
+      "script": "src/services/financeiro-service.js",
+      "after": ["src/services/base-service.js"]
+    },
+    {
+      "script": "src/services/storage-service.js",
+      "after": ["src/services/base-service.js"]
+    },
+    {
+      "script": "src/services/notification-service.js",
+      "after": ["src/services/base-service.js"]
+    },
+    {
+      "script": "src/services/upload-service.js",
+      "after": ["src/services/storage-service.js"]
+    },
+    {
+      "script": "src/services/sync-service.js",
+      "after": ["src/services/storage-service.js"]
+    },
+    {
+      "script": "src/core/offline/retry-queue.js",
+      "after": ["src/core/contracts/api-contract.js"]
+    },
+    {
+      "script": "src/core/offline/offline-manager.js",
+      "after": ["src/core/offline/retry-queue.js"]
+    },
+    {
+      "script": "src/core/offline/sync-manager.js",
+      "after": ["src/core/offline/offline-manager.js"]
+    },
+    {
+      "script": "src/core/bridge/legacy-crm-bridge.js",
+      "after": ["src/core/offline/sync-manager.js"]
+    },
+    {
+      "script": "js/chat.js",
+      "after": ["js/dashboard.js"]
+    }
+  ]
+}

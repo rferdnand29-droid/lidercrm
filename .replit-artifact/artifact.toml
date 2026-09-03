@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "LíderCRM"
+description = "CRM legado para equipes comerciais, com Kanban, atividades, notificações, chat e suporte offline no navegador e em dispositivos Capacitor."
+version = "1.0.0"
+id = "artifacts/lider-crm"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18866
+
+[services.development]
+run = "pnpm --filter @workspace/lider-crm run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/lider-crm", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/lider-crm/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18866"
+BASE_PATH = "/"

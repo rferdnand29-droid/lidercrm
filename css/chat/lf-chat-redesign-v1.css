@@ -1,0 +1,360 @@
+/* =====================================================================
+ * lf-chat-redesign-v1.css — Redesign visual da aba "Papo da Empresa"
+ * Aplicado por: prompt-redesign-aba-papo.md (2026-07-31)
+ *
+ * REGRAS:
+ *  • Apenas CSS. Não remove/renomeia nenhuma função JS.
+ *  • Não altera IDs usados pelo JS (chat-list-panel, chat-conv-list,
+ *    chat-conv-panel, chat-conv-header, chat-msgs, chat-input-area,
+ *    chat-input, chat-search-input, chat-tabs-bar, chat-sweep-btn, etc.).
+ *  • Restilização dos elementos já criados pelos patches:
+ *      - lf-chat-msgsearch-and-tabs-v1-20260728.js  (barra de abas)
+ *      - lf-chat-archive-view-v1-20260728.js        (botão limpar não lidas)
+ *  • Convive com chat.css e chat-ui-p0.css sem sobrescrever suas regras
+ *    estruturais — apenas reveste cores, formatos e espaçamentos.
+ *  • Escopo restrito com "#pg-chat" para não vazar para outras páginas.
+ * ===================================================================== */
+
+/* ─── Paleta local do redesign (não muda o tema global) ─── */
+#pg-chat{
+  --lfcr-bg:        #0B141A;
+  --lfcr-bg-soft:   #111B21;
+  --lfcr-bg-card:   #1F2C33;
+  --lfcr-bg-input:  #2A3942;
+  --lfcr-tx:        #E9EDEF;
+  --lfcr-mu:        #8696A0;
+  --lfcr-gold:      #E2B030;
+  --lfcr-gold-dk:   #C79A22;
+  --lfcr-blue:      #005C4B;
+  --lfcr-green-lk:  #25D366;
+  --lfcr-border:    rgba(255,255,255,.08);
+}
+
+/* ─── Fundo geral do módulo ─── */
+#pg-chat{ background:var(--lfcr-bg) !important; }
+#pg-chat #chat-list-panel{
+  background:var(--lfcr-bg-soft) !important;
+  border-right:1px solid var(--lfcr-border) !important;
+}
+#pg-chat #chat-conv-panel{ background:var(--lfcr-bg) !important; }
+
+/* ─── Header do painel esquerdo (título + botão "+") ─── */
+#pg-chat .chat-list-header{
+  background:var(--lfcr-bg-soft) !important;
+  border-bottom:1px solid var(--lfcr-border) !important;
+  padding:12px 14px !important;
+  gap:10px;
+}
+#pg-chat .chat-list-header h2{ color:var(--lfcr-tx) !important; }
+
+/* O botão "+" no header vira invisível (a nova barra de ações abaixo tem
+   o "+ Nova conversa" completo). Se algum layout antigo depender dele,
+   ele continua no DOM chamando chatNewConv(). */
+#pg-chat .chat-list-header .chat-new-btn{ display:none !important; }
+
+/* ─── Campo de busca em formato de pílula ─── */
+#pg-chat .chat-search{
+  padding:10px 12px !important;
+  border-bottom:0 !important;
+  background:var(--lfcr-bg-soft) !important;
+}
+#pg-chat .chat-search input#chat-search-input{
+  background:var(--lfcr-bg-input) !important;
+  border:1px solid transparent !important;
+  border-radius:999px !important;
+  padding:9px 16px !important;
+  color:var(--lfcr-tx) !important;
+  font-size:.82rem !important;
+}
+#pg-chat .chat-search input#chat-search-input::placeholder{
+  color:var(--lfcr-mu);
+}
+#pg-chat .chat-search input#chat-search-input:focus{
+  border-color:var(--lfcr-gold) !important;
+  box-shadow:0 0 0 3px rgba(226,176,48,.15);
+}
+
+/* ─── Barra de abas (Tudo | Não lidas | Grupos | Arquivadas) ─── */
+#pg-chat #chat-tabs-bar.chat-tabs-bar{
+  background:var(--lfcr-bg-soft) !important;
+  border-bottom:0 !important;
+  padding:4px 12px 6px !important;
+  gap:6px;
+}
+#pg-chat .chat-tab{
+  padding:6px 12px !important;
+  border-radius:8px !important;
+  font-size:.78rem !important;
+  color:var(--lfcr-mu) !important;
+  background:transparent !important;
+  font-weight:500;
+}
+#pg-chat .chat-tab:hover{
+  background:rgba(255,255,255,.05) !important;
+  color:var(--lfcr-tx) !important;
+}
+#pg-chat .chat-tab.on{
+  background:var(--lfcr-gold) !important;
+  color:#1a1200 !important;
+  font-weight:700 !important;
+}
+#pg-chat .chat-tab.on .chat-tab-n{
+  background:rgba(0,0,0,.22) !important;
+  color:#1a1200 !important;
+}
+#pg-chat .chat-tab-n{
+  background:rgba(226,176,48,.18) !important;
+  color:var(--lfcr-gold) !important;
+}
+
+/* ─── Barra de ações abaixo das abas (+ Nova conversa | ✓ Limpar não lidas)
+   O container é criado por lf-chat-redesign-v1.js e recebe #chat-actions-bar.
+   Aqui só damos estilo. ─── */
+#pg-chat #chat-actions-bar{
+  display:flex;
+  gap:8px;
+  padding:6px 12px 10px;
+  background:var(--lfcr-bg-soft);
+  border-bottom:1px solid var(--lfcr-border);
+}
+#pg-chat #chat-actions-bar > *{ flex:1; min-width:0; }
+
+/* Botão principal (dourado sólido) — "+ Nova conversa" */
+#pg-chat #chat-actions-bar .lfcr-btn-primary{
+  display:inline-flex;align-items:center;justify-content:center;
+  gap:6px;
+  padding:9px 12px;
+  border:0;border-radius:10px;
+  background:var(--lfcr-gold);
+  color:#1a1200;
+  font-weight:700;font-size:.8rem;
+  cursor:pointer;
+  transition:filter .15s ease, transform .05s ease;
+  white-space:nowrap;
+}
+#pg-chat #chat-actions-bar .lfcr-btn-primary:hover{ filter:brightness(1.06); }
+#pg-chat #chat-actions-bar .lfcr-btn-primary:active{ transform:translateY(1px); }
+
+/* Botão secundário (contornado) — "✓ Limpar não lidas" */
+#pg-chat #chat-actions-bar #chat-sweep-btn,
+#pg-chat #chat-actions-bar .lfcr-btn-outline{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:6px !important;
+  padding:9px 12px !important;
+  border:1px solid rgba(255,255,255,.18) !important;
+  border-radius:10px !important;
+  background:transparent !important;
+  color:var(--lfcr-tx) !important;
+  font-weight:600 !important;
+  font-size:.78rem !important;
+  cursor:pointer !important;
+  white-space:nowrap !important;
+  transition:background .15s ease, border-color .15s ease !important;
+}
+#pg-chat #chat-actions-bar #chat-sweep-btn:hover,
+#pg-chat #chat-actions-bar .lfcr-btn-outline:hover{
+  background:rgba(255,255,255,.05) !important;
+  border-color:rgba(255,255,255,.28) !important;
+}
+
+/* ─── Lista de conversas ─── */
+#pg-chat #chat-conv-list{
+  background:var(--lfcr-bg-soft) !important;
+}
+#pg-chat .chat-conv-item{
+  padding:12px 14px !important;
+  border-bottom:1px solid rgba(255,255,255,.04) !important;
+  gap:12px !important;
+}
+#pg-chat .chat-conv-item:hover{ background:rgba(255,255,255,.03) !important; }
+#pg-chat .chat-conv-item.active{ background:rgba(255,255,255,.06) !important; }
+#pg-chat .chat-conv-avatar{
+  width:46px;height:46px;
+  box-shadow:0 0 0 0 var(--lfcr-bg-soft);
+}
+#pg-chat .chat-conv-name{ color:var(--lfcr-tx) !important; font-size:.86rem !important; }
+#pg-chat .chat-conv-time{ color:var(--lfcr-mu) !important; font-size:.68rem !important; }
+#pg-chat .chat-conv-preview{ color:var(--lfcr-mu) !important; font-size:.76rem !important; }
+#pg-chat .chat-conv-badge{
+  background:var(--lfcr-gold) !important;
+  color:#1a1200 !important;
+}
+
+/* ─── Header da conversa (direita) ─── */
+#pg-chat #chat-conv-header{
+  background:var(--lfcr-bg-soft) !important;
+  border-bottom:1px solid var(--lfcr-border) !important;
+  min-height:60px;
+}
+/* [FIX 20260822] mesmo motivo do #chat-msgs/#chat-input-area acima —
+   padding com 2 IDs de especificidade sempre vencia o
+   padding:12px 14px!important mobile-específico de
+   lf-consolidated-mobile.css, mesmo esse também tendo !important
+   (especificidade decide antes da ordem de carregamento). */
+@media(min-width:769px){
+  #pg-chat #chat-conv-header{padding:10px 16px !important;}
+}
+#pg-chat .chat-conv-hd-name{ color:var(--lfcr-tx) !important; font-weight:700 !important; }
+#pg-chat .chat-conv-hd-status{ color:var(--lfcr-green-lk) !important; font-size:.72rem !important; }
+#pg-chat .chat-conv-hd-menu{
+  color:var(--lfcr-tx) !important;
+  opacity:.85;
+  border-radius:8px;
+  transition:background .15s ease, opacity .15s ease;
+}
+#pg-chat .chat-conv-hd-menu:hover{
+  background:rgba(255,255,255,.06) !important;
+  opacity:1;
+}
+
+/* ─── Área de mensagens ─── */
+#pg-chat #chat-msgs{
+  background:var(--lfcr-bg) !important;
+  gap:8px !important;
+}
+/* [FIX 20260822] padding movido pra dentro de uma media query de
+   desktop — sem essa restrição, esta regra (2 IDs de especificidade)
+   sempre vencia a de lf-consolidated-mobile.css (1 ID) que reserva
+   espaço assimétrico pro cabeçalho/input absolutos no mobile,
+   independente de qual arquivo carregasse por último. Deixava
+   mensagens nascendo parcialmente atrás do cabeçalho/barra de digitar
+   no celular. Desktop: nenhuma mudança visual (mesmo valor de antes). */
+@media(min-width:769px){
+  #pg-chat #chat-msgs{padding:16px !important;}
+}
+
+/* Recebidas: balão escuro */
+#pg-chat .chat-msg.them .chat-msg-text{
+  background:var(--lfcr-bg-card) !important;
+  color:var(--lfcr-tx) !important;
+  border:0 !important;
+  border-radius:12px !important;
+  border-bottom-left-radius:4px !important;
+  box-shadow:0 1px 1px rgba(0,0,0,.15);
+}
+
+/* Enviadas: balão azul-esverdeado (padrão msg saída) */
+#pg-chat .chat-msg.me .chat-msg-text{
+  background:var(--lfcr-blue) !important;
+  color:var(--lfcr-tx) !important;
+  border-radius:12px !important;
+  border-bottom-right-radius:4px !important;
+  box-shadow:0 1px 1px rgba(0,0,0,.15);
+}
+#pg-chat .chat-msg.me .chat-msg-meta{ color:rgba(255,255,255,.72) !important; }
+#pg-chat .chat-msg.me .chat-msg-status{ color:#8bd7ff !important; }
+
+/* ─── Player de áudio: balão branco/claro (via .chat-audio criado pelo polish) ─── */
+#pg-chat .chat-audio{
+  background:#F0F2F5 !important;
+  border:0 !important;
+  border-radius:999px !important;
+  padding:6px 12px !important;
+  min-width:260px;
+  box-shadow:0 1px 1px rgba(0,0,0,.15);
+}
+#pg-chat .chat-audio audio{
+  filter:none !important;
+  background:transparent;
+}
+#pg-chat .chat-audio-meta{
+  color:#3B4A54 !important;
+}
+#pg-chat .chat-audio-meta .dur{ color:#111B21 !important; }
+#pg-chat .chat-audio-meta .lbl{ color:#54656F !important; }
+#pg-chat .chat-msg.me .chat-audio,
+#pg-chat .chat-msg.them .chat-audio{
+  background:#F0F2F5 !important;
+}
+
+/* ─── Barra de input inferior ─── */
+#pg-chat #chat-input-area{
+  background:var(--lfcr-bg-soft) !important;
+  border-top:1px solid var(--lfcr-border) !important;
+  gap:10px !important;
+}
+/* [FIX 20260822] padding removido daqui — era idêntico ao que chat.css
+   (base) já define, e por não ter nenhuma media query, sempre vencia
+   (via !important) o ajuste de padding mais justo do mobile em
+   lf-consolidated-mobile.css, que carrega ANTES deste arquivo.
+   Desktop: nenhuma mudança visual (herda o mesmo valor do CSS base).
+   Mobile: o ajuste de espaçamento passa a funcionar de verdade. */
+@media(min-width:769px){
+  #pg-chat #chat-input-area{padding:10px 14px !important;}
+}
+#pg-chat #chat-input-area .chat-input-btn{
+  color:var(--lfcr-mu) !important;
+  border-radius:50%;
+}
+#pg-chat #chat-input-area .chat-input-btn:hover{
+  color:var(--lfcr-gold) !important;
+  background:rgba(255,255,255,.04);
+}
+#pg-chat #chat-input{
+  background:var(--lfcr-bg-input) !important;
+  border:1px solid transparent !important;
+  border-radius:22px !important;
+  color:var(--lfcr-tx) !important;
+  padding:10px 16px !important;
+}
+#pg-chat #chat-input::placeholder{ color:var(--lfcr-mu); }
+#pg-chat #chat-input:focus{
+  border-color:var(--lfcr-gold) !important;
+  box-shadow:0 0 0 3px rgba(226,176,48,.14) !important;
+}
+#pg-chat #chat-input-area .chat-send-btn{
+  background:var(--lfcr-gold) !important;
+  color:#1a1200 !important;
+  box-shadow:0 2px 6px rgba(226,176,48,.25);
+}
+#pg-chat #chat-input-area .chat-send-btn:hover{ filter:brightness(1.06); }
+
+/* ─── Botões flutuantes topo/fim ─── */
+#pg-chat #chat-nav-top,
+#pg-chat #chat-nav-bot{
+  background:rgba(31,44,51,.85) !important;
+  color:var(--lfcr-tx) !important;
+  border:1px solid var(--lfcr-border) !important;
+  backdrop-filter:blur(4px);
+}
+#pg-chat #chat-nav-top:hover,
+#pg-chat #chat-nav-bot:hover{ background:rgba(31,44,51,1) !important; }
+
+/* ─── Mobile: manter espaçamento compacto ─── */
+@media(max-width:768px){
+  #pg-chat #chat-actions-bar{ padding:6px 10px 8px; gap:6px; }
+  #pg-chat #chat-actions-bar .lfcr-btn-primary,
+  #pg-chat #chat-actions-bar #chat-sweep-btn,
+  #pg-chat #chat-actions-bar .lfcr-btn-outline{
+    padding:8px 10px !important;
+    font-size:.74rem !important;
+  }
+  #pg-chat .chat-conv-item{ padding:10px 12px !important; }
+  #pg-chat .chat-conv-avatar{ width:42px;height:42px; }
+  #pg-chat .chat-audio{ min-width:200px; }
+}
+
+/* ─── Tema claro: mantém legibilidade sem quebrar as regras existentes ─── */
+body:not(.theme-classic) #pg-chat{
+  --lfcr-bg:        #EDEDED;
+  --lfcr-bg-soft:   #F7F8FA;
+  --lfcr-bg-card:   #FFFFFF;
+  --lfcr-bg-input:  #FFFFFF;
+  --lfcr-tx:        #111B21;
+  --lfcr-mu:        #667781;
+  --lfcr-border:    rgba(0,0,0,.08);
+}
+body:not(.theme-classic) #pg-chat .chat-msg.me .chat-msg-text{
+  background:#D9FDD3 !important;
+  color:#111B21 !important;
+}
+body:not(.theme-classic) #pg-chat .chat-msg.them .chat-msg-text{
+  background:#FFFFFF !important;
+  color:#111B21 !important;
+  border:1px solid rgba(0,0,0,.05) !important;
+}
+body:not(.theme-classic) #pg-chat .chat-audio{
+  background:#F5F6F6 !important;
+}

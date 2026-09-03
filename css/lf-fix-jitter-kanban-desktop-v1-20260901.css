@@ -1,0 +1,99 @@
+/* =====================================================================
+ * lf-fix-jitter-kanban-desktop-v1-20260901.css
+ * ---------------------------------------------------------------------
+ * CORREÇÃO DEFINITIVA: trepidação/jitter vertical na versão de PC
+ * (lista de leads "2º Tentativa" / kanban), que ocorre sozinha, sem
+ * interação do usuário.
+ *
+ * CAUSA RAIZ (confirmada por análise do vídeo + código-fonte):
+ * 1) No desktop o Windows mostra barra de rolagem SEMPRE VISÍVEL
+ *    (overlay scrollbars não existem como no mobile). Quando a altura
+ *    do conteúdo cruza o limite exato do container, a scrollbar da
+ *    página/.kb-cards aparece e desaparece em loop -> layout thrash.
+ *    Não existe NENHUM `scrollbar-gutter` no projeto (grep = 0 ocorr.).
+ * 2) `html{scroll-behavior:smooth}` + o restore de scroll do kanban
+ *    (_kbScheduleScrollRestore, 3 rAFs + retry de ~400ms a cada
+ *    re-render realtime) faz cada ajuste de scrollTop ANIMAR em vez
+ *    de ser instantâneo -> a lista "quica" sozinha.
+ * 3) `--vvh` é reescrito via visualViewport/resize (app.js, utils.js)
+ *    e alimenta alturas calc() -> cada disparo recalcula layout.
+ * 4) O hover do card usa translateY(-2px) com transition
+ *    (lf-kanban-desktop-redesign-v1-20260901.css ~L115-124); se o
+ *    cursor ficar parado num ponto de fronteira, o card sobe, sai de
+ *    baixo do cursor, desce, reentra -> oscilação infinita.
+ *
+ * CARREGAR ESTE ARQUIVO POR ÚLTIMO (depois de style.css e de
+ * lf-kanban-desktop-redesign-v1-20260901.css) no index.html/app.html.
+ * Escopo: somente desktop (@media min-width:769px). Mobile intocado.
+ * ===================================================================== */
+
+/* --- FIX 1: reservar o espaço da scrollbar SEMPRE (mata o loop) --- */
+@media (min-width:769px){
+  html{
+    scrollbar-gutter:stable both-edges; /* reserva gutters dos 2 lados; use 'stable' se preferir só o direito */
+  }
+  /* Container de cards da coluna do kanban: gutter estável dentro da coluna */
+  #pg-leads .kb-cards,
+  #pg-negocios .kb-cards{
+    scrollbar-gutter:stable;
+  }
+}
+
+/* --- FIX 2: restore de scroll deve ser INSTANTÂNEO, não suave ---
+   html{scroll-behavior:smooth} (style.css L18) faz scrollTop programático
+   animar. No desktop, o kanban restaura scroll a cada re-render realtime
+   -> visível como quique/trepidação "sozinha". */
+@media (min-width:769px){
+  html{
+    scroll-behavior:auto !important; /* o JS já anima onde precisa */
+  }
+  #pg-leads .kb-cards,
+  #pg-negocios .kb-cards{
+    scroll-behavior:auto !important;
+  }
+}
+
+/* --- FIX 3: hover do card NÃO pode deslocar layout nem sair do cursor ---
+   Substitui o translateY(-2px) (move o card para fora do cursor -> loop
+   hover/unhover) por realce puramente visual, sem transform. */
+@media (min-width:769px){
+  body.theme-classic #pg-leads .kb-card,
+  body.theme-classic #pg-negocios .kb-card{
+    transition:box-shadow .16s ease,border-color .16s ease !important;
+    will-change:auto !important;
+  }
+  body.theme-classic #pg-leads .kb-card:hover,
+  body.theme-classic #pg-negocios .kb-card:hover{
+    transform:none !important;               /* elimina o translateY(-2px) */
+    border-color:rgba(255,255,255,.14) !important;
+    box-shadow:0 10px 22px rgba(0,0,0,.32) !important;
+  }
+  /* Mantém o visual de arraste intacto (isso é interação real do usuário) */
+  body.theme-classic #pg-leads .kb-card.dragging,
+  body.theme-classic #pg-negocios .kb-card.dragging{
+    opacity:.55 !important;
+    transform:rotate(-1.2deg) scale(1.02) !important;
+  }
+}
+
+/* --- FIX 4: congelar --vvh no desktop ---
+   No desktop não há teclado virtual nem barra de URL retrátil, então
+   --vvh NÃO precisa mudar em runtime. Fixar em 100vh/100dvh impede que
+   os listeners de visualViewport (app.js/utils.js) recalculem alturas
+   calc() e provoquem reflow da página inteira a cada evento. */
+@media (min-width:769px){
+  :root{
+    --vvh:100vh !important;
+  }
+  @supports (height:100dvh){
+    :root{ --vvh:100dvh !important; }
+  }
+}
+
+/* --- FIX 5 (reforço): impedir que micro-overflow vertical da página
+   ligue/desligue a scrollbar do documento no desktop --- */
+@media (min-width:769px){
+  body{
+    overflow-y:scroll; /* gutter sempre ocupado; sem aparecer/sumir */
+  }
+}

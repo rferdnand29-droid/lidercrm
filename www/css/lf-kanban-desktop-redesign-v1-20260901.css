@@ -1,0 +1,160 @@
+/* =====================================================================
+ * lf-kanban-desktop-redesign-v1-20260901.css
+ * ---------------------------------------------------------------------
+ * Pedido explícito: aplicar o novo visual (mockup fornecido) SOMENTE
+ * na versão de PC, de forma limpa, mantendo movimentações e tudo mais
+ * funcionando exatamente como antes.
+ *
+ * ESTRATÉGIA: arquivo só de CSS, carregado DEPOIS de css/style.css.
+ * Nenhuma classe é renomeada, nenhuma estrutura HTML muda — só
+ * propriedades visuais (cor, fonte, espaçamento, sombra, borda) nas
+ * classes que JÁ EXISTEM e que o JS já usa pra tudo (drag-and-drop,
+ * cliques, seleção em massa etc). overflow-y de .kb-cards (rolagem
+ * da coluna, usada tanto pelo scroll normal quanto pelo auto-scroll e
+ * pela rolagem manual de mouse durante o arraste — já corrigidos numa
+ * sessão anterior) não é tocado em nenhum momento aqui.
+ *
+ * Tudo dentro de @media(min-width:769px) (mesmo corte já usado no
+ * resto do app pra "não é mobile") E prefixado com body.theme-classic
+ * — o mockup é um design inerentemente escuro, então o tema claro
+ * fica 100% intocado por este arquivo.
+ * ===================================================================== */
+@media(min-width:769px){
+
+  /* ---- Paleta de acento por etapa (curada — o STAGE_COLORS que já
+     existe no código tem valores como #1a1a1f, quase invisíveis
+     contra fundo escuro, então não reaproveitado aqui) ---- */
+  body.theme-classic #pg-leads .kb-col[data-col="novo"] .kb-card::before{background:#d6634f;}
+  body.theme-classic #pg-leads .kb-col[data-col="tent"] .kb-card::before{background:var(--al);}
+  body.theme-classic #pg-leads .kb-col[data-col="whats"] .kb-card::before{background:#6f9fae;}
+  body.theme-classic #pg-leads .kb-col[data-col="livre"] .kb-card::before{background:#9b87b0;}
+  body.theme-classic #pg-leads .kb-col[data-col="conv"] .kb-card::before{background:#7aab8f;}
+  body.theme-classic #pg-leads .kb-col[data-col="desc"] .kb-card::before{background:var(--rl);}
+
+  body.theme-classic #pg-negocios .kb-col[data-col="retag"] .kb-card::before{background:var(--al);}
+  body.theme-classic #pg-negocios .kb-col[data-col="agvid"] .kb-card::before{background:#6f9fae;}
+  body.theme-classic #pg-negocios .kb-col[data-col="presencial"] .kb-card::before{background:#7aab8f;}
+  body.theme-classic #pg-negocios .kb-col[data-col="reag"] .kb-card::before{background:#d6634f;}
+  body.theme-classic #pg-negocios .kb-col[data-col="cart"] .kb-card::before{background:#9b87b0;}
+  body.theme-classic #pg-negocios .kb-col[data-col="vidp"] .kb-card::before{background:#6f9fae;}
+  body.theme-classic #pg-negocios .kb-col[data-col="fich"] .kb-card::before{background:var(--al);}
+  body.theme-classic #pg-negocios .kb-col[data-col="aprov"] .kb-card::before{background:#7aab8f;}
+  body.theme-classic #pg-negocios .kb-col[data-col="fecham"] .kb-card::before{background:#9b87b0;}
+  body.theme-classic #pg-negocios .kb-col[data-col="fechado"] .kb-card::before{background:var(--ok);}
+  body.theme-classic #pg-negocios .kb-col[data-col="noshow"] .kb-card::before{background:var(--rl);}
+  /* Pipeline Administrativo — mesma rotação de cores, por posição */
+  body.theme-classic #pg-negocios .kb-col[data-col^="adm_"] .kb-card::before{background:var(--al);}
+
+  /* ---- Coluna ---- */
+  body.theme-classic #pg-leads .kb-col,body.theme-classic #pg-negocios .kb-col{
+    background:linear-gradient(180deg,var(--bg3),var(--bg2))!important;
+    border:1px solid var(--b1)!important;
+    border-radius:16px!important;
+    padding:4px!important;
+    box-shadow:none!important;
+  }
+  body.theme-classic #pg-leads .kb-col.drag-over,body.theme-classic #pg-negocios .kb-col.drag-over{
+    border-color:var(--al)!important;
+    box-shadow:0 0 0 1px var(--b2),0 12px 28px rgba(0,0,0,.35)!important;
+  }
+  body.theme-classic #pg-leads .kb-col-hd,body.theme-classic #pg-negocios .kb-col-hd{
+    padding:14px 12px 12px!important;
+    background:transparent!important;
+    border-bottom:none!important;
+  }
+  /* "Thread" — losango colorido antes do nome da etapa, adicionado só
+     visualmente (::before do próprio título, não precisa de HTML novo) */
+  body.theme-classic #pg-leads .kb-col-title,body.theme-classic #pg-negocios .kb-col-title{
+    font-family:'Cormorant Garamond',serif!important;
+    font-style:italic;font-weight:600;
+    font-size:1.05rem!important;
+    color:var(--tx)!important;
+    display:inline-flex;align-items:center;gap:8px;
+  }
+  body.theme-classic #pg-leads .kb-col-title::before,body.theme-classic #pg-negocios .kb-col-title::before{
+    content:"";width:7px;height:7px;border-radius:2px;transform:rotate(45deg);
+    background:var(--al);flex-shrink:0;
+  }
+  body.theme-classic #pg-leads .kb-col[data-col="novo"] .kb-col-title::before{background:#d6634f;}
+  body.theme-classic #pg-leads .kb-col[data-col="whats"] .kb-col-title::before{background:#6f9fae;}
+  body.theme-classic #pg-leads .kb-col[data-col="livre"] .kb-col-title::before{background:#9b87b0;}
+  body.theme-classic #pg-leads .kb-col[data-col="conv"] .kb-col-title::before{background:#7aab8f;}
+  body.theme-classic #pg-leads .kb-col[data-col="desc"] .kb-col-title::before{background:var(--rl);}
+  body.theme-classic #pg-negocios .kb-col[data-col="agvid"] .kb-col-title::before{background:#6f9fae;}
+  body.theme-classic #pg-negocios .kb-col[data-col="presencial"] .kb-col-title::before{background:#7aab8f;}
+  body.theme-classic #pg-negocios .kb-col[data-col="reag"] .kb-col-title::before{background:#d6634f;}
+  body.theme-classic #pg-negocios .kb-col[data-col="cart"] .kb-col-title::before{background:#9b87b0;}
+  body.theme-classic #pg-negocios .kb-col[data-col="fechado"] .kb-col-title::before{background:var(--ok);}
+  body.theme-classic #pg-negocios .kb-col[data-col="noshow"] .kb-col-title::before{background:var(--rl);}
+
+  body.theme-classic #pg-leads .kb-col-cnt,body.theme-classic #pg-negocios .kb-col-cnt{
+    font-family:ui-monospace,'SF Mono',Consolas,monospace!important;
+    font-size:.68rem!important;color:var(--mu)!important;
+    background:rgba(255,255,255,.03)!important;
+    border:1px solid var(--b1)!important;
+    padding:2px 8px!important;border-radius:20px!important;
+  }
+  body.theme-classic #pg-leads .kb-add-btn,body.theme-classic #pg-negocios .kb-add-btn{
+    width:24px!important;height:24px!important;border-radius:7px!important;
+    border:1px solid var(--b1)!important;background:transparent!important;
+    color:var(--mu)!important;
+  }
+  body.theme-classic #pg-leads .kb-add-btn:hover,body.theme-classic #pg-negocios .kb-add-btn:hover{
+    color:var(--tx)!important;border-color:var(--b2)!important;
+  }
+
+  /* ---- Card — "lombada" colorida à esquerda (spine), como no
+     mockup. ::before é puramente decorativo, não intercepta clique
+     nem interfere no draggable=true do elemento pai. ---- */
+  body.theme-classic #pg-leads .kb-card,body.theme-classic #pg-negocios .kb-card{
+    position:relative;
+    background:linear-gradient(165deg,var(--card2),var(--card))!important;
+    border:1px solid var(--b1)!important;
+    border-radius:12px!important;
+    padding:13px 13px 11px 17px!important;
+    transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease!important;
+  }
+  body.theme-classic #pg-leads .kb-card::before,body.theme-classic #pg-negocios .kb-card::before{
+    content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;
+    border-radius:3px;background:var(--al);
+  }
+  body.theme-classic #pg-leads .kb-card:hover,body.theme-classic #pg-negocios .kb-card:hover{
+    transform:translateY(-2px)!important;
+    border-color:rgba(255,255,255,.14)!important;
+    box-shadow:0 10px 22px rgba(0,0,0,.32)!important;
+  }
+  /* Visual de "sendo arraste" — só aplicado no desktop; mobile (touch)
+     mantém o comportamento original, sem tocar aqui. */
+  body.theme-classic #pg-leads .kb-card.dragging,body.theme-classic #pg-negocios .kb-card.dragging{
+    opacity:.55!important;transform:rotate(-1.2deg) scale(1.02)!important;
+  }
+
+  body.theme-classic #pg-leads .kb-card-num,body.theme-classic #pg-negocios .kb-card-num{
+    font-family:ui-monospace,'SF Mono',Consolas,monospace!important;
+    font-size:.62rem!important;color:var(--mu)!important;
+  }
+  body.theme-classic #pg-leads .kb-card-name,body.theme-classic #pg-negocios .kb-card-name{
+    font-weight:700!important;font-size:.86rem!important;color:var(--tx)!important;
+  }
+  body.theme-classic #pg-leads .kb-card-tel,body.theme-classic #pg-negocios .kb-card-tel{
+    font-family:ui-monospace,'SF Mono',Consolas,monospace!important;
+    font-size:.74rem!important;color:var(--m2)!important;
+  }
+  body.theme-classic #pg-leads .kb-card-obs,body.theme-classic #pg-negocios .kb-card-obs{
+    font-size:.7rem!important;color:var(--mu)!important;line-height:1.4!important;
+  }
+  body.theme-classic #pg-leads .kb-card-date,body.theme-classic #pg-negocios .kb-card-date{
+    font-size:.64rem!important;color:var(--mu)!important;
+  }
+  body.theme-classic #pg-leads .kb-call-btn,body.theme-classic #pg-negocios .kb-call-btn,
+  body.theme-classic #pg-leads .kb-wa-btn,body.theme-classic #pg-negocios .kb-wa-btn{
+    border-radius:8px!important;border:1px solid var(--b1)!important;
+    background:rgba(255,255,255,.02)!important;
+  }
+  body.theme-classic #pg-leads .kb-call-btn:hover,body.theme-classic #pg-negocios .kb-call-btn:hover{
+    border-color:#d6634f!important;color:#f0b3a6!important;
+  }
+  body.theme-classic #pg-leads .kb-wa-btn:hover,body.theme-classic #pg-negocios .kb-wa-btn:hover{
+    border-color:#7aab8f!important;color:#bfe0cd!important;
+  }
+}

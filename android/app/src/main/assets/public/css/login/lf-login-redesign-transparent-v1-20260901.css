@@ -1,0 +1,197 @@
+/* ============================================================
+ * lf-login-redesign-transparent-v1-20260901.css
+ * ------------------------------------------------------------
+ * Restaura o REDESIGN transparente da tela de login (pedido do
+ * usuário, ajustado por outro fluxo — este arquivo consolida o
+ * que os antigos lf-login-transparent / lf-cacador-4bugs /
+ * lf-login-input-transparent-final / lf-login-input-forcetransp
+ * (sumidos da pasta css/login/) faziam, num único CSS.
+ *
+ * OBJETIVO VISUAL:
+ *  - Sem "cartão" opaco sobre o fundo (nada de rgba(17,20,24,.85)).
+ *  - Só as barras de digitar (email/senha) + botão "Entrar" +
+ *    logo/brand — tudo flutuando direto sobre o vídeo/foto.
+ *  - Inputs transparentes em REPOUSO, FOCO, DIGITAÇÃO e AUTOFILL
+ *    (Chrome/Safari costumam sobrescrever com amarelo/branco).
+ *
+ * CORREÇÃO ADICIONAL — LAYOUT CORTADO / FAIXAS ESCURAS:
+ *  - #login-screen tinha padding-left:8% (style.css:108), que
+ *    empurrava o form e expunha a cor sólida #0b0d10 do body como
+ *    "faixa" à esquerda quando o video/foto era 16:9 e a janela
+ *    não. Zeramos o padding do wrapper e ancoramos a .lbox
+ *    diretamente por flex, mantendo a mesma posição visual.
+ *  - .login-bgframe agora usa inset:0 explícito (largura total real,
+ *    sem depender de 100vw + translate — que, com scrollbar visível,
+ *    passava 100vw do lado direito).
+ *
+ * IDEMPOTÊNCIA:
+ *  Só cascata CSS — carregar 2x não muda nada (última regra ganha,
+ *  e são todas as mesmas). Sem JS, sem side-effect.
+ * ============================================================ */
+
+/* ---------- 1. Wrapper: sem padding lateral, sem faixas ---------- */
+#login-screen{
+  padding:0 !important;
+  padding-left:0 !important;
+  justify-content:center !important;
+  align-items:center !important;
+  overflow:hidden !important;
+}
+@media(max-width:760px){
+  #login-screen{
+    padding:0 !important;
+    align-items:center !important;
+    padding-bottom:0 !important;
+  }
+}
+
+/* ---------- 2. Frame de fundo: largura/altura REAIS da viewport ---------- */
+.login-bgframe{
+  position:fixed !important;
+  inset:0 !important;
+  top:0 !important; left:0 !important; right:0 !important; bottom:0 !important;
+  width:100% !important; height:100% !important;
+  max-width:none !important; max-height:none !important;
+  transform:none !important;
+  background-size:cover !important;
+  background-position:center !important;
+}
+.login-bgframe video{
+  position:fixed !important;
+  inset:0 !important;
+  width:100% !important; height:100% !important;
+  object-fit:cover !important;
+  object-position:center !important;
+}
+
+/* ---------- 3. Card transparente (redesign: só as barras) ---------- */
+.lbox,
+#login-screen .lbox,
+#login-screen .login-box,
+#login-screen .box{
+  background:transparent !important;
+  -webkit-backdrop-filter:none !important;
+  backdrop-filter:none !important;
+  border:none !important;
+  box-shadow:none !important;
+  border-radius:0 !important;
+  padding:28px 26px !important;
+  max-width:360px !important;
+  width:100% !important;
+  position:relative !important;
+  z-index:2 !important;
+}
+/* Override específico da regra mobile em style.css:2742 (fullscreen escuro) */
+@media(max-width:760px){
+  .lbox,
+  #login-screen .lbox,
+  #login-screen .login-box,
+  #login-screen .box{
+    background:transparent !important;
+    -webkit-backdrop-filter:none !important;
+    backdrop-filter:none !important;
+    height:auto !important;
+    width:100% !important;
+    max-width:92vw !important;
+    padding:24px 22px !important;
+  }
+}
+
+/* Separador some (visual mais limpo — só barras) */
+.lbox .lsep{ background:transparent !important; height:14px !important; }
+
+/* Sombra de texto discreta pra logo/brand permanecerem legíveis sem card */
+.lbox .lbr,
+.lbox .crm-brand-name{
+  text-shadow:0 2px 12px rgba(0,0,0,.55), 0 1px 3px rgba(0,0,0,.7) !important;
+}
+.lf label{
+  color:rgba(238,232,213,.92) !important;
+  text-shadow:0 1px 4px rgba(0,0,0,.6) !important;
+}
+.lerr{ text-shadow:0 1px 3px rgba(0,0,0,.7) !important; }
+.sync-badge{ text-shadow:0 1px 3px rgba(0,0,0,.7) !important; }
+
+/* ---------- 4. Inputs transparentes — TODOS os estados ---------- */
+.lf input,
+#login-screen input[type="email"],
+#login-screen input[type="password"],
+#login-screen input[type="text"],
+.lf-pw input{
+  background:rgba(10,12,16,.28) !important;
+  border:1.5px solid rgba(255,255,255,.28) !important;
+  color:#fff !important;
+  -webkit-backdrop-filter:blur(6px) !important;
+  backdrop-filter:blur(6px) !important;
+  box-shadow:0 4px 14px rgba(0,0,0,.35) !important;
+}
+.lf input::placeholder{ color:rgba(255,255,255,.55) !important; }
+.lf input:hover{
+  background:rgba(10,12,16,.34) !important;
+  border-color:rgba(255,255,255,.4) !important;
+}
+.lf input:focus,
+.lf-pw input:focus{
+  background:rgba(10,12,16,.4) !important;
+  border-color:var(--amber, #c39a2d) !important;
+  outline:none !important;
+  box-shadow:0 0 0 3px rgba(195,154,45,.22), 0 4px 14px rgba(0,0,0,.4) !important;
+}
+/* Autofill (Chrome/Safari): pinta o input inteiro por padrão — anulado
+   com box-shadow interno da MESMA cor + text-fill-color pra texto branco. */
+.lf input:-webkit-autofill,
+.lf input:-webkit-autofill:hover,
+.lf input:-webkit-autofill:focus,
+.lf input:-webkit-autofill:active{
+  -webkit-box-shadow:0 0 0 1000px rgba(10,12,16,.35) inset !important;
+  box-shadow:0 0 0 1000px rgba(10,12,16,.35) inset !important;
+  -webkit-text-fill-color:#fff !important;
+  caret-color:#fff !important;
+  transition:background-color 5000s ease-in-out 0s !important;
+}
+.lf input:autofill{
+  background:rgba(10,12,16,.35) !important;
+  color:#fff !important;
+}
+
+/* Botão do olho da senha herda transparência */
+.lf-pw .eye{
+  background:transparent !important;
+  color:rgba(255,255,255,.85) !important;
+}
+.lf-pw .eye:hover{ color:#fff !important; }
+
+/* ---------- 5. Botão Entrar: mantém o dourado (é o único CTA) ---------- */
+.btn-in{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4),
+             0 10px 26px rgba(195,154,45,.42),
+             0 2px 8px rgba(0,0,0,.5) !important;
+}
+
+/* ---------- 6. Escurecimento sutil do fundo pra legibilidade ---------- */
+/* O scrim de style.css:129 já existe; apenas garantimos que ele NUNCA
+   vira uma "faixa" — cobre 100% da viewport. */
+.login-bgframe::before{
+  inset:0 !important;
+  background:
+    linear-gradient(180deg,rgba(10,12,15,.32) 0%,rgba(10,12,15,.12) 30%,rgba(10,12,15,.5) 100%),
+    linear-gradient(90deg,rgba(10,12,15,.18) 0%,rgba(10,12,15,0) 40%) !important;
+}
+
+/* ---------- 7. Tema claro: mantém legibilidade sem quebrar redesign ---------- */
+body.theme-light .lbox,
+body.theme-light #login-screen .lbox{
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+}
+body.theme-light .lf input{
+  background:rgba(255,255,255,.72) !important;
+  color:#0A0C10 !important;
+  border-color:rgba(0,0,0,.22) !important;
+}
+body.theme-light .lf input::placeholder{ color:rgba(0,0,0,.5) !important; }
+body.theme-light .lf label{
+  color:rgba(10,12,15,.85) !important;
+  text-shadow:0 1px 3px rgba(255,255,255,.5) !important;
+}

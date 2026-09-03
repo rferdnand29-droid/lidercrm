@@ -1,0 +1,25 @@
+{
+  "//": "Config dedicado pra checar tipos via JSDoc nos arquivos .js mais críticos do CRM — separado do tsconfig.json da raiz (que é do scaffold React/TanStack da Lovable, não mexe aqui). Não compila nada, só avisa erro de tipo — não afeta o app em produção de jeito nenhum. Rodar com: npm run typecheck",
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM"],
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noImplicitAny": false
+  },
+  "include": [
+    "js/kanban.js",
+    "js/agenda.js",
+    "js/dashboard.js",
+    "js/utils.js",
+    "js/clientes.js",
+    "js/relatorios.js",
+    "js/auth.js",
+    "js/supabase.js",
+    "js/notificacoes.js",
+    "js/app.js"
+  ]
+}
