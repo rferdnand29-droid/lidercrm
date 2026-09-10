@@ -1,0 +1,8 @@
+/* Fix legibilidade de fontes sobre papel de parede personalizado */
+body, .text-content, .lead-card-text, .chat-message {
+  text-shadow: 0 0 4px rgba(0,0,0,0.6), 0 0 2px rgba(0,0,0,0.4) !important;
+  color: #ffffff !important;
+}
+.bg-overlay {
+  background: rgba(0,0,0,0.5) !important;
+}

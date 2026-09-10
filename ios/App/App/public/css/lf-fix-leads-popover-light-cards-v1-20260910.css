@@ -1,0 +1,438 @@
+/* =====================================================================
+ * lf-fix-leads-popover-light-cards-v1-20260910.css
+ * ---------------------------------------------------------------------
+ * PATCH ADITIVO (2026-09-10). Duas correções independentes:
+ *
+ * SEÇÃO A — POPOVER "SELECIONAR POR ETAPA" NA ABA LEADS (#pg-leads)
+ *   Sintoma: ▾ ao lado de "✅ Todos" não abria em Leads (em Negócios
+ *   abre). A parte JS (toggle duplo onclick+listener) está corrigida em
+ *   js/patches/lf-fix-leads-bulk-stage-popover-v1-20260910.js. Aqui fica
+ *   a parte CSS, MESMA correção que Negócios recebeu em
+ *   lf-negocios-visual-final-v1-20260907.css seção 3b e que Leads nunca
+ *   recebeu: o skin de Leads (lf-leads-visual-final-v1-20260907.css)
+ *   aplica overflow:hidden em .bulk-stage-wrap (para arredondar o grupo
+ *   de botões) — isso CORTA o popover, que é filho absoluto do wrap.
+ *   Correção: overflow:visible + z-index alto, espelhando Negócios.
+ *
+ * SEÇÃO B — TEMA CLARO: CARDS SÓLIDOS, FONTE SÓLIDA, TRANSPARÊNCIA SÓ FORA
+ *   Sintoma: no tema claro (body.theme-light) os cards/colunas do kanban
+ *   de Leads e Negócios ficam translúcidos sobre o wallpaper e a fonte
+ *   clara (herdada do tema escuro) fica ilegível. Causa raiz: a função
+ *   _lfApplyWallpaperTransparency (js/configuracoes.js) injeta em runtime
+ *   um <style> com `background-color:rgba(255,255,255,.24)!important` +
+ *   backdrop-filter em .kb-col/.kb-card; no tema claro NENHUM CSS
+ *   sobrescrevia isso (não havia regra theme-light para o kanban
+ *   desktop), então os cards ficavam vidrados e com texto claro sobre
+ *   vidro claro.
+ *
+ *   O que esta seção faz (comportamento espelhado do tema escuro):
+ *     - Card (.kb-card): fundo BRANCO SÓLIDO + texto escuro sólido.
+ *       Vence o <style> injetado via seletor mais específico
+ *       (body.theme-light #pg-leads ...) na MESMA propriedade
+ *       (background-color) com !important.
+ *     - Cabeçalho da coluna (.kb-col-hd): pastel SÓLIDO por etapa,
+ *       mesmas cores de etapa do tema escuro em tom claro, texto escuro.
+ *     - Casca da coluna (.kb-col) e wrappers (#pg-leads/.kb-wrap/etc):
+ *       TRANSPARENTES — o wallpaper global continua aparecendo na parte
+ *       de fora, igual ao tema escuro (patches lf-*-transparent-bg).
+ *     - Popover/busca/botões de ação ajustados para fundo sólido claro.
+ *
+ *   Escopo: #pg-leads e #pg-negocios, tema claro, desktop. Não toca no
+ *   tema escuro (seletores sempre começam com body.theme-light) nem na
+ *   lista mobile (.mb-card — o kanban desktop nem renderiza <769px).
+ *
+ * CARREGAMENTO: este arquivo deve vir DEPOIS de css/style.css,
+ * lf-leads-visual-final, lf-negocios-visual-final e dos patches
+ * lf-*-transparent-bg no <head> (é o último CSS de tema).
+ * ===================================================================== */
+
+/* ===================================================================
+ * SEÇÃO A — POPOVER BULK-STAGE EM LEADS (desktop, tema escuro)
+ * =================================================================== */
+@media (min-width:769px){
+
+/* O wrap em Leads tinha overflow:hidden (igual ao bug original de
+   Negócios) — cortava o popover mesmo com o JS funcionando. */
+body.theme-classic #pg-leads .bulk-stage-wrap{
+  overflow: visible !important;
+  position: relative !important;
+}
+body.theme-classic #pg-leads .kb-actions,
+body.theme-classic #pg-leads .kb-header{
+  overflow: visible !important;
+}
+body.theme-classic #pg-leads .bulk-stage-popover{
+  z-index: 9999 !important;
+  background: var(--lfv-panel-2) !important;
+  border: 1px solid var(--lfv-hairline-2) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 16px 40px rgba(0,0,0,.60) !important;
+}
+body.theme-classic #pg-leads .bulk-stage-opt{
+  color: var(--lfv-tx) !important;
+  border-radius: 8px !important;
+}
+body.theme-classic #pg-leads .bulk-stage-opt:hover{
+  background: var(--lfv-gold-soft) !important;
+}
+body.theme-classic #pg-leads .bulk-stage-dot{
+  border-color: var(--lfv-gold) !important;
+}
+body.theme-classic #pg-leads .bulk-stage-opt.sel .bulk-stage-dot{
+  background: var(--lfv-gold) !important;
+}
+
+} /* fim Seção A @media (min-width:769px) */
+
+
+/* ===================================================================
+ * SEÇÃO B — TEMA CLARO (#pg-leads + #pg-negocios)
+ * =================================================================== */
+
+/* -------------------------------------------------------------------
+ * B0. TOKENS LOCAIS do tema claro (espelham a paleta do tema escuro
+ *     lf-leads-visual-final, em versão clara). Não vazam: escopo por página.
+ * ----------------------------------------------------------------- */
+body.theme-light #pg-leads,
+body.theme-light #pg-negocios{
+  --lfl-card:        #FFFFFF;   /* card sólido */
+  --lfl-card-hover:  #FFFFFF;
+  --lfl-tx:          #1E293B;   /* fonte sólida principal */
+  --lfl-mu:          #64748B;   /* fonte secundária sólida */
+  --lfl-hairline:    rgba(100,116,139,.22);
+  --lfl-hairline-2:  rgba(100,116,139,.34);
+  --lfl-gold:        #D98F0A;   /* dourado legível sobre branco */
+  --lfl-gold-soft:   rgba(217,143,10,.10);
+  --lfl-col-novo:    #3B82F6;
+  --lfl-col-tent:    #F59E0B;
+  --lfl-col-whats:   #10B981;
+  --lfl-col-livre:   #EF4444;
+  --lfl-col-conv:    #06B6D4;
+  --lfl-col-desc:    #F43F5E;
+}
+
+/* -------------------------------------------------------------------
+ * B1. TRANSPARÊNCIA NA PARTE DE FORA — página, wrappers e casca da
+ *     coluna ficam transparentes para o wallpaper global aparecer,
+ *     igual ao comportamento do tema escuro.
+ * ----------------------------------------------------------------- */
+body.theme-light #pg-leads,
+body.theme-light #pg-negocios,
+body.theme-light #pg-leads #leads-kanban-wrap,
+body.theme-light #pg-negocios #negocios-kanban-wrap,
+body.theme-light #pg-leads .kb-scroll-wrap,
+body.theme-light #pg-negocios .kb-scroll-wrap,
+body.theme-light #pg-leads .kb-wrap,
+body.theme-light #pg-negocios .kb-wrap,
+body.theme-light #pg-leads #leads-kanban,
+body.theme-light #pg-negocios #negocios-kanban,
+body.theme-light #pg-leads .kb-header,
+body.theme-light #pg-negocios .kb-header{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* Casca da coluna transparente (vence o rgba(255,255,255,.24) injetado
+   pelo _lfApplyWallpaperTransparency via especificidade maior). */
+body.theme-light #pg-leads .kb-col,
+body.theme-light #pg-negocios .kb-col{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  border: 1px solid var(--lfl-hairline) !important;
+  border-radius: 16px !important;
+}
+body.theme-light #pg-leads .kb-col .kb-cards,
+body.theme-light #pg-negocios .kb-col .kb-cards{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+body.theme-light #pg-leads .kb-col.drag-over,
+body.theme-light #pg-negocios .kb-col.drag-over{
+  border-color: var(--lfl-gold) !important;
+  box-shadow: 0 0 0 1px var(--lfl-gold), 0 12px 28px rgba(15,23,42,.16) !important;
+}
+
+/* -------------------------------------------------------------------
+ * B2. CABEÇALHO DA COLUNA — cor SÓLIDA pastel por etapa + texto escuro.
+ *     (Mesmas etapas/cores do tema escuro, em tom claro.)
+ * ----------------------------------------------------------------- */
+body.theme-light #pg-leads .kb-col-hd,
+body.theme-light #pg-negocios .kb-col-hd{
+  background: #FFFFFF !important;
+  border-bottom: 1px solid var(--lfl-hairline) !important;
+  border-radius: 15px 15px 0 0 !important;
+  box-shadow: none !important;
+}
+body.theme-light #pg-leads .kb-col-hd::after,
+body.theme-light #pg-negocios .kb-col-hd::after{
+  background: none !important; /* remove o brilho branco do tema escuro */
+}
+body.theme-light #pg-leads .kb-col[data-col="novo"]  .kb-col-hd{ background: #DBEAFE !important; }
+body.theme-light #pg-leads .kb-col[data-col="tent"]  .kb-col-hd{ background: #D1FAE5 !important; }
+body.theme-light #pg-leads .kb-col[data-col="whats"] .kb-col-hd{ background: #A7F3D0 !important; }
+body.theme-light #pg-leads .kb-col[data-col="livre"] .kb-col-hd{ background: #FEF3C7 !important; }
+body.theme-light #pg-leads .kb-col[data-col="conv"]  .kb-col-hd{ background: #CFFAFE !important; }
+body.theme-light #pg-leads .kb-col[data-col="desc"]  .kb-col-hd{ background: #FFE4E6 !important; }
+/* Negócios: etapas são dinâmicas — cor pastel cíclica por posição,
+   mesma lógica de ciclo do tema escuro (6 cores). */
+body.theme-light #pg-negocios .kb-col:nth-child(6n+1) .kb-col-hd{ background: #DBEAFE !important; }
+body.theme-light #pg-negocios .kb-col:nth-child(6n+2) .kb-col-hd{ background: #FEF3C7 !important; }
+body.theme-light #pg-negocios .kb-col:nth-child(6n+3) .kb-col-hd{ background: #D1FAE5 !important; }
+body.theme-light #pg-negocios .kb-col:nth-child(6n+4) .kb-col-hd{ background: #FEE2E2 !important; }
+body.theme-light #pg-negocios .kb-col:nth-child(6n+5) .kb-col-hd{ background: #CFFAFE !important; }
+body.theme-light #pg-negocios .kb-col:nth-child(6n+6) .kb-col-hd{ background: #FFE4E6 !important; }
+
+/* Texto do cabeçalho: escuro sólido (o base pinta branco p/ tema escuro) */
+body.theme-light #pg-leads .kb-col-title,
+body.theme-light #pg-negocios .kb-col-title{
+  color: #1E293B !important;
+  text-shadow: none !important;
+}
+body.theme-light #pg-leads .kb-col-cnt,
+body.theme-light #pg-negocios .kb-col-cnt{
+  color: #475569 !important;
+}
+body.theme-light #pg-leads .kb-col-valor,
+body.theme-light #pg-negocios .kb-col-valor{
+  color: #334155 !important;
+}
+/* Dot colorido por etapa antes do título (Leads usa ::before do skin;
+   aqui só trocamos as cores p/ versões sólidas legíveis no claro) */
+body.theme-light #pg-leads .kb-col[data-col="novo"]  .kb-col-title::before{ background: var(--lfl-col-novo)  !important; box-shadow: 0 0 0 3px rgba(59,130,246,.16)  !important; }
+body.theme-light #pg-leads .kb-col[data-col="tent"]  .kb-col-title::before{ background: var(--lfl-col-tent)  !important; box-shadow: 0 0 0 3px rgba(245,158,11,.16)  !important; }
+body.theme-light #pg-leads .kb-col[data-col="whats"] .kb-col-title::before{ background: var(--lfl-col-whats) !important; box-shadow: 0 0 0 3px rgba(16,185,129,.16)  !important; }
+body.theme-light #pg-leads .kb-col[data-col="livre"] .kb-col-title::before{ background: var(--lfl-col-livre) !important; box-shadow: 0 0 0 3px rgba(239,68,68,.16)   !important; }
+body.theme-light #pg-leads .kb-col[data-col="conv"]  .kb-col-title::before{ background: var(--lfl-col-conv)  !important; box-shadow: 0 0 0 3px rgba(6,182,212,.16)   !important; }
+body.theme-light #pg-leads .kb-col[data-col="desc"]  .kb-col-title::before{ background: var(--lfl-col-desc)  !important; box-shadow: 0 0 0 3px rgba(244,63,94,.16)   !important; }
+
+/* Botão "+" da coluna: legível sobre o pastel */
+body.theme-light #pg-leads .kb-add-btn,
+body.theme-light #pg-negocios .kb-add-btn{
+  background: rgba(255,255,255,.75) !important;
+  border: 1px solid var(--lfl-hairline) !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+}
+body.theme-light #pg-leads .kb-add-btn:hover,
+body.theme-light #pg-negocios .kb-add-btn:hover{
+  background: #FFFFFF !important;
+}
+
+/* -------------------------------------------------------------------
+ * B3. CARD — FUNDO SÓLIDO + FONTE SÓLIDA
+ *     Vence o rgba(255,255,255,.24)+blur injetado em runtime pelo
+ *     _lfApplyWallpaperTransparency (seletor mais específico, mesma
+ *     propriedade background-color com !important).
+ * ----------------------------------------------------------------- */
+body.theme-light #pg-leads .kb-card,
+body.theme-light #pg-negocios .kb-card{
+  background: var(--lfl-card) !important;
+  background-color: var(--lfl-card) !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--lfl-hairline) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 10px rgba(15,23,42,.10) !important;
+}
+body.theme-light #pg-leads .kb-card:hover,
+body.theme-light #pg-negocios .kb-card:hover{
+  background: var(--lfl-card-hover) !important;
+  border-color: var(--lfl-hairline-2) !important;
+  box-shadow: 0 10px 22px rgba(15,23,42,.16) !important;
+}
+
+/* Borda esquerda colorida por etapa — mesmas cores do tema escuro */
+body.theme-light #pg-leads .kb-card::before,
+body.theme-light #pg-negocios .kb-card::before{
+  content: "" !important;
+}
+body.theme-light #pg-leads .kb-col[data-col="novo"]  .kb-card::before{ background: var(--lfl-col-novo)  !important; }
+body.theme-light #pg-leads .kb-col[data-col="tent"]  .kb-card::before{ background: var(--lfl-col-tent)  !important; }
+body.theme-light #pg-leads .kb-col[data-col="whats"] .kb-card::before{ background: var(--lfl-col-whats) !important; }
+body.theme-light #pg-leads .kb-col[data-col="livre"] .kb-card::before{ background: var(--lfl-col-livre) !important; }
+body.theme-light #pg-leads .kb-col[data-col="conv"]  .kb-card::before{ background: var(--lfl-col-conv)  !important; }
+body.theme-light #pg-leads .kb-col[data-col="desc"]  .kb-card::before{ background: var(--lfl-col-desc)  !important; }
+body.theme-light #pg-negocios .kb-col:nth-child(6n+1) .kb-card::before{ background: var(--lfl-col-novo)  !important; }
+body.theme-light #pg-negocios .kb-col:nth-child(6n+2) .kb-card::before{ background: var(--lfl-col-tent)  !important; }
+body.theme-light #pg-negocios .kb-col:nth-child(6n+3) .kb-card::before{ background: var(--lfl-col-whats) !important; }
+body.theme-light #pg-negocios .kb-col:nth-child(6n+4) .kb-card::before{ background: var(--lfl-col-livre) !important; }
+body.theme-light #pg-negocios .kb-col:nth-child(6n+5) .kb-card::before{ background: var(--lfl-col-conv)  !important; }
+body.theme-light #pg-negocios .kb-col:nth-child(6n+6) .kb-card::before{ background: var(--lfl-col-desc)  !important; }
+
+/* Tipografia do card — TODAS as cores sólidas e escuras */
+body.theme-light #pg-leads .kb-card-num,
+body.theme-light #pg-negocios .kb-card-num{
+  color: #94A3B8 !important;
+}
+body.theme-light #pg-leads .kb-card-name,
+body.theme-light #pg-negocios .kb-card-name{
+  color: var(--lfl-tx) !important;
+  text-shadow: none !important;
+}
+body.theme-light #pg-leads .kb-card-tel,
+body.theme-light #pg-negocios .kb-card-tel,
+body.theme-light #pg-leads .kb-card-date,
+body.theme-light #pg-negocios .kb-card-date{
+  color: var(--lfl-mu) !important;
+}
+body.theme-light #pg-leads .kb-card-obs,
+body.theme-light #pg-negocios .kb-card-obs{
+  color: #B45309 !important;
+  opacity: 1 !important;
+}
+body.theme-light #pg-leads .kb-card-valor,
+body.theme-light #pg-negocios .kb-card-valor{
+  color: #047857 !important;
+}
+body.theme-light #pg-leads .kb-locked-tag,
+body.theme-light #pg-negocios .kb-locked-tag{
+  color: var(--lfl-mu) !important;
+}
+body.theme-light #pg-leads .kb-card-menu,
+body.theme-light #pg-negocios .kb-card-menu,
+body.theme-light #pg-leads .kb-card-sel-btn,
+body.theme-light #pg-negocios .kb-card-sel-btn,
+body.theme-light #pg-leads .kb-card-del-btn,
+body.theme-light #pg-negocios .kb-card-del-btn{
+  color: var(--lfl-mu) !important;
+}
+body.theme-light #pg-leads .kb-card.selected .kb-card-sel-btn,
+body.theme-light #pg-negocios .kb-card.selected .kb-card-sel-btn{
+  color: var(--lfl-gold) !important;
+}
+body.theme-light #pg-leads .kb-card.selected,
+body.theme-light #pg-negocios .kb-card.selected{
+  border-color: var(--lfl-gold) !important;
+  box-shadow: 0 0 0 1px var(--lfl-gold), 0 6px 16px rgba(217,143,10,.18) !important;
+}
+
+/* Chip de nicho — mantém a cor da categoria, com fundo pastel sólido */
+body.theme-light #pg-leads .kb-card-nicho.imovel,
+body.theme-light #pg-negocios .kb-card-nicho.imovel  { background: #DBEAFE !important; color: #1D4ED8 !important; }
+body.theme-light #pg-leads .kb-card-nicho.caminhao,
+body.theme-light #pg-negocios .kb-card-nicho.caminhao{ background: #FFEDD5 !important; color: #C2410C !important; }
+body.theme-light #pg-leads .kb-card-nicho.carro,
+body.theme-light #pg-negocios .kb-card-nicho.carro   { background: #EDE9FE !important; color: #7C3AED !important; }
+body.theme-light #pg-leads .kb-card-nicho.pesados,
+body.theme-light #pg-negocios .kb-card-nicho.pesados { background: #D1FAE5 !important; color: #047857 !important; }
+body.theme-light #pg-leads .kb-card-nicho.outro,
+body.theme-light #pg-negocios .kb-card-nicho.outro   { background: #F1F5F9 !important; color: #64748B !important; }
+
+/* Botões do card — versões sólidas/legíveis no claro */
+body.theme-light #pg-leads .kb-call-btn,
+body.theme-light #pg-negocios .kb-call-btn{
+  background: #D1FAE5 !important;
+  border-color: #6EE7B7 !important;
+  color: #047857 !important;
+}
+body.theme-light #pg-leads .kb-wa-btn,
+body.theme-light #pg-negocios .kb-wa-btn{
+  background: #DCFCE7 !important;
+  border-color: #86EFAC !important;
+  color: #15803D !important;
+}
+body.theme-light #pg-leads .kb-convert-btn,
+body.theme-light #pg-negocios .kb-convert-btn{
+  background: #FEF3C7 !important;
+  border-color: #FCD34D !important;
+  color: #92400E !important;
+}
+body.theme-light #pg-leads .kb-assume-btn,
+body.theme-light #pg-negocios .kb-assume-btn{
+  background: #D1FAE5 !important;
+  border-color: #34D399 !important;
+  color: #047857 !important;
+}
+
+/* Empty state da coluna */
+body.theme-light #pg-leads .kb-empty,
+body.theme-light #pg-negocios .kb-empty{
+  color: var(--lfl-mu) !important;
+}
+body.theme-light #pg-leads .kb-empty-add,
+body.theme-light #pg-negocios .kb-empty-add{
+  border-color: rgba(217,143,10,.35) !important;
+  color: var(--lfl-mu) !important;
+}
+
+/* -------------------------------------------------------------------
+ * B4. POPOVER "SELECIONAR POR ETAPA" NO TEMA CLARO — fundo branco
+ *     sólido + texto escuro (o base usa var(--bg2), que no claro é
+ *     claro, mas reforçamos p/ vencer o <style> injetado do wallpaper).
+ * ----------------------------------------------------------------- */
+body.theme-light #pg-leads .bulk-stage-popover,
+body.theme-light #pg-negocios .bulk-stage-popover{
+  background: #FFFFFF !important;
+  background-color: #FFFFFF !important;
+  border: 1px solid var(--lfl-hairline-2) !important;
+  box-shadow: 0 16px 40px rgba(15,23,42,.22) !important;
+  z-index: 9999 !important;
+}
+body.theme-light #pg-leads .bulk-stage-opt,
+body.theme-light #pg-negocios .bulk-stage-opt{
+  color: var(--lfl-tx) !important;
+}
+body.theme-light #pg-leads .bulk-stage-opt:hover,
+body.theme-light #pg-negocios .bulk-stage-opt:hover{
+  background: var(--lfl-gold-soft) !important;
+}
+body.theme-light #pg-leads .bulk-stage-dot,
+body.theme-light #pg-negocios .bulk-stage-dot{
+  border-color: var(--lfl-gold) !important;
+}
+body.theme-light #pg-leads .bulk-stage-opt.sel .bulk-stage-dot,
+body.theme-light #pg-negocios .bulk-stage-opt.sel .bulk-stage-dot{
+  background: var(--lfl-gold) !important;
+}
+
+/* -------------------------------------------------------------------
+ * B5. SUB-HEADER NO CLARO — busca sólida e ações legíveis
+ * ----------------------------------------------------------------- */
+body.theme-light #pg-leads .kb-search-wrap,
+body.theme-light #pg-negocios .kb-search-wrap{
+  background: #FFFFFF !important;
+  border: 1px solid var(--lfl-hairline) !important;
+}
+body.theme-light #pg-leads .kb-search,
+body.theme-light #pg-negocios .kb-search{
+  color: var(--lfl-tx) !important;
+}
+body.theme-light #pg-leads .kb-search::placeholder,
+body.theme-light #pg-negocios .kb-search::placeholder{
+  color: #94A3B8 !important;
+}
+body.theme-light #pg-leads .kb-search-ic,
+body.theme-light #pg-negocios .kb-search-ic{
+  color: var(--lfl-mu) !important;
+  background: transparent !important;
+}
+body.theme-light #pg-leads .kb-title,
+body.theme-light #pg-negocios .kb-title{
+  color: var(--lfl-tx) !important;
+}
+body.theme-light #pg-leads .kb-header p,
+body.theme-light #pg-negocios .kb-header p{
+  color: var(--lfl-mu) !important;
+}
+/* Grupo "✅ Todos ▾" no claro */
+body.theme-light #pg-leads .bulk-stage-wrap,
+body.theme-light #pg-negocios .bulk-stage-wrap{
+  background: rgba(16,185,129,.10) !important;
+  border: 1px solid rgba(16,185,129,.40) !important;
+  border-radius: 10px !important;
+  overflow: visible !important;
+}
+body.theme-light #pg-leads .bulk-stage-main,
+body.theme-light #pg-negocios .bulk-stage-main,
+body.theme-light #pg-leads .bulk-stage-arrow,
+body.theme-light #pg-negocios .bulk-stage-arrow{
+  background: transparent !important;
+  color: #047857 !important;
+}

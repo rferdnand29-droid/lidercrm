@@ -1,0 +1,507 @@
+{
+  "_comment": "Baseline de violações LEGADAS toleradas pelo ai-guard. Gerado em 2026-08-18. Se o hash de um arquivo mudar, o guard volta a bloquear — só o estado byte-idêntico atual é tolerado. Regenere com: node scripts/ai-guard-refresh-baseline.mjs --write",
+  "generated_at": "2026-08-18",
+  "count": 100,
+  "entries": [
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/activities/lf-fix-activity-cloud-persist-v3-20260804.js",
+      "sha256": "ed12aa21509893a996320bcbbe29d52a3cf47a91155b7c2f1f074d98c2a4370c"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/activities/lf-fix-activity-done-persist-v1-20260803.js",
+      "sha256": "05834aa87035c55edaf687fca61106d69e71fed23d67ef91b7a1637df9a5b202"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/activities/lf-fix-activity-done-real-v2-20260804.js",
+      "sha256": "9ae8af1b5aaccf26c63184c94a9b67cb94b08b233868a0884655aa3a1a66ab1f"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/audit/lf-audit-log-v1-20260803.js",
+      "sha256": "351895f065e8e90b55779eda70d30bd967a810c0c3f32553bceca914938c2d77"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/auth/lf-fix-adm-password-reset-logout-v1-20260803.js",
+      "sha256": "b59863486bfc2fc3b4cd33d3fa5043cd7944dad06aeabb9e98e0679150b9af5d"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/auth/lf-fix-logout-wallpaper-reset-v1-20260803.js",
+      "sha256": "2e2cf9d13b904ba1ea87de466903924c5d9d73d5e55ec7069a7db31fbfea91ea"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/chat/lf-fix-chat-presence-double-subscribe-v1-20260804.js",
+      "sha256": "e51ee555a163ea408b026fbf5d95a699c8706ab09b4ae3905c1b72a3efe198c9"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/chat/lf-fix-dm-delete-isolation-v1-20260804.js",
+      "sha256": "65427ba7f01cab7e0aee53f420f20467f33c4bbd23507cdcf498c1bf147953b9"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/departments/lf-departments-crud-v1-20260803.js",
+      "sha256": "b7380b2209da1c8a5d1c8ed46280976de2499bc844d1da92e6093b26ff9d728c"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/kanban-leads/lf-adm-feed-datepick-v1-20260728.js",
+      "sha256": "757c8a2ef1d1d8347a7c2fd05c6f0a15d4131423e17ec0c02960301f039ecf2e"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/kanban-leads/lf-bingo-strict-source-v1-20260729.js",
+      "sha256": "09b1aafad60d51031d77baf400644b81912b5e660ea526d0ae9c862a0ec1a56d"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/kanban-leads/lf-bingo-sync-v1-20260722.js",
+      "sha256": "d6abc3121870a19056734e765bd8b535e0ea691e5e723c84dddfcb8402aa1647"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/kanban-leads/lf-bugs-4fixes-v1-20260729.js",
+      "sha256": "2a57b35b1ea97d74b8935189a40eb54fa7d43b1310fffb2796223d3f769bd00f"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/kanban-leads/lf-bugs-5fixes-v1-20260729.js",
+      "sha256": "5b6d0bf82859a69cd337b010bb680c98e5d5698500d807822c9abcd1fb6f5920"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/kanban-leads/lf-fix-rolante-order-adm-lig-total-v1-20260728.js",
+      "sha256": "2f3e73120ba1003c1efda1eb26f80f8102ddbbdf93fd46bc2ca306082f2f277f"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/kanban-leads/lf-fix-zombie-leads-v1-20260804.js",
+      "sha256": "03b179c19e8b903ffa0b36bfd49c10ee53122e7cc407af513145cb52d1c80196"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/kanban-leads/lf-flow-hardening-v1-20260728.js",
+      "sha256": "8e5160ec965d9fe3ed456aaaa448d05b17303d1dc398b3cb200a7cbce117c5bc"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/kanban-leads/lf-kanban-fluidity-v1-20260730.js",
+      "sha256": "78f8a092aded1a28490f193520a415898b668683663d128171ec165f5c4c9350"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/kanban-leads/lf-lig-counter-rounds-v1-20260728.js",
+      "sha256": "3b054dc706b14996e4b25252252a887a2c7cebb24fe015c6d2f6fda85dee8374"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/kanban-leads/lf-lig-counter-sync-cloud-v1-20260728.js",
+      "sha256": "6311f6fbb19cdecda2aa51e320a9453cdf2e1ea95b2dea3077b3c52cf145a612"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/kanban-leads/lf-livre-reason-required-v2-20260730.js",
+      "sha256": "ee0ef92ab62a1af9077e0d853e810412b7700c25dd563213cdb29d169d0d6295"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/leads/lf-fix-lead-refresh-nav-aliases-v1-20260804.js",
+      "sha256": "5ffabd951a504b6a98834e763fb7b2e64a1414cd4d0cb7ff0bf38a44d44d9d50"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/leads/lf-fix-lead-refresh-retornar-v1-20260803.js",
+      "sha256": "bcf25ad3a7c5dbca5abab6182e6fa9f0bd891c271193ffd82b4467ee1c4f4e9a"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/notificacoes/lf-fix-notif-sound-stuck-v1-20260804.js",
+      "sha256": "2ffec8f024a164e3650a247458604415ac7585646bcb479c8aa905270808c8f6"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/notificacoes/lf-notif-visibility-fix-v1-20260729.js",
+      "sha256": "1e85888e6e36f55354cdea1d476aba23f2448fa83b2a141ae14bd36c5a4b76e8"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/notificacoes/lf-notify-global-v1-20260727.js",
+      "sha256": "fd5a95e2eb124063b562bd6d4db49e2d9c19a8a8a62f8948c350f6778253c72f"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/scope/lf-cargo-only-via-departamento-v1-20260804.js",
+      "sha256": "749e7cbe3c44e1d98fb5c29156e4dbc1ac186969c7331f55dd48254b88e70d87"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/scope/lf-scope-v2-cargo-departamento-v1-20260803.js",
+      "sha256": "2134e320f7f4201b14c0205950ba5eaf567bf981e177c08e93c5c20c455e46e2"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/users/lf-fix-user-delete-persist-v1-20260803.js",
+      "sha256": "639d229d3dd9459895e45979063a5f6c31e022e696dfc270a540f14829a300c3"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/users/lf-fix-zombie-users-v2-20260804.js",
+      "sha256": "be42396ce43353b7fffbe9220697fcf44e482f86d292fae98e77dfc7170e44b6"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/usuarios-auth/lf-administrativo-negocios-only-v1-20260723.js",
+      "sha256": "6e735dadedf274f50230d385da42452df4a4035cd416f9c2fd7a7aa31c0438e7"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/usuarios-auth/lf-cacador-3fixes-v1-20260730.js",
+      "sha256": "de5a5cd67b136494fdf9d8df2cf90dcdabe507ffe57873ede4f830cd72663495"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/usuarios-auth/lf-legacy-auth-bridge-v1-20260717.js",
+      "sha256": "12664c6ee4d1f1cddf3af76f7087685920a9ce02e731610d81d3408ff19b468e"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/usuarios-auth/lf-post-update-recovery-v1-20260729.js",
+      "sha256": "30b9a2f41d8e3370030f6c5b64a685df9c95ada6d730adf4da7e52e1f95940c1"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/usuarios-auth/lf-supervisor-teamview-readonly-v1-20260722.js",
+      "sha256": "4e332955a8d9c91d1c154d32469872bd69f0334dd41a51891e5c5861d1e10a5b"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "js/patches/usuarios-auth/lf-users-persist-cloudfirst-v1-20260728.js",
+      "sha256": "9425f08df89b97a862842c3796f0761874e98b0913af4196810a3134f4a75db5"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/activities/lf-fix-activity-cloud-persist-v3-20260804.js",
+      "sha256": "ed12aa21509893a996320bcbbe29d52a3cf47a91155b7c2f1f074d98c2a4370c"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/activities/lf-fix-activity-done-persist-v1-20260803.js",
+      "sha256": "05834aa87035c55edaf687fca61106d69e71fed23d67ef91b7a1637df9a5b202"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/activities/lf-fix-activity-done-real-v2-20260804.js",
+      "sha256": "9ae8af1b5aaccf26c63184c94a9b67cb94b08b233868a0884655aa3a1a66ab1f"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/audit/lf-audit-log-v1-20260803.js",
+      "sha256": "351895f065e8e90b55779eda70d30bd967a810c0c3f32553bceca914938c2d77"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/auth/lf-fix-adm-password-reset-logout-v1-20260803.js",
+      "sha256": "b59863486bfc2fc3b4cd33d3fa5043cd7944dad06aeabb9e98e0679150b9af5d"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/auth/lf-fix-logout-wallpaper-reset-v1-20260803.js",
+      "sha256": "2e2cf9d13b904ba1ea87de466903924c5d9d73d5e55ec7069a7db31fbfea91ea"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/chat/lf-fix-chat-presence-double-subscribe-v1-20260804.js",
+      "sha256": "e51ee555a163ea408b026fbf5d95a699c8706ab09b4ae3905c1b72a3efe198c9"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/chat/lf-fix-dm-delete-isolation-v1-20260804.js",
+      "sha256": "65427ba7f01cab7e0aee53f420f20467f33c4bbd23507cdcf498c1bf147953b9"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/departments/lf-departments-crud-v1-20260803.js",
+      "sha256": "b7380b2209da1c8a5d1c8ed46280976de2499bc844d1da92e6093b26ff9d728c"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/kanban-leads/lf-adm-feed-datepick-v1-20260728.js",
+      "sha256": "757c8a2ef1d1d8347a7c2fd05c6f0a15d4131423e17ec0c02960301f039ecf2e"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/kanban-leads/lf-bingo-strict-source-v1-20260729.js",
+      "sha256": "09b1aafad60d51031d77baf400644b81912b5e660ea526d0ae9c862a0ec1a56d"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/kanban-leads/lf-bingo-sync-v1-20260722.js",
+      "sha256": "d6abc3121870a19056734e765bd8b535e0ea691e5e723c84dddfcb8402aa1647"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/kanban-leads/lf-bugs-4fixes-v1-20260729.js",
+      "sha256": "2a57b35b1ea97d74b8935189a40eb54fa7d43b1310fffb2796223d3f769bd00f"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/kanban-leads/lf-bugs-5fixes-v1-20260729.js",
+      "sha256": "5b6d0bf82859a69cd337b010bb680c98e5d5698500d807822c9abcd1fb6f5920"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/kanban-leads/lf-fix-rolante-order-adm-lig-total-v1-20260728.js",
+      "sha256": "2f3e73120ba1003c1efda1eb26f80f8102ddbbdf93fd46bc2ca306082f2f277f"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/kanban-leads/lf-fix-zombie-leads-v1-20260804.js",
+      "sha256": "03b179c19e8b903ffa0b36bfd49c10ee53122e7cc407af513145cb52d1c80196"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/kanban-leads/lf-flow-hardening-v1-20260728.js",
+      "sha256": "8e5160ec965d9fe3ed456aaaa448d05b17303d1dc398b3cb200a7cbce117c5bc"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/kanban-leads/lf-kanban-fluidity-v1-20260730.js",
+      "sha256": "78f8a092aded1a28490f193520a415898b668683663d128171ec165f5c4c9350"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/kanban-leads/lf-lig-counter-rounds-v1-20260728.js",
+      "sha256": "3b054dc706b14996e4b25252252a887a2c7cebb24fe015c6d2f6fda85dee8374"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/kanban-leads/lf-lig-counter-sync-cloud-v1-20260728.js",
+      "sha256": "6311f6fbb19cdecda2aa51e320a9453cdf2e1ea95b2dea3077b3c52cf145a612"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/kanban-leads/lf-livre-reason-required-v2-20260730.js",
+      "sha256": "ee0ef92ab62a1af9077e0d853e810412b7700c25dd563213cdb29d169d0d6295"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/leads/lf-fix-lead-refresh-nav-aliases-v1-20260804.js",
+      "sha256": "5ffabd951a504b6a98834e763fb7b2e64a1414cd4d0cb7ff0bf38a44d44d9d50"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/leads/lf-fix-lead-refresh-retornar-v1-20260803.js",
+      "sha256": "bcf25ad3a7c5dbca5abab6182e6fa9f0bd891c271193ffd82b4467ee1c4f4e9a"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/notificacoes/lf-fix-notif-sound-stuck-v1-20260804.js",
+      "sha256": "2ffec8f024a164e3650a247458604415ac7585646bcb479c8aa905270808c8f6"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/notificacoes/lf-notif-visibility-fix-v1-20260729.js",
+      "sha256": "1e85888e6e36f55354cdea1d476aba23f2448fa83b2a141ae14bd36c5a4b76e8"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/notificacoes/lf-notify-global-v1-20260727.js",
+      "sha256": "fd5a95e2eb124063b562bd6d4db49e2d9c19a8a8a62f8948c350f6778253c72f"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/scope/lf-cargo-only-via-departamento-v1-20260804.js",
+      "sha256": "749e7cbe3c44e1d98fb5c29156e4dbc1ac186969c7331f55dd48254b88e70d87"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/scope/lf-scope-v2-cargo-departamento-v1-20260803.js",
+      "sha256": "2134e320f7f4201b14c0205950ba5eaf567bf981e177c08e93c5c20c455e46e2"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/users/lf-fix-user-delete-persist-v1-20260803.js",
+      "sha256": "639d229d3dd9459895e45979063a5f6c31e022e696dfc270a540f14829a300c3"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/users/lf-fix-zombie-users-v2-20260804.js",
+      "sha256": "be42396ce43353b7fffbe9220697fcf44e482f86d292fae98e77dfc7170e44b6"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/usuarios-auth/lf-administrativo-negocios-only-v1-20260723.js",
+      "sha256": "6e735dadedf274f50230d385da42452df4a4035cd416f9c2fd7a7aa31c0438e7"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/usuarios-auth/lf-cacador-3fixes-v1-20260730.js",
+      "sha256": "de5a5cd67b136494fdf9d8df2cf90dcdabe507ffe57873ede4f830cd72663495"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/usuarios-auth/lf-legacy-auth-bridge-v1-20260717.js",
+      "sha256": "12664c6ee4d1f1cddf3af76f7087685920a9ce02e731610d81d3408ff19b468e"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/usuarios-auth/lf-post-update-recovery-v1-20260729.js",
+      "sha256": "30b9a2f41d8e3370030f6c5b64a685df9c95ada6d730adf4da7e52e1f95940c1"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/usuarios-auth/lf-supervisor-teamview-readonly-v1-20260722.js",
+      "sha256": "4e332955a8d9c91d1c154d32469872bd69f0334dd41a51891e5c5861d1e10a5b"
+    },
+    {
+      "rule": "R1.IDEMP",
+      "file": "www/js/patches/usuarios-auth/lf-users-persist-cloudfirst-v1-20260728.js",
+      "sha256": "9425f08df89b97a862842c3796f0761874e98b0913af4196810a3134f4a75db5"
+    },
+    {
+      "rule": "R1.IIFE",
+      "file": "js/patches/kanban-leads/lf-bugs-5fixes-v1-20260729.js",
+      "sha256": "5b6d0bf82859a69cd337b010bb680c98e5d5698500d807822c9abcd1fb6f5920"
+    },
+    {
+      "rule": "R1.IIFE",
+      "file": "js/patches/notificacoes/lf-fix-notif-sound-stuck-v1-20260804.js",
+      "sha256": "2ffec8f024a164e3650a247458604415ac7585646bcb479c8aa905270808c8f6"
+    },
+    {
+      "rule": "R1.IIFE",
+      "file": "js/patches/notificacoes/lf-notif-visibility-fix-v1-20260729.js",
+      "sha256": "1e85888e6e36f55354cdea1d476aba23f2448fa83b2a141ae14bd36c5a4b76e8"
+    },
+    {
+      "rule": "R1.IIFE",
+      "file": "js/patches/notificacoes/lf-notify-global-v1-20260727.js",
+      "sha256": "fd5a95e2eb124063b562bd6d4db49e2d9c19a8a8a62f8948c350f6778253c72f"
+    },
+    {
+      "rule": "R1.IIFE",
+      "file": "js/patches/usuarios-auth/lf-administrativo-negocios-only-v1-20260723.js",
+      "sha256": "6e735dadedf274f50230d385da42452df4a4035cd416f9c2fd7a7aa31c0438e7"
+    },
+    {
+      "rule": "R1.IIFE",
+      "file": "js/patches/usuarios-auth/lf-supervisor-teamview-readonly-v1-20260722.js",
+      "sha256": "4e332955a8d9c91d1c154d32469872bd69f0334dd41a51891e5c5861d1e10a5b"
+    },
+    {
+      "rule": "R1.IIFE",
+      "file": "www/js/patches/kanban-leads/lf-bugs-5fixes-v1-20260729.js",
+      "sha256": "5b6d0bf82859a69cd337b010bb680c98e5d5698500d807822c9abcd1fb6f5920"
+    },
+    {
+      "rule": "R1.IIFE",
+      "file": "www/js/patches/notificacoes/lf-fix-notif-sound-stuck-v1-20260804.js",
+      "sha256": "2ffec8f024a164e3650a247458604415ac7585646bcb479c8aa905270808c8f6"
+    },
+    {
+      "rule": "R1.IIFE",
+      "file": "www/js/patches/notificacoes/lf-notif-visibility-fix-v1-20260729.js",
+      "sha256": "1e85888e6e36f55354cdea1d476aba23f2448fa83b2a141ae14bd36c5a4b76e8"
+    },
+    {
+      "rule": "R1.IIFE",
+      "file": "www/js/patches/notificacoes/lf-notify-global-v1-20260727.js",
+      "sha256": "fd5a95e2eb124063b562bd6d4db49e2d9c19a8a8a62f8948c350f6778253c72f"
+    },
+    {
+      "rule": "R1.IIFE",
+      "file": "www/js/patches/usuarios-auth/lf-administrativo-negocios-only-v1-20260723.js",
+      "sha256": "6e735dadedf274f50230d385da42452df4a4035cd416f9c2fd7a7aa31c0438e7"
+    },
+    {
+      "rule": "R1.IIFE",
+      "file": "www/js/patches/usuarios-auth/lf-supervisor-teamview-readonly-v1-20260722.js",
+      "sha256": "4e332955a8d9c91d1c154d32469872bd69f0334dd41a51891e5c5861d1e10a5b"
+    },
+    {
+      "rule": "R3.HTML_SYNC",
+      "file": "js/patches/chat/nucleo/lf-attachments-newtab-v1-20260721.js?v=20260728fix1_20260728062423",
+      "sha256": "dfe5b172ad0d0e4ae22a333062450d4b07f2345a3f31376232ab7f31191ed844"
+    },
+    {
+      "rule": "R3.HTML_SYNC",
+      "file": "js/patches/chat/nucleo/lf-attachments-newtab-v1-20260721.js?v=20260731_chatfix1",
+      "sha256": "f57693b73e66a1fd7d0cd1bbd352b0cf6cd7b88c8b5a01cb69a164f9d3cafcab"
+    },
+    {
+      "rule": "R3.HTML_SYNC",
+      "file": "js/patches/chat/nucleo/lf-chat-avatar-presence-profile-fix-20260727.js?v=20260728fix1_20260728062423",
+      "sha256": "b13a14d0ce76de0b4464a55b26c60e7671f69eff857429782732c1a9986db82b"
+    },
+    {
+      "rule": "R3.HTML_SYNC",
+      "file": "js/patches/chat/nucleo/lf-chat-avatar-presence-profile-fix-20260727.js?v=20260731_chatfix1",
+      "sha256": "011eb56683ba2a45b447d0af431ce01a8bea60930209695d6d9c32a95ca791db"
+    },
+    {
+      "rule": "R3.HTML_SYNC",
+      "file": "js/patches/chat/nucleo/lf-chat-ctx-sound-fix-v1-20260720.js?v=20260728fix1_20260728062423",
+      "sha256": "f3d5543690b9147bfbc6d8f16539a44ecf5ab26fce2e6bc46f7a13c5b324ab01"
+    },
+    {
+      "rule": "R3.HTML_SYNC",
+      "file": "js/patches/chat/nucleo/lf-chat-ctx-sound-fix-v1-20260720.js?v=20260731_chatfix1",
+      "sha256": "a5b0ebc95fa131558e428959b504aa831f2d4b22a642ccbb324fadb397411c2b"
+    },
+    {
+      "rule": "R3.HTML_SYNC",
+      "file": "js/patches/chat/nucleo/lf-chat-nav-menu-v1-20260720.js?v=20260728fix1_20260728062423",
+      "sha256": "f5d11216ca99280dae61e77c765173a4fd8a9c7617a879ad6dcac0bfbfe4b1f0"
+    },
+    {
+      "rule": "R3.HTML_SYNC",
+      "file": "js/patches/chat/nucleo/lf-chat-nav-menu-v1-20260720.js?v=20260731_chatfix1",
+      "sha256": "e102b7e177af1f89c2802fd56f7359d07657607c3ee98cc0614fd3ee8be25682"
+    },
+    {
+      "rule": "R3.HTML_SYNC",
+      "file": "js/patches/chat/nucleo/lf-chat-permissions-fix-v1-20260720.js?v=20260728fix1_20260728062423",
+      "sha256": "8f82801ea472b125b699e9ee5e91717de8cea706e234e03bbbb785892a454388"
+    },
+    {
+      "rule": "R3.HTML_SYNC",
+      "file": "js/patches/chat/nucleo/lf-chat-permissions-fix-v1-20260720.js?v=20260731_chatfix1",
+      "sha256": "28fa1b19284189a919b927591621375a0278416fdb1d7554050057e17629fda3"
+    },
+    {
+      "rule": "R3.HTML_SYNC",
+      "file": "js/patches/chat/nucleo/lf-chat-pin-presence-active-fix-v1-20260721.js?v=20260728fix1_20260728062423",
+      "sha256": "ba401003e784f61a282a4574bba58ff0fe3ad6a1649ee3d91fafb5d4f4a10a98"
+    },
+    {
+      "rule": "R3.HTML_SYNC",
+      "file": "js/patches/chat/nucleo/lf-chat-pin-presence-active-fix-v1-20260721.js?v=20260731_chatfix1",
+      "sha256": "67dbdc8e3f1f50c11ded14f762b65c46cf24af3459f50ba355416048a9a46200"
+    },
+    {
+      "rule": "R3.HTML_SYNC",
+      "file": "js/patches/lf-bootstrap-fn-aliases-v1-20260804.js?v=20260804aliases1",
+      "sha256": "7cf4eb3728dfd4d67d394e201bef1f55eb6b9316a4f309afc990570758e66ecd"
+    },
+    {
+      "rule": "R3.HTML_SYNC",
+      "file": "js/patches/lf-when-worker-auth-v1-20260804.js?v=20260804authgate1",
+      "sha256": "509eaf057be906cb94c6a3c1fba8c682d3a146b04c7e4c86c92c2b4da371b0d7"
+    },
+    {
+      "rule": "R3.HTML_SYNC",
+      "file": "js/patches/notificacoes/lf-notify-global-v1-20260727.js?v=20260728fix1_20260728062423",
+      "sha256": "924ed3f5480388c3935b946496dcf0e5edafcb053efad70c10e9acbf8973130c"
+    },
+    {
+      "rule": "R3.HTML_SYNC",
+      "file": "js/patches/notificacoes/lf-notify-global-v1-20260727.js?v=20260731_chatfix1",
+      "sha256": "2a9ae4f1dd3b5bf7511b3287c985422644a20ed6c2d5a3c3c77ac227f8f81b8a"
+    }
+  ]
+}

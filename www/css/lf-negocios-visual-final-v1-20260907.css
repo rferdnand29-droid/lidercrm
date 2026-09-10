@@ -1,0 +1,478 @@
+/* =====================================================================
+ * lf-negocios-visual-final-v1-20260907.css
+ * ---------------------------------------------------------------------
+ * RE-SKIN DEFINITIVO da página #pg-negocios (desktop, tema escuro).
+ *
+ * Objetivo: replicar 1:1 o visual aprovado de #pg-leads
+ * (css/lf-leads-visual-final-v1-20260907.css) na aba Negócios,
+ * preservando 100% das funcionalidades exclusivas de Negócios:
+ *   - Botão "⏰ Atrasadas" (#neg-flt-late) com estado aria-pressed
+ *   - Botão "🔄 Verificar ausentes" (verde)
+ *   - Botão "+ Criar Negócio" (dourado sólido)
+ *   - Valor R$ do card (.kb-card-valor) em verde
+ *   - Menu de contexto 3 pontos (.kb-card-menu) — PERMANECE visível
+ *   - Soma total por etapa no título da coluna (.kb-col-valor)
+ *
+ * Diferença estrutural vs Leads: as etapas de Negócios são DINÂMICAS
+ * (kbCols('negocios') em js/kanban.js), então as cores por etapa usam
+ * paleta CÍCLICA por :nth-child da .kb-col (6 cores, repetindo).
+ *
+ * BUGFIX incluso: popover "Selecionar por etapa" (#bulk-stage-pop-negocios)
+ * não abria em Negócios. Causa: overflow/z-index herdados. Corrigido na
+ * seção 3b deste arquivo (overflow:visible no wrap/header/actions +
+ * z-index alto no popover). NENHUM CSS de Leads foi alterado.
+ *
+ * Escopo TOTAL do arquivo: @media (min-width:769px) + body.theme-classic
+ * ===================================================================== */
+
+@media (min-width:769px){
+
+/* -------------------------------------------------------------------
+ * 0. TOKENS LOCAIS (mesmos valores do skin de Leads; escopo isolado)
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-negocios,
+body.theme-classic #negocios-kanban-wrap{
+  --lfv-bg:            #0B131E;
+  --lfv-panel:         #131C2E;
+  --lfv-panel-2:       #1E293B;
+  --lfv-card:          #111927;
+  --lfv-card-hover:    #172234;
+  --lfv-hairline:      rgba(148,163,184,.14);
+  --lfv-hairline-2:    rgba(148,163,184,.22);
+  --lfv-tx:            #FFFFFF;
+  --lfv-mu:            #94A3B8;
+  --lfv-mu-2:          #64748B;
+
+  --lfv-gold:          #F9A825;
+  --lfv-gold-2:        #D98F0A;
+  --lfv-gold-soft:     rgba(249,168,37,.14);
+  --lfv-gold-ring:     rgba(249,168,37,.35);
+  --lfv-green:         #10B981;
+  --lfv-green-soft:    rgba(16,185,129,.14);
+  --lfv-blue-info:     #1E88E5;
+
+  /* Paleta cíclica por etapa (dot do header + borda esquerda do card).
+     Em Negócios as etapas são configuráveis, então mapeamos por
+     :nth-child(6n+N) na seção 4 em vez de data-col fixos. */
+  --lfv-col-novo:      #3B82F6;
+  --lfv-col-tent:      #F59E0B;
+  --lfv-col-whats:     #10B981;
+  --lfv-col-livre:     #EF4444;
+  --lfv-col-conv:      #06B6D4;
+  --lfv-col-desc:      #F43F5E;
+}
+
+/* -------------------------------------------------------------------
+ * 1. SUB-HEADER DA PÁGINA (título + subtítulo + busca + ações)
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-negocios .kb-header{
+  background: linear-gradient(180deg, var(--lfv-bg) 0%, var(--lfv-bg) 100%) !important;
+  border-bottom: 1px solid var(--lfv-hairline) !important;
+  padding: 14px 20px !important;
+  /* BUGFIX popover: o header não pode cortar o popover do bulk-stage */
+  overflow: visible !important;
+}
+body.theme-classic #pg-negocios .kb-title{
+  color: var(--lfv-tx) !important;
+  font-weight: 700 !important;
+  font-size: 1.5rem !important;
+  letter-spacing: .1px !important;
+}
+body.theme-classic #pg-negocios .kb-header p,
+body.theme-classic #pg-negocios .kb-header .aline + p{
+  color: var(--lfv-mu) !important;
+}
+/* underline dourada sob o título */
+body.theme-classic #pg-negocios .kb-header .aline{
+  background: linear-gradient(90deg, var(--lfv-gold), transparent) !important;
+  height: 2px !important;
+  border-radius: 2px !important;
+  opacity: .9 !important;
+}
+
+/* -------------------------------------------------------------------
+ * 2. BARRA DE BUSCA ("Buscar negócio...")
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-negocios .kb-search-wrap{
+  background: rgba(255,255,255,.03) !important;
+  border: 1px solid var(--lfv-hairline) !important;
+  border-radius: 10px !important;
+  transition: border-color .15s ease, box-shadow .15s ease !important;
+}
+body.theme-classic #pg-negocios .kb-search-wrap:focus-within{
+  border-color: var(--lfv-gold-ring) !important;
+  box-shadow: 0 0 0 3px rgba(249,168,37,.08) !important;
+}
+body.theme-classic #pg-negocios .kb-search{
+  background: transparent !important;
+  color: var(--lfv-tx) !important;
+  font-size: .85rem !important;
+}
+body.theme-classic #pg-negocios .kb-search::placeholder{ color: var(--lfv-mu-2) !important; }
+body.theme-classic #pg-negocios .kb-search-ic{
+  color: var(--lfv-mu) !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+body.theme-classic #pg-negocios .kb-search-ic:hover{
+  color: var(--lfv-gold) !important;
+  background: transparent !important;
+}
+
+/* -------------------------------------------------------------------
+ * 3. BOTÕES DE AÇÃO DA SUB-HEADER
+ *    "+ Criar Negócio" (dourado sólido), "Importar em lote" (azul outline),
+ *    "⏰ Atrasadas" (âmbar outline), "🔄 Verificar ausentes" (verde outline),
+ *    "✅ Todos" (verde outline + seta ▾).
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-negocios .kb-actions{
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  /* BUGFIX popover: ações não podem cortar o popover */
+  overflow: visible !important;
+}
+body.theme-classic #pg-negocios .kb-actions .btn-kb-new{
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  font-size: .8rem !important;
+  padding: 8px 14px !important;
+  border: 1px solid var(--lfv-hairline) !important;
+  transition: transform .12s ease, box-shadow .15s ease, background .15s ease !important;
+}
+/* "+ Criar Negócio" — o .btn-kb-new sem style inline no HTML */
+body.theme-classic #pg-negocios .kb-actions .btn-kb-new:not([style]){
+  background: var(--lfv-gold) !important;
+  color: #1A1206 !important;
+  border-color: var(--lfv-gold-2) !important;
+  box-shadow: 0 6px 14px rgba(249,168,37,.22) !important;
+}
+body.theme-classic #pg-negocios .kb-actions .btn-kb-new:not([style]):hover{
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 18px rgba(249,168,37,.32) !important;
+}
+/* "Importar em lote" (style inline com var(--bl)) — re-arredonda e alinha ao azul do skin */
+body.theme-classic #pg-negocios .kb-actions .btn-kb-new[onclick^="openBatchImport"]{
+  color: #60A5FA !important;
+  background: rgba(30,136,229,.10) !important;
+  border-color: rgba(30,136,229,.30) !important;
+}
+/* "⏰ Atrasadas" (#neg-flt-late) — outline âmbar; aria-pressed acende dourado */
+body.theme-classic #pg-negocios #neg-flt-late{
+  color: #F59E0B !important;
+  background: rgba(224,138,58,.10) !important;
+  border-color: rgba(224,138,58,.28) !important;
+}
+body.theme-classic #pg-negocios #neg-flt-late[aria-pressed="true"],
+body.theme-classic #pg-negocios #neg-flt-late.on{
+  background: var(--lfv-gold-soft) !important;
+  color: var(--lfv-gold) !important;
+  border-color: var(--lfv-gold-ring) !important;
+  box-shadow: 0 0 0 3px rgba(249,168,37,.08), 0 6px 14px rgba(249,168,37,.18) !important;
+}
+/* "🔄 Verificar ausentes" — verde suave com hairline */
+body.theme-classic #pg-negocios .kb-actions .btn-kb-new[onclick*="lfFixMissingCardsNow"]{
+  color: #6EE7B7 !important;
+  background: var(--lfv-green-soft) !important;
+  border-color: rgba(16,185,129,.30) !important;
+}
+body.theme-classic #pg-negocios .kb-actions .btn-kb-new[onclick*="lfFixMissingCardsNow"]:hover{
+  border-color: rgba(16,185,129,.50) !important;
+  background: rgba(16,185,129,.18) !important;
+}
+/* Wrap "✅ Todos" (bulk stage) — verde outline com seta ▾ */
+body.theme-classic #pg-negocios .bulk-stage-wrap{
+  border-radius: 10px !important;
+  /* BUGFIX popover: overflow:hidden aqui cortava o popover em Negócios */
+  overflow: visible !important;
+  position: relative !important;
+  border: 1px solid rgba(16,185,129,.30) !important;
+  background: var(--lfv-green-soft) !important;
+}
+body.theme-classic #pg-negocios .bulk-stage-main{
+  background: transparent !important;
+  color: #34D399 !important;
+  border: 0 !important;
+}
+body.theme-classic #pg-negocios .bulk-stage-arrow{
+  background: transparent !important;
+  color: #34D399 !important;
+  border: 0 !important;
+  border-left: 1px solid rgba(16,185,129,.30) !important;
+  padding: 0 10px !important;
+  cursor: pointer !important;
+}
+body.theme-classic #pg-negocios .bulk-stage-arrow:hover{
+  background: rgba(16,185,129,.10) !important;
+}
+
+/* -------------------------------------------------------------------
+ * 3b. BUGFIX — POPOVER "SELECIONAR POR ETAPA" (#bulk-stage-pop-negocios)
+ *     Sintoma: ▾ ao lado de "✅ Todos" não abria em Negócios (em Leads
+ *     funcionava). O JS (toggleBulkStagePopover/selectAllKBCardsByStage)
+ *     está correto; o problema era CSS: overflow cortando o popover e/ou
+ *     z-index insuficiente. Correções: overflow:visible em
+ *     .bulk-stage-wrap/.kb-actions/.kb-header (acima) + z-index alto aqui.
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-negocios .bulk-stage-popover{
+  z-index: 9999 !important;
+  background: var(--lfv-panel-2) !important;
+  border: 1px solid var(--lfv-hairline-2) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 16px 40px rgba(0,0,0,.60) !important;
+}
+body.theme-classic #pg-negocios .bulk-stage-opt{
+  color: var(--lfv-tx) !important;
+  border-radius: 8px !important;
+}
+body.theme-classic #pg-negocios .bulk-stage-opt:hover{
+  background: var(--lfv-gold-soft) !important;
+}
+body.theme-classic #pg-negocios .bulk-stage-dot{
+  border-color: var(--lfv-gold) !important;
+}
+body.theme-classic #pg-negocios .bulk-stage-opt.sel .bulk-stage-dot{
+  background: var(--lfv-gold) !important;
+}
+
+/* -------------------------------------------------------------------
+ * 4. COLUNAS DO KANBAN
+ *    Estrutura: #negocios-kanban-wrap .kb-wrap > .kb-col[data-col] >
+ *    .kb-col-hd (dot + título + contagem + botão +) + .kb-cards
+ *    As etapas de Negócios são DINÂMICAS — cores cíclicas por :nth-child.
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-negocios .kb-wrap{
+  padding: 12px 14px 8px !important;
+  gap: 14px !important;
+}
+body.theme-classic #pg-negocios .kb-col{
+  background: linear-gradient(180deg, var(--lfv-panel) 0%, var(--lfv-panel-2) 100%) !important;
+  border: 1px solid var(--lfv-hairline) !important;
+  border-radius: 16px !important;
+  padding: 8px !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.02) !important;
+}
+body.theme-classic #pg-negocios .kb-col.drag-over{
+  border-color: var(--lfv-gold-ring) !important;
+  box-shadow: 0 0 0 1px var(--lfv-gold-ring), 0 12px 28px rgba(0,0,0,.45) !important;
+}
+
+/* Cabeçalho da coluna */
+body.theme-classic #pg-negocios .kb-col-hd{
+  padding: 10px 10px !important;
+  border-bottom: 1px solid var(--lfv-hairline) !important;
+  background: transparent !important;
+}
+body.theme-classic #pg-negocios .kb-col-title{
+  color: var(--lfv-tx) !important;
+  font-weight: 700 !important;
+  font-size: .88rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+/* Dot colorido antes do título (::before) — base neutra */
+body.theme-classic #pg-negocios .kb-col-title::before{
+  content: "" !important;
+  display: inline-block !important;
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 50% !important;
+  background: var(--lfv-mu) !important;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.04) !important;
+  flex-shrink: 0 !important;
+}
+/* Soma total por etapa (.kb-col-valor, só Negócios) — verde discreto */
+body.theme-classic #pg-negocios .kb-col-valor{
+  color: var(--lfv-green) !important;
+  font-weight: 600 !important;
+  font-size: .74rem !important;
+}
+
+/* Paleta cíclica por posição da coluna (6 cores, repete a cada 6).
+   Cobre o dot do título E a hairline esquerda do card de uma vez. */
+body.theme-classic #pg-negocios .kb-col:nth-child(6n+1) .kb-col-title::before{ background: var(--lfv-col-novo)  !important; box-shadow: 0 0 0 3px rgba(59,130,246,.14) !important; }
+body.theme-classic #pg-negocios .kb-col:nth-child(6n+2) .kb-col-title::before{ background: var(--lfv-col-tent)  !important; box-shadow: 0 0 0 3px rgba(245,158,11,.14) !important; }
+body.theme-classic #pg-negocios .kb-col:nth-child(6n+3) .kb-col-title::before{ background: var(--lfv-col-whats) !important; box-shadow: 0 0 0 3px rgba(16,185,129,.14) !important; }
+body.theme-classic #pg-negocios .kb-col:nth-child(6n+4) .kb-col-title::before{ background: var(--lfv-col-livre) !important; box-shadow: 0 0 0 3px rgba(239,68,68,.14) !important; }
+body.theme-classic #pg-negocios .kb-col:nth-child(6n+5) .kb-col-title::before{ background: var(--lfv-col-conv)  !important; box-shadow: 0 0 0 3px rgba(6,182,212,.14) !important; }
+body.theme-classic #pg-negocios .kb-col:nth-child(6n+6) .kb-col-title::before{ background: var(--lfv-col-desc)  !important; box-shadow: 0 0 0 3px rgba(244,63,94,.14) !important; }
+
+/* Badge de contagem */
+body.theme-classic #pg-negocios .kb-col-cnt{
+  background: rgba(255,255,255,.06) !important;
+  border: 1px solid var(--lfv-hairline) !important;
+  color: var(--lfv-mu) !important;
+  border-radius: 999px !important;
+  padding: 1px 8px !important;
+  font-size: .7rem !important;
+  font-weight: 600 !important;
+}
+
+/* Botão "+" para adicionar na coluna */
+body.theme-classic #pg-negocios .kb-add-btn{
+  background: rgba(255,255,255,.04) !important;
+  border: 1px solid var(--lfv-hairline) !important;
+  color: var(--lfv-mu) !important;
+  border-radius: 8px !important;
+  width: 26px !important;
+  height: 26px !important;
+  transition: color .12s ease, border-color .12s ease, background .12s ease !important;
+}
+body.theme-classic #pg-negocios .kb-add-btn:hover{
+  color: var(--lfv-gold) !important;
+  border-color: var(--lfv-gold-ring) !important;
+  background: var(--lfv-gold-soft) !important;
+}
+
+/* -------------------------------------------------------------------
+ * 5. CARDS DE NEGÓCIO
+ *    - .kb-card fundo #111927, raio 12px, borda esquerda 4px cíclica
+ *    - .kb-card-num, .kb-card-name, .kb-card-tel
+ *    - .kb-card-valor (R$, só Negócios) verde no rodapé
+ *    - .kb-card-menu (⋯, só Negócios) circular discreto, hover dourado
+ *    NÃO tocar em overflow/altura da .kb-cards (jitter-stabilizer manda).
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-negocios .kb-card{
+  position: relative !important;
+  background: var(--lfv-card) !important;
+  border: 1px solid var(--lfv-hairline) !important;
+  border-radius: 12px !important;
+  padding: 12px 12px 10px 16px !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.30) !important;
+  transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease, background .14s ease !important;
+}
+body.theme-classic #pg-negocios .kb-card:hover{
+  background: var(--lfv-card-hover) !important;
+  border-color: var(--lfv-hairline-2) !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,.40) !important;
+  /* Sem translateY: o jitter-stabilizer neutraliza deslocamento */
+  transform: none !important;
+}
+
+/* Borda esquerda colorida por etapa (::before) — base neutra */
+body.theme-classic #pg-negocios .kb-card::before{
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 10px !important;
+  bottom: 10px !important;
+  width: 4px !important;
+  border-radius: 4px !important;
+  background: var(--lfv-mu) !important;
+}
+/* Paleta cíclica da hairline do card (mesma ordem do dot do título) */
+body.theme-classic #pg-negocios .kb-col:nth-child(6n+1) .kb-card::before{ background: var(--lfv-col-novo)  !important; }
+body.theme-classic #pg-negocios .kb-col:nth-child(6n+2) .kb-card::before{ background: var(--lfv-col-tent)  !important; }
+body.theme-classic #pg-negocios .kb-col:nth-child(6n+3) .kb-card::before{ background: var(--lfv-col-whats) !important; }
+body.theme-classic #pg-negocios .kb-col:nth-child(6n+4) .kb-card::before{ background: var(--lfv-col-livre) !important; }
+body.theme-classic #pg-negocios .kb-col:nth-child(6n+5) .kb-card::before{ background: var(--lfv-col-conv)  !important; }
+body.theme-classic #pg-negocios .kb-col:nth-child(6n+6) .kb-card::before{ background: var(--lfv-col-desc)  !important; }
+
+/* Tipografia interna do card */
+body.theme-classic #pg-negocios .kb-card-num{
+  font-family: ui-monospace,'SF Mono',Consolas,monospace !important;
+  font-size: .66rem !important;
+  color: var(--lfv-mu-2) !important;
+  letter-spacing: .3px !important;
+}
+body.theme-classic #pg-negocios .kb-card-name{
+  font-weight: 700 !important;
+  font-size: .9rem !important;
+  color: var(--lfv-tx) !important;
+}
+body.theme-classic #pg-negocios .kb-card-tel{
+  font-family: ui-monospace,'SF Mono',Consolas,monospace !important;
+  font-size: .76rem !important;
+  color: #A7F3D0 !important;
+}
+body.theme-classic #pg-negocios .kb-card-obs{
+  font-size: .72rem !important;
+  color: var(--lfv-mu) !important;
+  line-height: 1.4 !important;
+}
+body.theme-classic #pg-negocios .kb-card-date{
+  font-size: .68rem !important;
+  color: var(--lfv-mu) !important;
+}
+
+/* Valor R$ do card (.kb-card-valor, só Negócios) — verde, rodapé, direita */
+body.theme-classic #pg-negocios .kb-card-valor{
+  color: var(--lfv-green) !important;
+  font-weight: 700 !important;
+  font-size: .78rem !important;
+  margin-top: 4px !important;
+  text-align: right !important;
+  display: block !important;
+}
+
+/* Menu de contexto 3 pontos (.kb-card-menu, só Negócios) — PERMANECE
+   visível; circular pequeno 22×22, transparente com hairline, hover dourado */
+body.theme-classic #pg-negocios .kb-card-menu{
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  min-height: 22px !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  border: 1px solid var(--lfv-hairline) !important;
+  color: var(--lfv-mu) !important;
+  font-size: .8rem !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: color .12s ease, border-color .12s ease, background .12s ease !important;
+}
+body.theme-classic #pg-negocios .kb-card-menu:hover{
+  color: var(--lfv-gold) !important;
+  border-color: var(--lfv-gold-ring) !important;
+  background: var(--lfv-gold-soft) !important;
+}
+
+/* Pills "Ligar" / "WhatsApp" dentro do card */
+body.theme-classic #pg-negocios .kb-call-btn,
+body.theme-classic #pg-negocios .kb-wa-btn{
+  border-radius: 8px !important;
+  border: 1px solid var(--lfv-hairline) !important;
+  background: rgba(255,255,255,.02) !important;
+  color: var(--lfv-mu) !important;
+  font-size: .72rem !important;
+  padding: 4px 10px !important;
+  transition: color .12s ease, border-color .12s ease, background .12s ease !important;
+}
+body.theme-classic #pg-negocios .kb-call-btn:hover{
+  color: #FCA5A5 !important;
+  border-color: rgba(239,68,68,.45) !important;
+  background: rgba(239,68,68,.08) !important;
+}
+body.theme-classic #pg-negocios .kb-wa-btn:hover{
+  color: #6EE7B7 !important;
+  border-color: rgba(16,185,129,.45) !important;
+  background: rgba(16,185,129,.08) !important;
+}
+
+/* -------------------------------------------------------------------
+ * 6. NEUTRALIZAÇÕES PONTUAIS (drag)
+ *    NÃO tocamos em: overflow-y, scrollbar-gutter, scroll-behavior,
+ *    alturas calc() — jitter-stabilizer preservado.
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-negocios .kb-card.dragging{
+  opacity: .55 !important;
+  transform: rotate(-1.2deg) scale(1.02) !important;
+  box-shadow: 0 18px 40px rgba(0,0,0,.55) !important;
+}
+
+/* -------------------------------------------------------------------
+ * 7. BARRA DE BULK (👤 Transferir / ✨ Mover / 🗑️ Descartar)
+ *    Reforço visual coerente com o skin (o comportamento já vem do JS
+ *    compartilhado com Leads).
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-negocios .kb-bulk-bar{
+  background: var(--lfv-panel-2) !important;
+  border: 1px solid var(--lfv-gold-ring) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 32px rgba(0,0,0,.50) !important;
+}
+
+}  /* fim @media (min-width:769px) */

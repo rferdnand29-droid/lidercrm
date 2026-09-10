@@ -1,0 +1,146 @@
+/* =====================================================================
+ * lf-leads-transparent-bg-v1-20260907.css
+ * ---------------------------------------------------------------------
+ * PATCH ADITIVO: fundo TRANSPARENTE da aba Leads (#pg-leads).
+ *
+ * Objetivo: remover somente o preenchimento de background da aba Leads
+ * (desktop e mobile) para deixar aparecer o fundo global do app, SEM
+ * mexer em JS, SEM renomear/remover classes/ids/data-attributes usados
+ * pelo runtime e SEM alterar o layout, cores de texto, bordas de card,
+ * cor por etapa, botões dourados, FAB, etc.
+ *
+ * Este arquivo DEVE ser o ÚLTIMO CSS de tema carregado no <head>,
+ * depois de:
+ *   - css/style.css
+ *   - css/lf-mobile-leads-list-fix.css
+ *   - css/lf-mobile-leads-compact-v1.css
+ *   - css/lf-leads-visual-final-v1-20260907.css
+ *
+ * Regra !important: usada nas MESMAS propriedades em que os CSS
+ * anteriores já usavam !important para pintar background, para vencer
+ * a cascata sem precisar editar aqueles arquivos.
+ *
+ * Escopo: #pg-leads e seus filhos estruturais de fundo apenas.
+ * NÃO afeta:
+ *   - cards individuais (.kb-card mantém seu bg dark p/ contraste)
+ *   - dots/bordas coloridas por etapa
+ *   - botões dourados / de ação
+ *   - cabeçalhos coloridos por etapa (.kb-col-hd.c-*)
+ * ===================================================================== */
+
+/* -------------------------------------------------------------------
+ * 1. CONTAINER DA PÁGINA — remove qualquer bg em #pg-leads
+ * ----------------------------------------------------------------- */
+#pg-leads,
+body.theme-classic #pg-leads,
+body #pg-leads.pg,
+body.theme-classic #pg-leads.pg{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* -------------------------------------------------------------------
+ * 2. WRAPPER DO KANBAN + FAIXA DE SCROLL
+ * ----------------------------------------------------------------- */
+#pg-leads #leads-kanban-wrap,
+#pg-leads .kb-scroll-wrap,
+#pg-leads .kb-wrap,
+#pg-leads #leads-kanban,
+body.theme-classic #pg-leads #leads-kanban-wrap,
+body.theme-classic #pg-leads .kb-scroll-wrap,
+body.theme-classic #pg-leads .kb-wrap,
+body.theme-classic #pg-leads #leads-kanban{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* -------------------------------------------------------------------
+ * 3. SUB-HEADER DA PÁGINA (título + busca + ações)
+ *    O CSS anterior pintava .kb-header com linear-gradient sólido;
+ *    aqui removemos apenas o preenchimento, mantendo o border-bottom
+ *    hairline e o padding definidos anteriormente.
+ * ----------------------------------------------------------------- */
+#pg-leads .kb-header,
+body.theme-classic #pg-leads .kb-header{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* -------------------------------------------------------------------
+ * 4. BARRA DE RESUMO DE ETAPA + BARRA DE ABAS INTERNAS
+ *    (crm-toptabs = "Leads / Negócios / Dono",
+ *     stage-summary-bar = "Etapa atual / Valor R$")
+ * ----------------------------------------------------------------- */
+#pg-leads .crm-toptabs,
+#pg-leads .stage-summary-bar,
+#pg-leads .kb-view-bar,
+#pg-leads #leads-cons-bar,
+body.theme-classic #pg-leads .crm-toptabs,
+body.theme-classic #pg-leads .stage-summary-bar,
+body.theme-classic #pg-leads .kb-view-bar,
+body.theme-classic #pg-leads #leads-cons-bar{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* -------------------------------------------------------------------
+ * 5. LISTA MOBILE (chips + cards verticais estilo Bitrix24)
+ *    Não mexemos no bg dos cards internos (.mb-card) — apenas
+ *    o container/wrapper da lista para deixar transparente.
+ * ----------------------------------------------------------------- */
+#pg-leads #leads-mobile-list,
+#pg-leads #leads-mb-search,
+#pg-leads .mb-search-row,
+#pg-leads .mb-stage-chips,
+body.theme-classic #pg-leads #leads-mobile-list,
+body.theme-classic #pg-leads #leads-mb-search,
+body.theme-classic #pg-leads .mb-search-row,
+body.theme-classic #pg-leads .mb-stage-chips{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* -------------------------------------------------------------------
+ * 6. COLUNAS DO KANBAN — casca da coluna transparente
+ *    (mantemos borda hairline + border-radius para não perder o
+ *    contorno visual das colunas; só removemos o preenchimento.)
+ *    NÃO tocamos em .kb-col-hd.c-* (cabeçalhos coloridos por etapa)
+ *    nem em .kb-card (card interno permanece com seu bg escuro).
+ * ----------------------------------------------------------------- */
+#pg-leads .kb-col,
+body.theme-classic #pg-leads .kb-col{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  /* box-shadow interno branco removido para evitar "brilho" sem fundo */
+  box-shadow: none !important;
+}
+#pg-leads .kb-col .kb-cards,
+body.theme-classic #pg-leads .kb-col .kb-cards{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* -------------------------------------------------------------------
+ * 7. SAFETY: qualquer descendente direto de #pg-leads que ainda
+ *    tenha pintura sólida herdada de temas antigos (skins de rollback).
+ *    Escopo limitado aos wrappers de fundo — NÃO afeta botões, cards,
+ *    inputs, chips coloridos, etc. (esses casam por classe própria
+ *    nos CSS acima).
+ * ----------------------------------------------------------------- */
+#pg-leads > .kb-scroll-wrap,
+#pg-leads > .kb-view-bar,
+#pg-leads > .mb-search-row,
+#pg-leads > .stage-summary-bar,
+#pg-leads > .crm-toptabs,
+#pg-leads > .kb-header{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}

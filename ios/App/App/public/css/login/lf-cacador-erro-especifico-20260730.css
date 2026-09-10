@@ -1,0 +1,32 @@
+/* =====================================================================
+ * lf-cacador-erro-especifico-20260730.css
+ * ---------------------------------------------------------------------
+ * FIX 1 removido em 2026-10-07 (consolidação do fundo da tela de
+ * login — via ecoscando .lmon/.lbr/.crm-brand-name/.lf-logo-img, que
+ * fazia parte do sistema de vídeo de fundo antigo, já desativado).
+ * Os fixes abaixo (grupos de chat) não têm relação com login — mantidos.
+ * ===================================================================== */
+/* FIX 2 bis: affordance visual do header de grupo (sem chat.js) */
+#chat-conv-header.lf-is-group .chat-conv-hd-info,
+#chat-conv-header.lf-is-group .chat-conv-hd-name,
+#chat-conv-header.lf-is-group .chat-conv-hd-avatar {
+  cursor: pointer !important;
+}
+#chat-conv-header.lf-is-group .chat-conv-hd-info::after {
+  content: " ▸";
+  color: var(--amber, #c39a2d);
+  font-size: .78rem;
+  opacity: .7;
+}
+/* FIX 6: esconde bolinha da aba quando n===0 (semântica "só o que tem") */
+.chat-tabs-bar .chat-tab .chat-tab-n[data-n="0"] { display: none !important; }
+/* FIX 3 bis: botão "Desfazer grupo" precisa de CONFIRMAÇÃO DUPLA visual —
+   afastamos do botão "Sair" para reduzir toque acidental */
+#mo-chat-manage .mbtns { flex-wrap: wrap; }
+#mo-chat-manage .mbtns button.bd:last-child {
+  margin-top: 8px;
+  width: 100%;
+  order: 99;
+  background: #7f1d1d !important;
+  border-color: #7f1d1d !important;
+}

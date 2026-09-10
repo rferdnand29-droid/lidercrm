@@ -1,0 +1,310 @@
+/*!
+ * lf-consultor-clickable-lig-v1-20260819.css
+ * Estilos do modal do consultor (ADM > Ligações e Time > Ligações) +
+ * affordance de clique no cartão.
+ * ---------------------------------------------------------------------- */
+
+/* --------- affordance nos cartões (ADM e Time) --------- */
+#adm-lig-list .adm-lig-row,
+#time-lig-list .adm-lig-row{
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, transform .12s ease;
+}
+#adm-lig-list .adm-lig-row:hover,
+#time-lig-list .adm-lig-row:hover{
+  background: var(--bg3, rgba(255,255,255,.03));
+  border-color: var(--bl, #3a9fe0);
+}
+#adm-lig-list .adm-lig-row:active,
+#time-lig-list .adm-lig-row:active{
+  transform: scale(.995);
+}
+
+/* Botões/controles internos do row não devem herdar cursor "pointer" do row. */
+#adm-lig-list .adm-lig-row button,
+#adm-lig-list .adm-lig-row input,
+#adm-lig-list .adm-lig-row a,
+#time-lig-list .adm-lig-row button,
+#time-lig-list .adm-lig-row input,
+#time-lig-list .adm-lig-row a{
+  cursor: auto;
+}
+
+/* --------- modal --------- */
+.lf-cons-lig-mo{
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 1200; /* utils.js incrementa _moZTop, mas define um piso próprio pra fallback */
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.lf-cons-lig-mo.open{ display: flex; }
+
+.lf-cons-lig-box{
+  width: min(720px, 96vw);
+  max-height: 92vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--card, #12181f);
+  color: var(--tx, #e6edf3);
+  border: 1px solid var(--b1, #232a33);
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.55);
+}
+
+.lf-cons-lig-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--b1, #232a33);
+}
+.lf-cons-lig-title{
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--al, #d4af37);
+}
+.lf-cons-lig-close{
+  border: 0;
+  background: transparent;
+  color: var(--mu, #7f8a99);
+  font-size: 1.4rem;
+  line-height: 1;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.lf-cons-lig-close:hover{ background: var(--bg3, rgba(255,255,255,.06)); color: var(--tx); }
+
+.lf-cons-lig-tabs{
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px 0;
+  border-bottom: 1px solid var(--b1, #232a33);
+  flex-shrink: 0;
+}
+.lf-cons-lig-tab{
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--mu, #7f8a99);
+  padding: 6px 12px;
+  font-size: .78rem;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  border-bottom: 2px solid transparent;
+  transition: color .12s, border-color .12s, background .12s;
+}
+.lf-cons-lig-tab:hover{ color: var(--tx); background: var(--bg3, rgba(255,255,255,.03)); }
+.lf-cons-lig-tab.on{
+  color: var(--al, #d4af37);
+  border-bottom-color: var(--al, #d4af37);
+}
+
+.lf-cons-lig-body{
+  padding: 14px 16px;
+  overflow: auto;
+  flex: 1;
+}
+.lf-cons-lig-pane{ display: none; }
+.lf-cons-lig-pane.on{ display: block; }
+
+/* --------- HOJE --------- */
+.lf-cons-lig-kpis{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.lf-cons-lig-kpi{
+  background: var(--card, #12181f);
+  border: 1px solid var(--b1, #232a33);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+}
+.lf-cons-lig-kpi-v{
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--al, #d4af37);
+}
+.lf-cons-lig-kpi-l{ font-size: .62rem; color: var(--mu, #7f8a99); margin-top: 2px; }
+
+.lf-cons-lig-grid{
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.lf-cons-lig-cell{
+  aspect-ratio: 1;
+  border: 1.5px solid var(--b1, #232a33);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  font-weight: 600;
+  color: var(--mu, #7f8a99);
+  background: var(--bg2, rgba(255,255,255,.02));
+}
+.lf-cons-lig-cell.marked{
+  background: linear-gradient(135deg, var(--ad, #b8862b), var(--amber, #d4af37));
+  color: #0b0f14;
+  border-color: transparent;
+}
+.lf-cons-lig-cell-h{
+  font-size: .55rem;
+  font-weight: 500;
+  margin-top: 2px;
+  opacity: .85;
+}
+
+.lf-cons-lig-linha{
+  border-top: 1px dashed var(--b1, #232a33);
+  padding-top: 10px;
+}
+.lf-cons-lig-linha-t{
+  font-size: .68rem;
+  color: var(--mu, #7f8a99);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.lf-cons-lig-linha-b{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lf-cons-lig-chip{
+  background: var(--bg3, rgba(255,255,255,.06));
+  color: var(--tx, #e6edf3);
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: .68rem;
+  border: 1px solid var(--b1, #232a33);
+}
+.lf-cons-lig-linha.lf-cons-lig-empty{
+  text-align: center;
+  color: var(--mu, #7f8a99);
+  font-style: italic;
+  padding: 14px 0 4px;
+}
+
+/* --------- TODOS OS DIAS --------- */
+.lf-cons-lig-all-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.lf-cons-lig-all-summary{
+  flex: 1;
+  min-width: 220px;
+}
+.lf-cons-lig-sum-kpis{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.lf-cons-lig-sum{
+  background: var(--bg3, rgba(255,255,255,.04));
+  border: 1px solid var(--b1, #232a33);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: .74rem;
+  color: var(--tx, #e6edf3);
+}
+.lf-cons-lig-sum b{ color: var(--al, #d4af37); font-weight: 700; }
+.lf-cons-lig-scope{
+  font-size: .62rem;
+  color: var(--mu, #7f8a99);
+  margin-top: 4px;
+  font-style: italic;
+}
+.lf-cons-lig-fetch{
+  white-space: nowrap;
+  font-size: .72rem !important;
+  padding: 6px 12px !important;
+}
+.lf-cons-lig-fetch[disabled]{ opacity: .6; cursor: default; }
+
+.lf-cons-lig-all-list{
+  border-top: 1px solid var(--b1, #232a33);
+  padding-top: 8px;
+}
+.lf-cons-lig-row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--b1, #232a33);
+  font-size: .78rem;
+}
+.lf-cons-lig-row:last-child{ border-bottom: 0; }
+.lf-cons-lig-row.has-lig .lf-cons-lig-row-v{
+  color: var(--al, #d4af37);
+  font-weight: 600;
+}
+.lf-cons-lig-row-d b{ color: var(--tx, #e6edf3); font-weight: 600; }
+.lf-cons-lig-dow{
+  color: var(--mu, #7f8a99);
+  font-size: .68rem;
+  margin-left: 4px;
+}
+.lf-cons-lig-badge{
+  display: inline-block;
+  margin-left: 6px;
+  background: var(--bl, #3a9fe0);
+  color: #fff;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: .58rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+.lf-cons-lig-row-v{ color: var(--mu, #7f8a99); }
+.lf-cons-lig-row.src-merged .lf-cons-lig-row-d::after{
+  content: ' ⇅';
+  color: var(--ok, #3fbf7f);
+  font-size: .78rem;
+}
+.lf-cons-lig-hint{
+  color: var(--mu, #7f8a99);
+  font-size: .74rem;
+  font-style: italic;
+}
+.lf-cons-lig-empty{
+  color: var(--mu, #7f8a99);
+  font-size: .78rem;
+  text-align: center;
+  padding: 14px 0;
+  font-style: italic;
+}
+
+.lf-cons-lig-foot{
+  border-top: 1px solid var(--b1, #232a33);
+  padding: 10px 14px;
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+/* --------- responsivo --------- */
+@media (max-width: 480px){
+  .lf-cons-lig-box{ max-height: 96vh; }
+  .lf-cons-lig-kpis{ grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .lf-cons-lig-kpi-v{ font-size: 1.2rem; }
+  .lf-cons-lig-grid{ grid-template-columns: repeat(5, 1fr); }
+  .lf-cons-lig-cell-h{ font-size: .5rem; }
+  .lf-cons-lig-fetch{ width: 100%; }
+  .lf-cons-lig-all-summary{ min-width: 100%; }
+}

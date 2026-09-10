@@ -1,0 +1,344 @@
+/* ==========================================================================
+   REDESENHO — Cards mobile de Leads/Negócios (v3)
+   Arquivo: css/lf-mobile-leads-compact-v1.css
+   Atualizado: 2026-08-22 (v2 era de 2026-08-05, ver histórico abaixo)
+
+   PEDIDO (2026-08-22): card compacto em ~2 linhas, com mockup de referência
+   (crm-lista-redesign.html) — linha 1: avatar + nome/ID + status; linha 2:
+   telefone + dono (esquerda), ligar/whatsapp/menu (direita). Reaproveita os
+   tokens já existentes do app (--amber/--al, --bg2/--bg3, --b1/--b2 etc.),
+   não a paleta do mockup.
+
+   NENHUMA função/onclick mudou — renderKBMobile() (js/kanban.js) gera as
+   mesmas chamadas (openKBDet, openStagePicker, callClient, openWhatsApp,
+   _openCtx, assumeLead), só a estrutura/classes do HTML mudaram. O botão
+   "📊 Linha do tempo" saiu da linha de ações — tocar no nome já abre o
+   detalhe (era redundante); o menu "⋮" que ficava isolado no canto
+   superior agora mora na linha de ações, junto com ligar/whatsapp.
+
+   HISTÓRICO — v1 (2026-07-31): compactação inicial (labels escondidas,
+   sub-etapa oculta). v2 (2026-08-05): sub-etapa virou barra segmentada,
+   card em blocos empilhados (~7 linhas). Esta v3 substitui totalmente as
+   classes de v1/v2 (.mb-card-header/.mb-card-name-row/.mb-card-chevron/
+   .mb-card-contact-badge/.mb-card-resp/.mb-card-actions etc. não são mais
+   geradas pelo HTML) por uma estrutura de 2 linhas (.mb-row-top/.mb-row-
+   bottom). Sub-etapa não volta — já tinha sido removida a pedido do
+   usuário numa correção anterior (ver kanban.js).
+   ========================================================================== */
+
+@media (max-width: 768px) {
+
+  /* -----------------------------------------------------------------
+     RESET — neutraliza `.kanban-col .card, .kc, [class*="card"]{padding:10px}`
+     (style.css, bloco de responsividade genérica por substring de nome de
+     classe) — esse seletor curinga bate em QUALQUER classe que contenha a
+     palavra "card". Zera tudo dentro do card primeiro; cada seletor abaixo
+     redeclara o padding que realmente precisa.
+     ----------------------------------------------------------------- */
+  #pg-leads .mb-card *,
+  #pg-negocios .mb-card * {
+    padding: 0;
+  }
+
+  /* -----------------------------------------------------------------
+     CONTAINER da lista
+     ----------------------------------------------------------------- */
+  #leads-mobile-list,
+  #negocios-mobile-list {
+    padding: 4px 0 calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* -----------------------------------------------------------------
+     CARD principal
+     ----------------------------------------------------------------- */
+  #pg-leads .mb-card,
+  #pg-negocios .mb-card {
+    display: block !important;
+    padding: 10px 11px !important;
+    margin: 0 0 7px !important;
+    border-radius: 13px !important;
+    border: 1px solid var(--b1) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12) !important;
+    transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease !important;
+  }
+  #pg-leads .mb-card:active,
+  #pg-negocios .mb-card:active {
+    transform: scale(.988) !important;
+    box-shadow: 0 1px 5px rgba(0,0,0,.18) !important;
+  }
+  @media (hover:hover) {
+    #pg-leads .mb-card:hover,
+    #pg-negocios .mb-card:hover {
+      border-color: rgba(195,154,45,.35) !important;
+    }
+  }
+  #pg-leads .mb-card-main,
+  #pg-negocios .mb-card-main {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* -----------------------------------------------------------------
+     LINHA 1 — avatar + nome/ID + pill de status
+     ----------------------------------------------------------------- */
+  #pg-leads .mb-row-top,
+  #pg-negocios .mb-row-top {
+    display: flex !important;
+    align-items: center !important;
+    gap: 9px !important;
+  }
+  #pg-leads .mb-row-avatar,
+  #pg-negocios .mb-row-avatar {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 9px !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: 700 !important;
+    font-size: .8rem !important;
+    color: #fff !important;
+    font-family: Outfit, sans-serif !important;
+  }
+  #pg-leads .mb-row-name-wrap,
+  #pg-negocios .mb-row-name-wrap {
+    flex: 1 !important;
+    min-width: 0 !important;
+    display: block !important;
+    cursor: pointer;
+  }
+  #pg-leads .mb-row-name,
+  #pg-negocios .mb-row-name {
+    display: block !important;
+    font-size: .92rem !important;
+    line-height: 1.25 !important;
+    font-weight: 700 !important;
+    color: var(--tx) !important;
+    font-family: Outfit, sans-serif !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #pg-leads .mb-row-id,
+  #pg-negocios .mb-row-id {
+    display: block !important;
+    font-size: .64rem !important;
+    line-height: 1.3 !important;
+    color: var(--mu) !important;
+    opacity: .85;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #pg-leads .mb-card-dup-badge,
+  #pg-negocios .mb-card-dup-badge {
+    display: inline-block;
+    font-size: .55rem !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    padding: 1px 6px !important;
+    border-radius: 20px !important;
+    background: rgba(195,154,45,.16);
+    color: var(--al);
+    border: 1px solid rgba(195,154,45,.3);
+    vertical-align: middle;
+    margin-left: 4px;
+  }
+  #pg-leads .mb-row-pill,
+  #pg-negocios .mb-row-pill {
+    flex-shrink: 0 !important;
+    font-size: .62rem !important;
+    font-weight: 700 !important;
+    padding: 5px 10px !important;
+    border-radius: 100px !important;
+    color: #fff !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,.3);
+    white-space: nowrap;
+    border: none !important;
+  }
+
+  /* -----------------------------------------------------------------
+     LINHA 2 — telefone + dono (esquerda) / ações (direita)
+     ----------------------------------------------------------------- */
+  #pg-leads .mb-row-bottom,
+  #pg-negocios .mb-row-bottom {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
+    padding-top: 8px !important;
+    border-top: 1px solid var(--b1) !important;
+  }
+  #pg-leads .mb-row-info,
+  #pg-negocios .mb-row-info {
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    font-size: .68rem !important;
+    color: var(--mu) !important;
+    white-space: nowrap;
+  }
+  #pg-leads .mb-row-info-empty,
+  #pg-negocios .mb-row-info-empty {
+    font-style: italic;
+    opacity: .7;
+  }
+  #pg-leads .mb-row-divider,
+  #pg-negocios .mb-row-divider {
+    opacity: .5;
+    flex-shrink: 0;
+  }
+  #pg-leads .mb-row-owner,
+  #pg-negocios .mb-row-owner {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    flex-shrink: 0 !important;
+    color: var(--m2, var(--mu)) !important;
+  }
+  #pg-leads .mb-row-owner-dot,
+  #pg-negocios .mb-row-owner-dot {
+    width: 14px !important;
+    height: 14px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: .5rem !important;
+    font-weight: 700 !important;
+    color: #fff !important;
+    flex-shrink: 0 !important;
+  }
+  #pg-leads .mb-row-actions,
+  #pg-negocios .mb-row-actions {
+    display: flex !important;
+    gap: 5px !important;
+    flex-shrink: 0 !important;
+  }
+  #pg-leads .mb-action-btn,
+  #pg-negocios .mb-action-btn {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
+    border-radius: 9px !important;
+    font-size: .85rem !important;
+    box-shadow: none !important;
+    border: 1px solid var(--b1) !important;
+    background: var(--bg3) !important;
+    color: var(--mu) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: transform .1s ease, background .12s ease !important;
+  }
+  #pg-leads .mb-action-btn:active,
+  #pg-negocios .mb-action-btn:active {
+    transform: scale(.9) !important;
+  }
+  #pg-leads .mb-action-btn.call,
+  #pg-negocios .mb-action-btn.call,
+  #pg-leads .mb-action-btn.whatsapp,
+  #pg-negocios .mb-action-btn.whatsapp {
+    background: rgba(37,211,102,.14) !important;
+    border-color: rgba(37,211,102,.28) !important;
+    color: #25D366 !important;
+  }
+  /* [FIX 20261012] Botão de lembrete — mesmo padrão de especificidade
+     e !important das regras .call/.whatsapp acima. Sem isso, a regra
+     equivalente em style.css perde pro !important genérico definido
+     mais acima neste mesmo arquivo (achado durante teste visual —
+     os dois estados apareciam idênticos até esta correção). */
+  #pg-leads .mb-action-btn.reminder,
+  #pg-negocios .mb-action-btn.reminder {
+    background: rgba(58,159,224,.16) !important;
+    border-color: rgba(58,159,224,.3) !important;
+    color: var(--bl) !important;
+  }
+  #pg-leads .mb-action-btn.reminder.late,
+  #pg-negocios .mb-action-btn.reminder.late {
+    background: rgba(194,32,38,.2) !important;
+    border-color: rgba(194,32,38,.45) !important;
+    color: var(--rl) !important;
+  }
+
+  /* -----------------------------------------------------------------
+     BOTÃO "Assumir Lead" (etapa Livre) — inalterado, sob as 2 linhas
+     ----------------------------------------------------------------- */
+  #pg-leads .mb-assume-btn,
+  #pg-negocios .mb-assume-btn {
+    display: block !important;
+    width: 100% !important;
+    margin-top: 8px !important;
+    padding: 9px 12px !important;
+    font-size: .76rem !important;
+    font-weight: 700 !important;
+    min-height: 40px !important;
+    border-radius: 9px !important;
+  }
+
+  /* -----------------------------------------------------------------
+     TEMA CLARO
+     ----------------------------------------------------------------- */
+  body.theme-light #pg-leads .mb-row-id,
+  body.theme-light #pg-negocios .mb-row-id,
+  body.theme-light #pg-leads .mb-row-info,
+  body.theme-light #pg-negocios .mb-row-info {
+    color: #708197 !important;
+  }
+  body.theme-light #pg-leads .mb-card,
+  body.theme-light #pg-negocios .mb-card {
+    box-shadow: 0 2px 10px rgba(15,23,42,.06) !important;
+  }
+
+  /* -----------------------------------------------------------------
+     BUSCA fixa no mobile — nova, pedido explícito (não existia antes)
+     ----------------------------------------------------------------- */
+  #leads-mb-search,
+  #negocios-mb-search {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    background: var(--bg3) !important;
+    border: 1px solid var(--b1) !important;
+    border-radius: 12px !important;
+    padding: 9px 12px !important;
+    margin-bottom: 9px !important;
+  }
+  #leads-mb-search .mb-search-ic,
+  #negocios-mb-search .mb-search-ic {
+    font-size: .8rem !important;
+    opacity: .6;
+    flex-shrink: 0;
+  }
+  #leads-mb-search input,
+  #negocios-mb-search input {
+    border: none !important;
+    background: none !important;
+    outline: none !important;
+    color: var(--tx) !important;
+    font-family: Outfit, sans-serif !important;
+    font-size: .82rem !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+  #leads-mb-search input::placeholder,
+  #negocios-mb-search input::placeholder {
+    color: var(--mu) !important;
+  }
+
+  /* -----------------------------------------------------------------
+     Chips de filtro no topo — mantido das versões anteriores
+     ----------------------------------------------------------------- */
+  #leads-mb-chips,
+  #negocios-mb-chips {
+    padding-bottom: 4px !important;
+  }
+}
+
+/* Desktop/tablet: nada aqui muda (as regras estão em @media max-width:768px) */

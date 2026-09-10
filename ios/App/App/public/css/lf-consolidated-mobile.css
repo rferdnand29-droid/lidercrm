@@ -1,0 +1,960 @@
+.lf-logo-img[src=""]{opacity:0!important}
+:root{--lf-sat-extra:var(--topExtra,0px);--lf-sab-extra:var(--bottomExtra,0px);}
+
+#pg-chat .chat-compose{position:sticky;bottom:0;z-index:12}
+#pg-chat .chat-compose textarea{overflow-y:auto;overscroll-behavior:contain}
+#pg-chat .chat-jump-start{position:absolute;right:14px;bottom:92px;z-index:18;display:none;align-items:center;gap:6px;padding:10px 12px;border:none;border-radius:999px;background:rgba(15,23,42,.92);color:#fff;font:700 .76rem/1 Outfit,sans-serif;box-shadow:0 12px 26px rgba(15,23,42,.28);cursor:pointer}
+#pg-chat .chat-jump-start.show{display:inline-flex}
+#pg-chat .chat-jump-start:active{transform:scale(.97)}
+#pg-chat .chat-rec.on{background:rgba(217,45,32,.10)!important;border-color:rgba(217,45,32,.28)!important;color:#d92d20!important}
+#pg-chat .chat-room.unread-priority{box-shadow:inset 3px 0 0 #2f7cf6;background:linear-gradient(180deg,#f9fcff,#ffffff)}
+#pg-chat .chat-room-subline{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px}
+#pg-chat .chat-sub-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;background:#eef5ff;color:#1764d8;font:700 .63rem/1.2 Outfit,sans-serif}
+
+#chat-page.bitrix-mainpager-2026 .chat-side{padding-bottom:92px}
+#chat-page.bitrix-mainpager-2026 .chat-fab{display:inline-flex!important}
+
+body.theme-classic #pg-chat .chat-shell{background:#10151d!important;border-color:rgba(255,255,255,.08)!important;box-shadow:0 22px 54px rgba(0,0,0,.42)!important}
+body.theme-classic #pg-chat .chat-side{background:linear-gradient(180deg,#151b24 0%,#0f141c 100%)!important}
+body.theme-classic #pg-chat .chat-main{background:linear-gradient(180deg,#0f141c 0%,#0b1118 100%)!important}
+body.theme-classic #pg-chat .chat-hd,body.theme-classic #pg-chat .chat-top,body.theme-classic #pg-chat .chat-compose{background:#141b24!important;border-color:rgba(255,255,255,.08)!important}
+body.theme-classic #pg-chat .chat-side-tools,body.theme-classic #pg-chat .chat-room-list{background:#141b24!important;border-color:rgba(255,255,255,.08)!important}
+body.theme-classic #pg-chat .chat-msgs{background:radial-gradient(circle at top left,rgba(35,58,84,.22),rgba(15,20,28,.96) 34%,rgba(10,15,22,.98) 100%)!important}
+body.theme-classic #pg-chat .chat-room{background:transparent!important;border-bottom:1px solid rgba(255,255,255,.06)!important}
+body.theme-classic #pg-chat .chat-room:hover,body.theme-classic #pg-chat .chat-room:active{background:rgba(255,255,255,.03)!important}
+body.theme-classic #pg-chat .chat-room.on{background:rgba(59,130,246,.14)!important}
+body.theme-classic #pg-chat .chat-room-name,body.theme-classic #pg-chat .chat-top-title,body.theme-classic #pg-chat .chat-hd h2,body.theme-classic #pg-chat .chat-empty h3{color:#f5f7fb!important}
+body.theme-classic #pg-chat .chat-room-sub,body.theme-classic #pg-chat .chat-room-last,body.theme-classic #pg-chat .chat-top-sub,body.theme-classic #pg-chat .chat-empty-sub,body.theme-classic #pg-chat .chat-sync-left,body.theme-classic #pg-chat .chat-soft,body.theme-classic #pg-chat .chat-meta,body.theme-classic #pg-chat .chat-row:not(.me) .chat-meta{color:#b4bfce!important}
+body.theme-classic #pg-chat .chat-input,body.theme-classic #pg-chat .chat-select,body.theme-classic #pg-chat #chat-text{background:#0e141b!important;border:1px solid rgba(255,255,255,.10)!important;color:#f3f6fb!important}
+body.theme-classic #pg-chat .chat-input::placeholder,body.theme-classic #pg-chat #chat-text::placeholder{color:#8c98ab!important}
+body.theme-classic #pg-chat .chat-mini{background:#0e141b!important;border-color:rgba(255,255,255,.10)!important;color:#d7dde7!important}
+body.theme-classic #pg-chat .chat-mini:hover,body.theme-classic #pg-chat .chat-mini:active{background:#17202b!important;border-color:rgba(255,255,255,.14)!important}
+body.theme-classic #pg-chat .chat-day{background:#151c26!important;border-color:rgba(255,255,255,.08)!important;color:#dbe2ec!important}
+body.theme-classic #pg-chat .chat-bubble{background:#151c26!important;border:1px solid rgba(255,255,255,.08)!important;color:#eef2f7!important;box-shadow:0 10px 24px rgba(0,0,0,.26)!important}
+body.theme-classic #pg-chat .chat-row.me .chat-bubble{background:linear-gradient(180deg,#1b3b2a,#173123)!important;border-color:rgba(84,214,145,.18)!important}
+body.theme-classic #pg-chat .chat-text{color:#eef2f7!important}
+body.theme-classic #pg-chat .chat-author,body.theme-classic #pg-chat .chat-att a{color:#8fc4ff!important}
+body.theme-classic #pg-chat .chat-reply{background:#101720!important;border-left-color:#60a5fa!important;color:#dce4ee!important}
+body.theme-classic #pg-chat .chat-reply b{color:#8fc4ff!important}
+body.theme-classic #pg-chat .chat-att{background:#101720!important;border-color:rgba(255,255,255,.08)!important}
+body.theme-classic #pg-chat .chat-att small{color:#b4bfce!important}
+body.theme-classic #pg-chat #chat-send{background:linear-gradient(180deg,#3b82f6,#2563eb)!important;border:none!important;color:#fff!important;box-shadow:0 12px 24px rgba(37,99,235,.28)!important}
+body.theme-classic #pg-chat #chat-rec.on{background:rgba(217,45,32,.14)!important;border-color:rgba(217,45,32,.34)!important;color:#ffb4b1!important}
+
+@media (max-width:768px){
+  #ibar{left:10px!important;right:10px!important;bottom:calc(76px + env(safe-area-inset-bottom,0px))!important;border-radius:16px!important;padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px))!important;z-index:650!important}
+  #ibar .ibb{gap:8px!important}
+  #ibar .bins,#ibar .bskp{min-height:44px!important;padding:10px 14px!important;font-size:.84rem!important}
+  body.lf-chat-room-open #mobile-top-bar{display:none!important}
+  body.lf-chat-kb-open #mobile-bottom-nav,body.lf-chat-kb-open #ibar{display:none!important}
+  body:not(.lf-chat-can-create) #chat-fab-create{display:none!important}
+  body.lf-chat-room-open #chat-fab-create{display:none!important}
+  body.lf-chat-room-open #pg-chat{padding-bottom:0!important}
+  body.lf-chat-room-open #chat-page .chat-shell{height:var(--lf-chat-live-h,auto)!important;min-height:var(--lf-chat-live-h,auto)!important}
+  body.lf-chat-room-open #chat-page .chat-main,body.lf-chat-room-open #chat-room-wrap{display:flex!important;height:100%!important;min-height:0!important;flex-direction:column!important}
+  body.lf-chat-room-open #chat-page .chat-msgs{flex:1 1 auto!important;min-height:0!important;overflow:auto!important;padding-bottom:10px!important}
+  body.lf-chat-room-open #chat-page .chat-compose{position:sticky!important;bottom:0!important;z-index:25!important;background:#fff!important}
+
+  html{zoom:var(--zoom,1);}
+  .pg{padding-left:calc(10px + var(--gap,0px))!important;padding-right:calc(10px + var(--gap,0px))!important;}
+  .mbn-item{padding-top:calc(4px + var(--gap-pos,0px))!important;padding-bottom:calc(4px + var(--gap-pos,0px))!important;}
+  .chat-room,.kb-card,.act-list .act-row{margin-bottom:calc(8px + var(--gap,0px))!important;}
+  body{padding-top:calc(112px + var(--lf-sat,0px) + var(--lf-sat-extra,0px))!important;padding-bottom:calc(16px + var(--lf-sab,0px) + var(--lf-sab-extra,0px))!important;}
+  #mobile-top-bar{height:calc(52px + var(--lf-sat,0px) + var(--lf-sat-extra,0px))!important;padding-top:calc(var(--lf-sat,0px) + var(--lf-sat-extra,0px))!important;}
+  #mobile-bottom-nav{top:calc(52px + var(--lf-sat,0px) + var(--lf-sat-extra,0px))!important;bottom:auto!important;height:60px!important;padding-bottom:0!important;}
+  #mdash-fab{bottom:calc(20px + var(--lf-sab,0px) + var(--lf-sab-extra,0px))!important;}
+  .agd-fab{bottom:calc(32px + var(--lf-sab,0px) + var(--lf-sab-extra,0px))!important;}
+  .act-panel,#ntf-panel{top:calc(120px + var(--lf-sat,0px) + var(--lf-sat-extra,0px))!important;max-height:calc(var(--vvh,100vh) - 136px - var(--lf-sat,0px) - var(--lf-sat-extra,0px) - var(--lf-sab,0px) - var(--lf-sab-extra,0px))!important;}
+  #mobile-menu-drawer{padding-top:calc(var(--lf-sat,0px) + var(--lf-sat-extra,0px))!important;padding-bottom:calc(var(--lf-sab,0px) + var(--lf-sab-extra,0px))!important;}
+
+  #pg-chat .chat-main{min-height:0;height:var(--lf-chat-main-h,auto)}
+  #pg-chat #chat-room-wrap{min-height:0;height:100%}
+  #pg-chat .chat-msgs{padding-bottom:16px!important;scroll-padding-bottom:110px}
+  #pg-chat .chat-compose{padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px))!important;box-shadow:0 -10px 24px rgba(15,23,42,.08)}
+  #pg-chat .chat-compose-row{grid-template-columns:42px 42px minmax(0,1fr) 42px!important;align-items:end!important}
+  #pg-chat #chat-attach,#pg-chat #chat-rec,#pg-chat #chat-send{width:42px;height:42px;min-width:42px;padding:0!important;display:inline-flex!important;align-items:center;justify-content:center}
+  #pg-chat #chat-send{border:none!important;border-radius:50%!important;background:#1f87ff!important;color:#fff!important;box-shadow:0 10px 20px rgba(31,135,255,.22)!important;font-size:0}
+  #pg-chat #chat-send::before{content:"➤";font-size:1rem;line-height:1}
+  #pg-chat .chat-jump-start{right:12px;bottom:88px;padding:10px 11px}
+
+  #chat-page.chat-cleanup-final .chat-compose{position:sticky!important;left:0;right:0;bottom:0!important;z-index:35!important;margin-top:auto!important;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px))!important;background:inherit!important}
+  #chat-page.chat-cleanup-final .chat-compose-row{display:grid!important;grid-template-columns:42px 42px minmax(0,1fr) 42px!important;gap:8px!important;align-items:center!important}
+  #chat-page.chat-cleanup-final #chat-attach{grid-column:1!important;grid-row:1!important}
+  #chat-page.chat-cleanup-final #chat-rec{grid-column:2!important;grid-row:1!important}
+  #chat-page.chat-cleanup-final #chat-text{grid-column:3!important;grid-row:1!important;width:100%!important;min-width:0!important;min-height:46px!important;max-height:120px!important;padding:12px 14px!important;overflow-y:auto!important;white-space:pre-wrap!important}
+}
+
+/* ===================================================================
+ * FIXES FASE 2 (2026-07-20) — correções mobile diretas nos arquivos
+ * =================================================================== */
+
+:root{--safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);}
+
+@media (max-width:900px){
+  html,body{overflow-x:hidden!important;-webkit-text-size-adjust:100%;overscroll-behavior-y:contain;}
+  body{min-height:100vh;min-height:100dvh;}
+  input,textarea,select,button{font-size:16px!important;}
+  .kanban,.kb-container,[class*="kanban"]{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .kb-col,.kanban-column{min-width:82vw;}
+  .kb-card,.lead-card{padding:12px 10px;min-height:60px;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;cursor:pointer;}
+  .modal,[class*="modal"],.mo{max-width:100vw!important;}
+  .mo,.modal-content{max-height:100dvh;overflow-y:auto;padding-bottom:max(20px,var(--safe-bot));}
+  .bottom-nav,.nav-bottom,.mtb,.m-tabbar{position:fixed;bottom:0;left:0;right:0;z-index:50;padding-bottom:var(--safe-bot);}
+  .fab,.floating-btn{bottom:calc(74px + env(safe-area-inset-bottom,0px))!important;}
+  main,.app-main,#app-content{padding-bottom:76px;}
+  /* CORREÇÃO 2026-08-03: display:block aqui quebrava a grade interna das
+     únicas 2 tabelas do app (Bingo "Clientes Ativos" e "Visão Global de
+     Clientes"), empilhando nome/etapas na vertical em vez de manter a
+     tabela horizontal com scroll lateral. O wrapper .ts{overflow-x:auto}
+     (css/style.css) já resolve o overflow corretamente — não duplicar
+     aqui. Ver relato: bingo "bugado", virou lista vertical no celular. */
+  table{max-width:100%;}
+
+  /* REFORÇO 2026-08-05: mesmo sintoma relatado de novo (bingo virando
+     cards grandes empilhados no celular, ver print "No-Shows"), mas
+     revisando css/style.css e todos os arquivos mobile não achei nenhuma
+     regra atual que reproduza isso — o teste renderizado bate com o PC.
+     Pode ser resíduo de uma versão publicada diferente deste snapshot.
+     Por garantia, força explicitamente os display types corretos de
+     tabela nas duas tabelas do app (.ts table), com especificidade alta
+     o bastante pra vencer qualquer `display:block`/`flex` genérico que
+     venha a ser reintroduzido em outro arquivo carregado depois deste. */
+  .ts table{display:table!important;width:100%!important;}
+  .ts table thead{display:table-header-group!important;}
+  .ts table tbody{display:table-row-group!important;}
+  .ts table tr{display:table-row!important;}
+  .ts table th,.ts table td{display:table-cell!important;}
+  .topbar,header{position:sticky;top:0;z-index:40;padding-top:var(--safe-top);}
+  button,[role="button"],.btn{min-height:44px;}
+}
+
+@media (max-width:600px){
+  .modal-actions,.modal-footer{flex-wrap:wrap;gap:8px;}
+  .modal-actions button,.modal-footer button{flex:1 1 auto;min-width:45%;}
+  .dashboard-grid,[class*="dashboard-grid"]{grid-template-columns:1fr!important;}
+  .kb-col,.kanban-column{min-width:88vw;}
+}
+
+@media (max-width:900px) and (orientation:landscape){
+  .kb-col,.kanban-column{min-width:60vw;}
+  .modal-content,.mo{max-height:95vh;}
+}
+
+/* R5-2: fallback para navegadores sem 100dvh (Android WebView < 89, Safari < 15.4) */
+.full-height,.app-shell,#app-shell{height:100vh;}
+@supports (height:100dvh){
+  .full-height,.app-shell,#app-shell{height:100dvh;}
+}
+
+/* ===================================================================
+ * BLOCO A — Kanban / Leads / Negócios no celular (2026-07-22)
+ * Objetivo: manter o fluxo atual, mas reativar o kanban real no mobile
+ * com scroll horizontal por dedo, snap entre colunas e cards tocáveis,
+ * preservando os filtros/abas já existentes e respeitando safe areas do
+ * Capacitor. Sem reescrever HTML nem trocar a lógica do board.
+ * =================================================================== */
+@media (max-width:768px){
+  /* Em vez de cair só na lista vertical mobile, o CRM volta a mostrar o
+     kanban real nas páginas de Leads/Negócios — é isso que preserva o
+     drag-and-drop e o fluxo idêntico ao desktop dentro do app nativo. */
+  #pg-leads .kb-scroll-wrap,
+  #pg-negocios .kb-scroll-wrap{
+    display:block!important;
+    position:relative!important;
+    margin:0 -2px 10px!important;
+  }
+
+  #pg-leads .kb-wrap,
+  #pg-negocios .kb-wrap{
+    display:flex!important;
+    gap:10px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    padding:2px 10px calc(4px + var(--lf-sab,0px)) 2px!important;
+    height:calc(var(--vvh,100dvh) - 278px - var(--lf-sat,0px) - var(--lf-sat-extra,0px) - var(--lf-sab,0px) - var(--lf-sab-extra,0px) - var(--lf-kb-height,0px))!important;
+    min-height:340px!important;
+    max-height:calc(var(--vvh,100dvh) - 196px)!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior-x:contain!important;
+    overscroll-behavior-y:none!important;
+    scroll-snap-type:x proximity!important;
+    scroll-padding-inline:10px!important;
+    touch-action:pan-x pinch-zoom!important;
+    scrollbar-width:none!important;
+  }
+  #pg-leads .kb-wrap::-webkit-scrollbar,
+  #pg-negocios .kb-wrap::-webkit-scrollbar{display:none!important;}
+
+  /* As setas laterais ajudam no desktop, mas no celular elas roubam área
+     de toque e acabam ficando por cima dos cards. */
+  #pg-leads .kb-arrow,
+  #pg-negocios .kb-arrow{display:none!important;}
+
+  /* A lista mobile antiga continua sendo renderizada pelo JS, mas fica
+     escondida nesta rodada para não duplicar o conteúdo na tela. */
+  #leads-mobile-list,
+  #negocios-mobile-list{display:none!important;}
+  /* [REMOVIDO 20260823] #leads-fab/#negocios-fab — botões "+" flutuantes
+     removidos por completo (pedido explícito: redundantes com "+ Criar
+     Lead/Negócio" já sempre visível na barra de filtros, e sobrepunham
+     conteúdo da lista ao rolar). */
+
+  #pg-leads .kb-col,
+  #pg-negocios .kb-col{
+    flex:0 0 84vw!important;
+    min-width:84vw!important;
+    max-width:84vw!important;
+    height:100%!important;
+    margin-right:0!important;
+    scroll-snap-align:start!important;
+    scroll-snap-stop:normal!important;
+    border-radius:16px!important;
+  }
+
+  #pg-leads .kb-col-hd,
+  #pg-negocios .kb-col-hd{
+    padding:12px 12px 10px!important;
+  }
+
+  #pg-leads .kb-col-title,
+  #pg-negocios .kb-col-title{
+    max-width:none!important;
+    font-size:.77rem!important;
+  }
+
+  #pg-leads .kb-cards,
+  #pg-negocios .kb-cards{
+    padding:8px!important;
+    gap:8px!important;
+    overscroll-behavior:contain!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+
+  #pg-leads .kb-card,
+  #pg-negocios .kb-card{
+    padding:12px 12px 11px!important;
+    min-height:92px!important;
+    border-radius:14px!important;
+    touch-action:manipulation!important;
+    -webkit-user-select:none!important;
+    user-select:none!important;
+  }
+
+  #pg-leads .kb-card-name,
+  #pg-negocios .kb-card-name{
+    font-size:.84rem!important;
+    line-height:1.32!important;
+  }
+
+  #pg-leads .kb-card-tel,
+  #pg-negocios .kb-card-tel,
+  #pg-leads .kb-card-obs,
+  #pg-negocios .kb-card-obs{
+    white-space:normal!important;
+    max-width:none!important;
+    word-break:break-word!important;
+  }
+
+  #pg-leads .kb-card-menu,
+  #pg-negocios .kb-card-menu,
+  #pg-leads .kb-card-del-btn,
+  #pg-negocios .kb-card-del-btn,
+  #pg-leads .kb-card-sel-btn,
+  #pg-negocios .kb-card-sel-btn,
+  #pg-leads .kb-add-btn,
+  #pg-negocios .kb-add-btn{
+    min-width:40px!important;
+    min-height:40px!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+  }
+
+  #pg-leads .kb-call-btn,
+  #pg-negocios .kb-call-btn,
+  #pg-leads .kb-wa-btn,
+  #pg-negocios .kb-wa-btn,
+  #pg-leads .kb-convert-btn,
+  #pg-negocios .kb-convert-btn,
+  #pg-leads .kb-assume-btn,
+  #pg-negocios .kb-assume-btn,
+  #pg-leads .kb-empty-add,
+  #pg-negocios .kb-empty-add{
+    min-height:42px!important;
+  }
+
+  #pg-leads .kb-view-bar,
+  #pg-negocios .kb-view-bar,
+  #pg-leads .crm-toptabs,
+  #pg-negocios .crm-toptabs,
+  #pg-leads .mb-filter-row,
+  #pg-negocios .mb-filter-row,
+  #pg-leads .stage-summary-bar,
+  #pg-negocios .stage-summary-bar{
+    scroll-padding-inline:8px!important;
+  }
+}
+
+@media (max-width:768px) and (orientation:landscape){
+  #pg-leads .kb-wrap,
+  #pg-negocios .kb-wrap{
+    height:calc(var(--vvh,100dvh) - 214px - var(--lf-sat,0px) - var(--lf-sat-extra,0px) - var(--lf-sab,0px) - var(--lf-sab-extra,0px) - var(--lf-kb-height,0px))!important;
+    min-height:250px!important;
+  }
+  #pg-leads .kb-col,
+  #pg-negocios .kb-col{
+    flex-basis:58vw!important;
+    min-width:58vw!important;
+    max-width:58vw!important;
+  }
+}
+
+
+/* ===================================================================
+ * BLOCO B — chrome mobile, teclado e chat (2026-07-22)
+ * Objetivo: estabilizar barra superior/inferior/menu no app Capacitor,
+ * reduzir cortes com teclado virtual e deixar o chat mais confiável no
+ * celular sem reescrever a tela.
+ * =================================================================== */
+@media (max-width:768px){
+  html,body{max-width:100%;overflow-x:hidden!important;}
+  body{min-height:var(--vvh,100dvh);}
+  .pg{min-width:0!important;}
+  .pg>*{max-width:100%;}
+
+  #mobile-top-bar,
+  #mobile-bottom-nav{
+    left:0!important;
+    right:0!important;
+    max-width:100vw!important;
+    -webkit-transform:translateZ(0);
+    transform:translateZ(0);
+    backface-visibility:hidden;
+  }
+  #mobile-top-bar{z-index:720!important;}
+  #mobile-bottom-nav{z-index:710!important;}
+  #mobile-menu-overlay{z-index:739!important;}
+  #mobile-menu-drawer{
+    z-index:740!important;
+    width:min(86vw,340px)!important;
+    height:var(--vvh,100dvh)!important;
+    max-height:var(--vvh,100dvh)!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    padding-bottom:calc(18px + env(safe-area-inset-bottom,0px) + var(--lf-sab,0px) + var(--lf-sab-extra,0px))!important;
+  }
+
+  .mo.open .mc,
+  .mo.open .mb{
+    max-height:calc(var(--vvh,100dvh) - 24px - var(--lf-kb-height,0px))!important;
+  }
+
+  body.lf-keyboard-open #mobile-bottom-nav,
+  body.lf-keyboard-open #ibar,
+  body.lf-keyboard-open #mdash-fab,
+  body.lf-keyboard-open .agd-fab{
+    opacity:0!important;
+    pointer-events:none!important;
+    transform:translateY(16px)!important;
+  }
+  body.lf-keyboard-open{
+    padding-bottom:max(14px,var(--lf-sab,0px))!important;
+  }
+
+  #pg-chat{
+    /* [FIX 20260821] Antes: height:calc(var(--vvh,100dvh) - 52px) — um
+       "52px" fixo pro topo, nunca ajustado, e NADA reservado pro
+       rodapé/barra de navegação do celular. Toda outra peça flutuante
+       do app (FABs, painel de notificação, menu) já soma
+       --lf-sat/--lf-sat-extra (topo) e --lf-sab/--lf-sab-extra
+       (rodapé) — as mesmas variáveis que a ferramenta "Ajustar
+       visualização"/"Ajustar posição do Papo" (Configurações) já
+       grava. #pg-chat nunca usava nenhuma delas: se a barra superior
+       real ficasse mais alta que 52px (usuário ajustou o calibre), ou
+       se o rodapé do celular (barra de navegação) precisasse de
+       espaço reservado, a altura calculada aqui continuava igual —
+       o painel do Papo (e a barra de digitar, ancorada no rodapé
+       DELE) acabava maior que a área realmente visível, ficando
+       parcialmente atrás da barra de navegação do Android. Agora usa
+       as mesmas 4 variáveis que o resto do app já usa — inclusive dá
+       efeito de verdade, pela primeira vez, à ferramenta de calibração
+       manual nesta página específica. */
+    height:calc(var(--vvh,100dvh) - 52px - 60px - var(--lf-sat,0px) - var(--lf-sat-extra,0px) - var(--lf-sab,0px) - var(--lf-sab-extra,0px))!important;
+    min-height:calc(var(--vvh,100dvh) - 52px - 60px - var(--lf-sat,0px) - var(--lf-sat-extra,0px) - var(--lf-sab,0px) - var(--lf-sab-extra,0px))!important;
+    /* [FIX 20260823] Causa raiz de "cabeçalho do Papo nasce baixo demais,
+       só corrige depois de arrastar/rolar": a regra base (chat.css) tem
+       padding-top:env(safe-area-inset-top,0px) — pensado originalmente
+       pra notch de iPhone, nunca zerado aqui no mobile. Redundante (a
+       barra superior do app já reserva o espaço de topo certo, com sua
+       própria calibração) e, pior, env(safe-area-inset-top) pode
+       resolver pra um valor errado na primeira pintura em WebView
+       Android, só se corrigindo depois que o navegador recalcula (por
+       isso o gesto de arrastar "consertava" — disparava esse
+       recálculo). Zerado explicitamente — o espaço de topo continua
+       garantido, sem depender de env() nesta página. */
+    padding-top:0!important;
+  }
+  /* [FIX 20260823] Pedido explícito: #mobile-bottom-nav (Início/CRM/
+     Agenda/Papo/Menu) não fica mais escondida ao entrar numa conversa
+     (ver regra removida logo acima, linha ~48) — só continua
+     escondendo quando o teclado abre (mais espaço pra digitar, uma
+     preocupação diferente). Como essa barra passa a ficar visível o
+     tempo todo dentro do Papo (60px), o cálculo de altura acima já
+     reserva esse espaço por padrão — aqui, no caso específico de
+     teclado aberto (onde ela volta a sumir), a conta volta a ser só
+     com a barra de topo, sem sobrar espaço vazio à toa. */
+  body.lf-chat-kb-open #pg-chat{
+    height:calc(var(--vvh,100dvh) - 52px - var(--lf-sat,0px) - var(--lf-sat-extra,0px) - var(--lf-sab,0px) - var(--lf-sab-extra,0px))!important;
+    min-height:calc(var(--vvh,100dvh) - 52px - var(--lf-sat,0px) - var(--lf-sat-extra,0px) - var(--lf-sab,0px) - var(--lf-sab-extra,0px))!important;
+  }
+  #chat-list-panel,
+  #chat-conv-panel{min-height:0!important;}
+  /* CORREÇÃO 2026-08-05 (revisão 2): position:sticky testado à exaustão
+     e continuou "solto" no WebView real do Capacitor — trocado por
+     position:absolute, ancorado em #chat-conv-panel (que ganhou
+     position:relative em css/chat/chat.css). Não depende de qual
+     elemento é "o container que rola" pra funcionar — sempre gruda no
+     topo/rodapé do painel, ponto. #chat-msgs abaixo ganha padding
+     reservando o espaço exato, pra nunca ficar escondida atrás. */
+  #chat-conv-header{
+    position:absolute!important;
+    top:0!important;left:0!important;right:0!important;
+    z-index:16!important;
+    /* 2026-08-05: "mais alta e fixa" — pedido do usuário. Era 56px
+       (herdado do padrão desktop); no celular, mais espaço facilita
+       tocar no ✕/ℹ e deixa o nome/avatar mais legíveis. */
+    min-height:68px!important;
+    padding:12px 14px!important;
+  }
+  /* [FIX 20260821] Mesma técnica do cabeçalho/input logo acima — no
+     mobile, #chat-reply-preview (a barrinha "Respondendo a...") também
+     sai do fluxo normal, senão ela "espreme" as últimas mensagens ou
+     estoura a altura do painel quando aparece (ver
+     css/chat/chat.css para a regra base de desktop, que continua em
+     fluxo normal — lá #chat-input-area também nunca sai do fluxo).
+     O "bottom" exato é calculado e aplicado por chatStartReply()
+     (js/chat.js), medindo a altura real da barra de digitar no
+     momento — mais confiável que um valor fixo, já que essa altura
+     varia com a área segura do aparelho. */
+  #chat-reply-preview{
+    position:absolute!important;
+    left:0!important;right:0!important;
+    z-index:21!important; /* logo abaixo do input-area (22 aqui embaixo), acima das mensagens */
+  }
+  #chat-msgs{
+    padding-top:76px!important;
+    padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))!important;
+    overscroll-behavior:contain!important;
+  }
+  /* [FIX 20260821] enquanto o preview "Respondendo a..." está visível
+     (ver #chat-reply-preview em css/chat/chat.css e chatStartReply() em
+     js/chat.js), reserva espaço extra pra ele não cobrir a última
+     mensagem — ~54px cobre o preview de 1 linha típico com folga. */
+  body.lf-chat-reply-active #chat-msgs{
+    padding-bottom:calc(154px + env(safe-area-inset-bottom,0px))!important;
+  }
+  #chat-input-area{
+    position:absolute!important;
+    left:0!important;right:0!important;bottom:0!important;
+    z-index:22!important;
+    gap:5px!important;
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px))!important;
+    box-shadow:0 -10px 24px rgba(15,23,42,.08)!important;
+  }
+  body.lf-chat-kb-open #chat-input-area{padding-bottom:10px!important;}
+  #chat-input{
+    min-height:44px!important;
+    max-height:120px!important;
+    font-size:16px!important;
+    padding:10px 12px!important;
+  }
+  .chat-input-btn,
+  .chat-send-btn,
+  .chat-new-btn,
+  .chat-back-btn,
+  .chat-conv-hd-menu{
+    min-width:44px!important;
+    min-height:44px!important;
+  }
+  .chat-input-btn.recording{
+    color:#ef4444!important;
+    background:rgba(239,68,68,.10)!important;
+    border-radius:50%!important;
+  }
+  .chat-msg{max-width:min(88%,460px)!important;}
+  .chat-msg-text,
+  .chat-msg-file,
+  .chat-msg-audio,
+  .chat-msg-img{max-width:100%!important;}
+
+  /* ===================================================================
+   * BLOCO C — Agenda, Configurações, Documentos e modais longos
+   * (2026-07-22)
+   * Rodada de auditoria fina no restante do CRM no celular, preservando
+   * markup original e reaproveitando as mesmas vars do Bloco A/B (mantidas
+   * pelo js/utils.js). Sem reescrever HTML nem trocar a lógica dos arquivos
+   * originais. Sem inventar seletores: todos abaixo foram confirmados em
+   * app.html.
+   * =================================================================== */
+
+  /* === AGENDA (#pg-agenda) === */
+  /* Respiro inferior pra não bater no bottom-nav (FAB + lista) */
+  #pg-agenda{padding-bottom:calc(96px + var(--lf-sab,0px) + var(--lf-sab-extra,0px))!important}
+  #pg-agenda .ph{margin-bottom:8px!important}
+  #pg-agenda .ph h1{font-size:1.18rem!important}
+
+  /* KPIs em strip horizontal (chips rolam no dedo) */
+  #pg-agenda #agd-kpis{
+    display:flex!important;
+    flex-wrap:nowrap!important;
+    overflow-x:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior-x:contain!important;
+    gap:8px!important;
+    padding:6px 0 8px!important;
+    scrollbar-width:none!important;
+  }
+  #pg-agenda #agd-kpis::-webkit-scrollbar{display:none!important}
+  #pg-agenda #agd-kpis > *{flex:0 0 auto!important;min-width:128px!important}
+
+  /* Cabeçalho em coluna (data + filtros abaixo, sem espremer tudo em
+     uma linha). Alvos de toque 44px. */
+  #pg-agenda .agd-head{
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    gap:8px!important;
+  }
+  #pg-agenda .agd-datewrap,
+  #pg-agenda .agd-filterbar{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    gap:6px!important;
+    width:100%!important;
+  }
+  #pg-agenda .agd-datewrap > *,
+  #pg-agenda .agd-filterbar > *{
+    min-height:44px!important;
+    font-size:16px!important;
+  }
+  #pg-agenda #agd-datepick,
+  #pg-agenda #agd-filter-cons,
+  #pg-agenda #agd-filter-status{
+    flex:1 1 140px!important;
+    min-width:140px!important;
+  }
+  #pg-agenda .agd-cal-btn,
+  #pg-agenda .agd-today-btn{
+    min-width:44px!important;min-height:44px!important;padding:8px 12px!important;
+  }
+
+  /* Strip horizontal que vaza pra fora do padding pra rolar sem corte
+     no canto do dedo (mesmo padrão dos kb-wrap de Leads/Negócios). */
+  #pg-agenda .agd-strip-wrap{
+    margin:0 -10px!important;
+    padding:0 10px!important;
+    overflow-x:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior-x:contain!important;
+    scrollbar-width:none!important;
+  }
+  #pg-agenda .agd-strip-wrap::-webkit-scrollbar{display:none!important}
+  #pg-agenda .agd-strip{display:flex!important;gap:8px!important;padding:4px 2px!important}
+
+  /* Lista principal: respiro inferior pra não ficar escondida atrás
+     do FAB e tampouco cortar no bottom-nav. */
+  #pg-agenda .agd-list{
+    padding:4px 0 calc(96px + var(--lf-sab,0px) + var(--lf-sab-extra,0px))!important;
+  }
+  #pg-agenda .agd-list > *{min-height:64px!important}
+
+  /* Slots livres do consultor: grid flex de botões 44px */
+  #pg-agenda #agd-slots-free-wrap{
+    display:flex!important;flex-wrap:wrap!important;gap:6px!important;
+  }
+  #pg-agenda #agd-slots-free-wrap > *{
+    min-height:44px!important;padding:8px 12px!important;
+  }
+
+  /* Ponto "ao vivo" do título fica redondo e bem visível */
+  #pg-agenda .agd-live-dot{
+    display:inline-block!important;width:10px!important;height:10px!important;
+    border-radius:50%!important;background:var(--gn,#22c55e)!important;
+    box-shadow:0 0 8px rgba(34,197,94,.55)!important;
+  }
+
+  /* === CONFIGURAÇÕES (#pg-config) === */
+  #pg-config{
+    padding-bottom:calc(80px + var(--lf-sab,0px) + var(--lf-sab-extra,0px))!important;
+  }
+  #pg-config .settings-section{
+    border-radius:14px!important;
+    padding:14px 12px!important;
+    margin:10px 0!important;
+    background:var(--bg3,#0e141b)!important;
+  }
+  #pg-config .settings-section h3{font-size:.95rem!important;margin:0 0 8px!important}
+  #pg-config .settings-section .mf{gap:4px!important}
+  #pg-config .settings-section input,
+  #pg-config .settings-section textarea,
+  #pg-config .settings-section select{
+    width:100%!important;
+    min-height:44px!important;
+    font-size:16px!important;
+  }
+  #pg-config .settings-section textarea{min-height:74px!important}
+  #pg-config .settings-section button{min-height:44px!important;padding:10px 14px!important}
+
+  /* File input nativo do Android costuma ficar minúsculo na WebView:
+     padroniza altura mínima e fonte. */
+  #pg-config input[type=file]{
+    font-size:14px!important;
+    padding:10px 12px!important;
+    min-height:48px!important;
+    width:100%!important;
+  }
+
+  /* Foto de perfil/bg em coluna no celular */
+  #pg-config .profile-pic-wrap{
+    flex-direction:column!important;
+    align-items:flex-start!important;
+    gap:10px!important;
+  }
+  #pg-config .profile-pic-btn{
+    min-height:44px!important;padding:10px 14px!important;
+  }
+
+  /* Wallpapers roláveis horizontalmente (strip) */
+  #pg-config .bg-thumbs{
+    display:flex!important;flex-wrap:nowrap!important;
+    overflow-x:auto!important;-webkit-overflow-scrolling:touch!important;
+    gap:8px!important;padding-bottom:4px!important;scrollbar-width:none!important;
+  }
+  #pg-config .bg-thumbs::-webkit-scrollbar{display:none!important}
+  #pg-config .bg-thumbs > *{flex:0 0 auto!important}
+
+  /* Inputs longos (senha, nome, e-mail) com altura confortável */
+  #pg-config #cfg-pw-old,
+  #pg-config #cfg-pw-new,
+  #pg-config #cfg-pw-confirm,
+  #pg-config #cfg-nome,
+  #pg-config #cfg-email{
+    min-height:44px!important;font-size:16px!important;
+  }
+
+  /* Toggles com alvo centralizado */
+  #pg-config label{
+    display:inline-flex!important;align-items:center!important;
+    min-height:44px!important;padding:8px 0!important;
+  }
+
+  /* === DOCUMENTOS (#pg-docs + ADM pane) === */
+  /* Dropzone com hit area grande e respiro: era tão pequeno no celular
+     que dava erro de toque às vezes. */
+  #pg-docs .att-dropzone,
+  #adm-pane-docs .att-dropzone,
+  #det-pane-att .att-dropzone{
+    padding:18px 14px!important;
+    min-height:140px!important;
+    border-radius:14px!important;
+    font-size:1rem!important;
+  }
+  #det-pane-att .att-dropzone .att-dropzone-ic,
+  #pg-docs .att-dropzone .att-dropzone-ic,
+  #adm-pane-docs .att-dropzone .att-dropzone-ic{font-size:2rem!important}
+  #pg-docs .att-dropzone .att-dropzone-sub,
+  #adm-pane-docs .att-dropzone .att-dropzone-sub,
+  #det-pane-att .att-dropzone .att-dropzone-sub{
+    font-size:.72rem!important;line-height:1.4!important;
+  }
+
+  /* Toolbar grade/lista: botões pequenos viram alvos 44px */
+  #pg-docs .att-toolbar,
+  #adm-pane-docs .adm-docs-toolbar{
+    flex-wrap:wrap!important;gap:8px!important;
+  }
+  #pg-docs .att-vbtn,
+  #adm-pane-docs .att-vbtn{
+    min-width:44px!important;min-height:44px!important;font-size:1rem!important;
+  }
+
+  /* Grade em 2 colunas no celular em vez de empilhar tudo */
+  #pg-docs .att-grid,
+  #adm-pane-docs .att-grid{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+  }
+  #pg-docs .att-grid .att-card,
+  #adm-pane-docs .att-grid .att-card{
+    padding:8px!important;border-radius:12px!important;
+  }
+  #pg-docs .att-grid .att-card-thumb,
+  #adm-pane-docs .att-grid .att-card-thumb{
+    height:96px!important;border-radius:8px!important;
+  }
+
+  /* Modo lista: linhas com área de toque 56px */
+  #pg-docs .att-list-mode .att-row,
+  #adm-pane-docs .att-list-mode .att-row{
+    min-height:56px!important;padding:10px!important;border-radius:12px!important;
+  }
+  #pg-docs .att-list-mode .att-row-btn,
+  #adm-pane-docs .att-list-mode .att-row-btn{
+    min-width:40px!important;min-height:40px!important;
+  }
+
+  /* Pin label não vaza em telas estreitas */
+  #pg-docs .att-pin-section .att-pin-lbl,
+  #adm-pane-docs .att-pin-section .att-pin-lbl{font-size:.7rem!important}
+
+  /* Página "Documentos" usuários: respiro inferior pra não bater no
+     bottom-nav do Capacitor. */
+  #pg-docs{
+    padding-bottom:calc(80px + var(--lf-sab,0px) + var(--lf-sab-extra,0px))!important;
+  }
+
+  /* === MOBILE DASHBOARD (#mobile-dash) === */
+  /* Antes: KPIs podiam colar em uma linha estreita. Agora: grid 2 col
+     fluído + cards das atividades com altura mínima. */
+  #mobile-dash .mdash-kpis{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+  }
+  #mobile-dash .mdash-kpi{
+    min-height:78px!important;
+    padding:12px!important;
+    border-radius:14px!important;
+  }
+  #mobile-dash #mdash-recent > *{min-height:56px!important}
+
+  /* === MODAIS LONGOS === */
+  /* Padding bottom do .mb de todos os modais longos para acomodar o
+     teclado virtual sem cortar os botões finais no Capacitor. */
+  #mo-agd .mb,
+  #mo-agd-cal .mb,
+  #mo-discard .mb,
+  #mo-nsh .mb,
+  #mo-delete-kb-reason .mb,
+  #mo-rename-doc .mb,
+  #mo-obj-edit .mb,
+  #mo-user-obj-edit .mb,
+  #mo-sessions .mb,
+  #mo-dept .mb,
+  #mo-confirm-del .mb,
+  #mo-att-view .mb,
+  #mo-gsearch .mb{
+    padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px) + var(--lf-kb-height,0px))!important;
+  }
+  /* Labels de todos esses modais em fonte legível sem zoom */
+  #mo-agd .mb label,
+  #mo-discard .mb label,
+  #mo-nsh .mb label,
+  #mo-delete-kb-reason .mb label,
+  #mo-rename-doc .mb label,
+  #mo-obj-edit .mb label,
+  #mo-user-obj-edit .mb label,
+  #mo-dept .mb label{font-size:.78rem!important}
+
+  /* Inputs/selects/textareas dos modais: font-size 16px trava o
+     auto-zoom do iOS/WKWebView e garante toque 44px */
+  #mo-agd .mb input,
+  #mo-agd .mb select,
+  #mo-agd .mb textarea,
+  #mo-discard .mb input,
+  #mo-discard .mb select,
+  #mo-discard .mb textarea,
+  #mo-nsh .mb input,
+  #mo-nsh .mb select,
+  #mo-nsh .mb textarea,
+  #mo-delete-kb-reason .mb input,
+  #mo-delete-kb-reason .mb select,
+  #mo-delete-kb-reason .mb textarea,
+  #mo-rename-doc .mb input,
+  #mo-rename-doc .mb textarea,
+  #mo-obj-edit .mb input,
+  #mo-obj-edit .mb select,
+  #mo-obj-edit .mb textarea,
+  #mo-user-obj-edit .mb input,
+  #mo-user-obj-edit .mb select,
+  #mo-user-obj-edit .mb textarea,
+  #mo-dept .mb input,
+  #mo-dept .mb select{
+    width:100%!important;
+    min-height:44px!important;
+    font-size:16px!important;
+  }
+  #mo-agd .mb textarea,
+  #mo-discard .mb textarea,
+  #mo-nsh .mb textarea,
+  #mo-rename-doc .mb textarea,
+  #mo-obj-edit .mb textarea,
+  #mo-user-obj-edit .mb textarea{
+    min-height:72px!important;
+  }
+
+  /* Opções de descarte/no-show como fila de toque confortável (54px).
+     Eram pequenos demais pra acertar com o polegar. */
+  #mo-discard .discard-opts,
+  #mo-nsh .nsh-opt,
+  #mo-delete-kb-reason .discard-opts{gap:8px!important}
+  #mo-discard .discard-opt,
+  #mo-nsh .nsh-radio,
+  #mo-delete-kb-reason .discard-opt{
+    min-height:54px!important;
+    padding:12px 14px!important;
+    border-radius:12px!important;
+    align-items:center!important;
+  }
+  #mo-discard .do-label,
+  #mo-nsh .nsh-radio-lbl,
+  #mo-delete-kb-reason .do-label{
+    font-size:.92rem!important;font-weight:600!important;
+  }
+  #mo-discard .do-sub,
+  #mo-nsh .nsh-radio-sub,
+  #mo-delete-kb-reason .do-sub{
+    font-size:.7rem!important;line-height:1.35!important;
+  }
+
+  /* Footer dos modais longos: botões cheios com altura generosa */
+  #mo-agd .mbtns,
+  #mo-discard .mbtns,
+  #mo-nsh .mbtns,
+  #mo-delete-kb-reason .mbtns,
+  #mo-rename-doc .mbtns,
+  #mo-obj-edit .mbtns,
+  #mo-user-obj-edit .mbtns,
+  #mo-sessions .mbtns,
+  #mo-dept .mbtns,
+  #mo-confirm-del .mbtns,
+  #mo-att-view .mbtns{gap:8px!important}
+
+  /* sticky-end garante que os botões fiquem visíveis quando o teclado
+     abre (Android Capacitor) — útil especialmente em mo-agd e
+     mo-confirm-del. */
+  #mo-agd .mbtns,
+  #mo-discard .mbtns,
+  #mo-nsh .mbtns,
+  #mo-delete-kb-reason .mbtns,
+  #mo-dept .mbtns,
+  #mo-confirm-del .mbtns{
+    position:sticky!important;
+    bottom:calc(env(safe-area-inset-bottom,0px) + var(--lf-kb-height,0px))!important;
+    background:inherit!important;
+    padding-top:8px!important;
+    padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;
+  }
+
+  #mo-agd .mbtns button,
+  #mo-discard .mbtns button,
+  #mo-nsh .mbtns button,
+  #mo-delete-kb-reason .mbtns button,
+  #mo-rename-doc .mbtns button,
+  #mo-obj-edit .mbtns button,
+  #mo-user-obj-edit .mbtns button,
+  #mo-sessions .mbtns button,
+  #mo-dept .mbtns button,
+  #mo-confirm-del .mbtns button,
+  #mo-att-view .mbtns button{
+    min-height:46px!important;
+    flex:1 1 auto!important;
+    min-width:42%!important;
+    padding:10px 14px!important;
+    font-size:.9rem!important;
+  }
+
+  /* Slots rápidos do modal de agendamento: alvos de toque reais */
+  #mo-agd .agd-modal-slots{
+    display:flex!important;flex-wrap:wrap!important;gap:6px!important;
+  }
+  #mo-agd .agd-modal-slots > *{
+    min-height:42px!important;padding:8px 10px!important;
+  }
+  /* Botão excluir do agendamento precisa ficar à esquerda, ocupando
+     meia-linha como os demais, e não escondido. */
+  #mo-agd .mbtns #agd-del-btn{display:inline-flex!important}
+
+  /* Mini-calendário (mo-agd-cal): dias maiores, nav 44px */
+  #mo-agd-cal .agd-mc-grid{gap:3px!important}
+  #mo-agd-cal .agd-mc-grid > *{
+    min-height:36px!important;font-size:.85rem!important;
+  }
+  #mo-agd-cal .agd-mc-navbtn{
+    min-width:44px!important;min-height:44px!important;
+  }
+
+  /* Dispositivos conectados: cartões cheios de toque */
+  #mo-sessions #sessions-list > *{
+    padding:12px!important;border-radius:12px!important;margin-bottom:6px!important;
+  }
+  #mo-sessions #sessions-list{flex-wrap:wrap!important}
+
+  /* Renomear doc: input prioritário */
+  #mo-rename-doc #rename-doc-inp{
+    font-size:16px!important;min-height:46px!important;
+  }
+
+  /* Confirmação de exclusão: texto maior e botão vermelho grande */
+  #mo-confirm-del .mb > p,
+  #mo-confirm-del #confirm-del-msg{
+    font-size:.84rem!important;line-height:1.5!important;
+  }
+  #mo-confirm-del #confirm-del-ok{
+    min-height:46px!important;
+    flex:1 1 auto!important;
+    min-width:46%!important;
+  }
+
+  /* Modal de visualização de anexo: respeita vvh mobile e teclado; o
+     inline style fixava 70vh que não cabe em alguns Androids com
+     teclado aberto. */
+  #mo-att-view .mb{
+    max-height:calc(var(--vvh,100dvh) - 28px - var(--lf-kb-height,0px))!important;
+    padding:8px!important;
+  }
+  #mo-att-view #att-view-body{
+    max-height:calc(var(--vvh,100dvh) - 126px - var(--lf-kb-height,0px))!important;
+  }
+  #mo-att-view #att-view-name{font-size:.82rem!important}
+
+  /* Busca global: input grande, results com altura segura */
+  #mo-gsearch #gsearch-inp{
+    font-size:1rem!important;min-height:46px!important;
+  }
+  #mo-gsearch #gsearch-results{
+    max-height:calc(var(--vvh,100dvh) - 130px - var(--lf-kb-height,0px))!important;
+  }
+
+  /* Modal Departamento (Estrutura da Empresa): colaboradores listados
+     com respiro melhor + input de nome destacado. */
+  #mo-dept #dept-members-list{
+    padding:8px!important;border-radius:10px!important;
+  }
+  #mo-dept #dept-members-list > *{
+    padding:8px 6px!important;border-radius:8px!important;min-height:44px!important;
+  }
+
+  /* Modal de edição de objeção (banco e equipe): grid de inputs em
+     coluna no celular pra evitar scroll lateral. */
+  #mo-obj-edit > div > div[style*="grid-template-columns"]{
+    grid-template-columns:1fr!important;gap:10px!important;
+  }
+
+  /* === BULK-BAR (Kanban) — proteção extra contra teclado === */
+  /* Se algum dia o bulk-bar virar um floating posicionado em cima do
+     teclado, esconde com mesma estratégia do bottom-nav. */
+  body.lf-keyboard-open #bulk-bar{
+    opacity:0!important;pointer-events:none!important;
+    transform:translateY(20px)!important;
+  }
+
+  /* === PRESERVAÇÕES DE TOUCH === */
+  /* Em todos os botões pequenos dentro das telas refinadas, garante
+     ao menos tap-target mínimo de 36-40px (já existia regra global
+     no Bloco Fase 2, mas reforça no nicho). */
+  #pg-agenda button,
+  #pg-config button,
+  #pg-docs button{font-size:1rem!important}
+}

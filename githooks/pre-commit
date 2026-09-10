@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# =====================================================================
+# githooks/pre-commit
+# ---------------------------------------------------------------------
+# Instalado automaticamente em .git/hooks/pre-commit por
+# `scripts/install-git-hooks.mjs` (roda sozinho no `npm install`, via
+# o script "prepare" do package.json — ver AI_CONTRACT.md §2.2/§5).
+#
+# O que este hook faz, nesta ordem, TODA VEZ que alguém commita:
+#
+#   1) Se o commit toca em algo que o app front-end carrega
+#      (js/**, src/**, css/**, index.html ou app.html) —
+#      reconstrói www/ (`node scripts/build-capacitor-www.mjs`) e
+#      adiciona o resultado ao MESMO commit com `git add www`.
+#      Isso é o pedido "sempre que algo novo for incrementado ou bug
+#      resolvido, aja a sincronia pro Capacitor logo em seguida":
+#      agora é automático, ninguém precisa lembrar de rodar
+#      `npm run cap:www` a mão antes de commitar.
+#      PRECISA rodar ANTES do ai-guard: o próprio ai-guard checa
+#      paridade js/src/css vs www/ (regra R2.MIRROR) — se ele rodasse
+#      primeiro, qualquer commit em front-end seria rejeitado até
+#      alguém lembrar de sincronizar a mão, que é o passo manual que
+#      este hook existe pra eliminar.
+#
+#   2) node scripts/verify-mirror.mjs
+#      Confirma que www/ ficou 100% idêntico à raiz depois do rebuild.
+#      Se isso falhar depois do rebuild automático, é sinal de bug no
+#      próprio build-capacitor-www.mjs — bloqueia o commit em vez de
+#      deixar passar um mirror quebrado.
+#
+#   3) node scripts/check-load-order.mjs
+#      Falha se uma dependência vier depois do consumidor, se um script
+#      defer/async quebrar a ordem efetiva, se houver grupo desconhecido
+#      ou se um wrapper encontrar sua função-base tarde demais.
+#
+#   4) node scripts/ai-guard.mjs --staged
+#      Trava semântica de sempre (patch fora do padrão AI_CONTRACT.md
+#      é rejeitado). Já existia como script npm (`guard:staged`); só
+#      não estava instalado como hook de verdade neste export.
+#
+#   5) npm run lint && npm test [FIX 20261011]
+#      A verificação mais objetiva de todas — não depende do
+#      julgamento de nenhuma IA nem de "lembrar" de rodar a mão. Até
+#      esta data, era só um passo MANUAL documentado no
+#      AI_CONTRACT.md §5 — nada impedia automaticamente um commit com
+#      testes quebrados. Agora é bloqueante de verdade, não importa
+#      quem (ou qual ferramenta) escreveu o código.
+#
+#   6) Se android/ e ios/ existirem no repo E o CLI do Capacitor
+#      estiver disponível, tenta `npx cap sync` (copia www/ pros dois
+#      projetos nativos). Isso é BEST-EFFORT e NUNCA bloqueia o commit
+#      — nem toda máquina de dev tem o toolchain nativo (Android
+#      Studio/Xcode) instalado, e isso é esperado (ver
+#      docs/CAPACITOR-BUILD-SETUP-20260804.md, seção "O que NÃO deu
+#      pra fazer neste ambiente"). Se falhar, só avisa e segue.
+#      android/.gitignore e ios/.gitignore já excluem a pasta de bundle
+#      gerada (assets/public, App/public) — git add aqui só pega
+#      metadado real do projeto nativo (ex.: Package.swift), nunca
+#      duplica os assets binários.
+#
+# Para pular o hook uma vez (não recomendado): git commit --no-verify
+# =====================================================================
+set -e
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+STAGED_FILES="$(git diff --cached --name-only --diff-filter=ACMR)"
+FRONTEND_TOUCHED="$(printf '%s\n' "$STAGED_FILES" | grep -E '^(js/|src/|css/|assets/|index\.html$|app\.html$)' || true)"
+
+if [ -n "$FRONTEND_TOUCHED" ]; then
+  echo "[pre-commit] Front-end alterado — reconstruindo www/ (mirror Capacitor) antes do ai-guard..."
+  node scripts/build-capacitor-www.mjs
+
+  echo "[pre-commit] Conferindo www/ === raiz..."
+  if ! node scripts/verify-mirror.mjs; then
+    echo "[pre-commit] ❌ www/ ficou divergente mesmo após rebuild automático."
+    echo "             Isso indica um bug em scripts/build-capacitor-www.mjs — investigue antes de commitar."
+    exit 1
+  fi
+
+  git add www
+  echo "[pre-commit] ✅ www/ sincronizado e incluído neste commit."
+else
+  echo "[pre-commit] Nenhum arquivo de front-end no commit — pulando rebuild do www/."
+fi
+
+echo "[pre-commit] check:load-order..."
+if ! node scripts/check-load-order.mjs; then
+  echo "[pre-commit] ❌ ordem de carregamento inválida. Corrija index.html ou o manifesto."
+  exit 1
+fi
+
+echo "[pre-commit] ai-guard --staged..."
+if ! node scripts/ai-guard.mjs --staged; then
+  echo "[pre-commit] ❌ ai-guard rejeitou o commit. Corrija e tente de novo."
+  exit 1
+fi
+
+# [FIX 20261011] Até aqui, "rodar os testes" e "rodar o lint" eram só
+# passos MANUAIS documentados no AI_CONTRACT.md §5 — nada impedia
+# automaticamente um commit com testes quebrados. Essa é a verificação
+# mais objetiva de todas (não depende do julgamento de nenhuma IA nem
+# de "lembrar" de rodar a mão) — agora é uma trava automática de
+# verdade, não importa quem (ou qual ferramenta) escreveu o código.
+echo "[pre-commit] npm run lint..."
+if ! npm run lint --silent; then
+  echo "[pre-commit] ❌ lint encontrou erro. Corrija e tente de novo."
+  echo "             (avisos/warnings não bloqueiam — só erros de verdade.)"
+  exit 1
+fi
+
+echo "[pre-commit] npm test (suíte completa)..."
+if ! npm test --silent; then
+  echo "[pre-commit] ❌ pelo menos um teste falhou. Corrija ou reverta antes de commitar."
+  echo "             Rode 'npm test' pra ver o detalhe de qual teste quebrou."
+  exit 1
+fi
+echo "[pre-commit] ✅ lint e testes passaram."
+
+if [ -n "$FRONTEND_TOUCHED" ] && { [ -d "android" ] || [ -d "ios" ]; }; then
+  if command -v npx >/dev/null 2>&1; then
+    echo "[pre-commit] Tentando sincronizar projetos nativos (npx cap sync)..."
+    if npx --yes cap sync > /tmp/lf-cap-sync.log 2>&1; then
+      echo "[pre-commit] ✅ android/ e ios/ sincronizados com www/ (npx cap sync)."
+      git add android ios 2>/dev/null || true
+    else
+      echo "[pre-commit] ⚠ npx cap sync não completou (toolchain nativo pode não estar instalado nesta máquina)."
+      echo "             Isso NÃO bloqueia o commit — rode 'npm run cap:sync' manualmente quando"
+      echo "             for gerar um build nativo de verdade. Log: /tmp/lf-cap-sync.log"
+    fi
+  fi
+fi
+
+echo "[pre-commit] OK."
+exit 0

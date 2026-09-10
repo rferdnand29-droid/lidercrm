@@ -1,0 +1,152 @@
+/* =====================================================================
+ * lf-negocios-transparent-bg-v1-20260907.css
+ * ---------------------------------------------------------------------
+ * PATCH ADITIVO: fundo TRANSPARENTE da aba Negócios (#pg-negocios).
+ *
+ * Objetivo: remover somente o preenchimento de background da aba
+ * Negócios (desktop e mobile) para deixar aparecer o fundo global do
+ * app — exatamente o mesmo efeito aplicado em Leads por
+ * lf-leads-transparent-bg-v1-20260907.css — SEM mexer em JS, SEM
+ * renomear/remover classes/ids/data-attributes usados pelo runtime e
+ * SEM alterar o layout, cores de texto, bordas de card, cor por etapa,
+ * botões dourados, FAB, etc.
+ *
+ * Este arquivo DEVE ser carregado no <head> DEPOIS de:
+ *   - css/style.css
+ *   - css/lf-negocios-visual-final-v1-20260907.css
+ *   (idealmente ao lado de lf-leads-transparent-bg-v1-20260907.css)
+ *
+ * Regra !important: usada nas MESMAS propriedades em que os CSS
+ * anteriores já usavam !important para pintar background, para vencer
+ * a cascata sem precisar editar aqueles arquivos.
+ *
+ * Escopo: #pg-negocios e seus filhos estruturais de fundo apenas.
+ * NÃO afeta:
+ *   - cards individuais (.kb-card mantém seu bg dark p/ contraste)
+ *   - dots/bordas coloridas por etapa (.kb-col-title::before)
+ *   - soma de valor por etapa (.kb-col-valor)
+ *   - botões dourados / de ação
+ *   - cabeçalhos de coluna (.kb-col-hd)
+ * ===================================================================== */
+
+/* -------------------------------------------------------------------
+ * 1. CONTAINER DA PÁGINA — remove qualquer bg em #pg-negocios
+ * ----------------------------------------------------------------- */
+#pg-negocios,
+body.theme-classic #pg-negocios,
+body #pg-negocios.pg,
+body.theme-classic #pg-negocios.pg{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* -------------------------------------------------------------------
+ * 2. WRAPPER DO KANBAN + FAIXA DE SCROLL
+ * ----------------------------------------------------------------- */
+#pg-negocios #negocios-kanban-wrap,
+#pg-negocios .kb-scroll-wrap,
+#pg-negocios .kb-wrap,
+#pg-negocios #negocios-kanban,
+body.theme-classic #pg-negocios #negocios-kanban-wrap,
+body.theme-classic #pg-negocios .kb-scroll-wrap,
+body.theme-classic #pg-negocios .kb-wrap,
+body.theme-classic #pg-negocios #negocios-kanban{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* -------------------------------------------------------------------
+ * 3. SUB-HEADER DA PÁGINA (título + busca + ações)
+ *    O CSS anterior pintava .kb-header com preenchimento sólido;
+ *    aqui removemos apenas o preenchimento, mantendo o border-bottom
+ *    hairline e o padding definidos anteriormente.
+ * ----------------------------------------------------------------- */
+#pg-negocios .kb-header,
+body.theme-classic #pg-negocios .kb-header{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* -------------------------------------------------------------------
+ * 4. BARRA DE RESUMO DE ETAPA + BARRA DE ABAS INTERNAS + BARRA DE
+ *    FILTRO POR CONSULTOR
+ *    (crm-toptabs = "Leads / Negócios / Dono",
+ *     stage-summary-bar = "Etapa atual / Valor R$",
+ *     kb-view-bar = filtro de consultor #negocios-cons-bar)
+ * ----------------------------------------------------------------- */
+#pg-negocios .crm-toptabs,
+#pg-negocios .stage-summary-bar,
+#pg-negocios .kb-view-bar,
+#pg-negocios #negocios-cons-bar,
+body.theme-classic #pg-negocios .crm-toptabs,
+body.theme-classic #pg-negocios .stage-summary-bar,
+body.theme-classic #pg-negocios .kb-view-bar,
+body.theme-classic #pg-negocios #negocios-cons-bar{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* -------------------------------------------------------------------
+ * 5. LISTA MOBILE (chips + cards verticais estilo Bitrix24)
+ *    Não mexemos no bg dos cards internos (.mb-card) — apenas
+ *    o container/wrapper da lista para deixar transparente.
+ * ----------------------------------------------------------------- */
+#pg-negocios #negocios-mobile-list,
+#pg-negocios #negocios-mb-search,
+#pg-negocios .mb-search-row,
+#pg-negocios .mb-chip-bar,
+#pg-negocios .mb-filter-row,
+body.theme-classic #pg-negocios #negocios-mobile-list,
+body.theme-classic #pg-negocios #negocios-mb-search,
+body.theme-classic #pg-negocios .mb-search-row,
+body.theme-classic #pg-negocios .mb-chip-bar,
+body.theme-classic #pg-negocios .mb-filter-row{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* -------------------------------------------------------------------
+ * 6. COLUNAS DO KANBAN — casca da coluna transparente
+ *    (mantemos borda hairline + border-radius para não perder o
+ *    contorno visual das colunas; só removemos o preenchimento.)
+ *    NÃO tocamos em .kb-col-hd / .kb-col-title::before (cabeçalhos e
+ *    dots coloridos por etapa) nem em .kb-card (card interno permanece
+ *    com seu bg escuro).
+ * ----------------------------------------------------------------- */
+#pg-negocios .kb-col,
+body.theme-classic #pg-negocios .kb-col{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  /* box-shadow interno branco removido para evitar "brilho" sem fundo */
+  box-shadow: none !important;
+}
+#pg-negocios .kb-col .kb-cards,
+body.theme-classic #pg-negocios .kb-col .kb-cards{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* -------------------------------------------------------------------
+ * 7. SAFETY: qualquer descendente direto de #pg-negocios que ainda
+ *    tenha pintura sólida herdada de temas antigos (skins de rollback).
+ *    Escopo limitado aos wrappers de fundo — NÃO afeta botões, cards,
+ *    inputs, chips coloridos, etc. (esses casam por classe própria
+ *    nos CSS acima).
+ * ----------------------------------------------------------------- */
+#pg-negocios > .kb-scroll-wrap,
+#pg-negocios > .kb-view-bar,
+#pg-negocios > .mb-search-row,
+#pg-negocios > .stage-summary-bar,
+#pg-negocios > .crm-toptabs,
+#pg-negocios > .kb-header{
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}

@@ -1,0 +1,23 @@
+/* Ajustes finais do chat — desktop / PC */
+@media (min-width: 1024px){
+  #pg-chat .chat-audio{
+    min-width: 340px !important;
+    max-width: min(560px, 72vw) !important;
+    padding: 8px 14px !important;
+    gap: 12px !important;
+  }
+
+  #pg-chat .chat-audio audio{
+    height: 38px !important;
+    min-width: 280px !important;
+  }
+
+  #pg-chat .chat-audio-meta{
+    min-width: 76px !important;
+    font-size: .72rem !important;
+  }
+
+  #pg-chat .chat-audio-meta .lbl{
+    font-size: .66rem !important;
+  }
+}

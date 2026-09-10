@@ -1,0 +1,53 @@
+/* =====================================================================
+ * lf-kanban-jitter-stabilizer-v2-20260901.css
+ * ---------------------------------------------------------------------
+ * Segunda camada do fix de jitter do Kanban desktop.
+ *
+ * O v1 já estabiliza a largura da scrollbar e desliga o hover que move o
+ * card. Esta camada vem por último para cobrir regras carregadas depois
+ * dele e para manter a superfície de renderização do quadro estável.
+ * Mobile fica deliberadamente intocado.
+ * ===================================================================== */
+
+@media (min-width:769px){
+  /* Uma única barra previsível: nunca alterna entre largura com/sem gutter. */
+  html{
+    scrollbar-gutter:stable !important;
+    scroll-behavior:auto !important;
+  }
+  body{
+    overflow-y:scroll !important;
+  }
+
+  #pg-leads .kb-cards,
+  #pg-negocios .kb-cards{
+    overflow-y:scroll !important;
+    scrollbar-gutter:stable !important;
+    scroll-behavior:auto !important;
+  }
+
+  /* Hover é apenas realce; não pode deslocar a hit area sob o ponteiro. */
+  #pg-leads .kb-card,
+  #pg-negocios .kb-card{
+    transition:box-shadow .16s ease,border-color .16s ease,opacity .15s ease !important;
+    will-change:auto !important;
+  }
+  #pg-leads .kb-card:hover,
+  #pg-negocios .kb-card:hover{
+    transform:none !important;
+  }
+
+  /* Orbes não são conteúdo: animação infinita só adiciona repaints durante
+     um redraw do Kanban e não entrega informação útil no desktop. */
+  #bg-orbs .orb{
+    animation:none !important;
+    will-change:auto !important;
+  }
+
+  /* Evita que a sombra de um card crie uma camada composta móvel durante o
+     rebuild; o feedback visual continua vindo de box-shadow. */
+  #pg-leads .kb-card.dragging,
+  #pg-negocios .kb-card.dragging{
+    will-change:transform,opacity !important;
+  }
+}

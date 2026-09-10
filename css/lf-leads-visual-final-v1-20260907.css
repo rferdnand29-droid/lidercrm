@@ -1,0 +1,394 @@
+/* =====================================================================
+ * lf-leads-visual-final-v1-20260907.css
+ * ---------------------------------------------------------------------
+ * RE-SKIN DEFINITIVO da página #pg-leads (desktop, tema escuro).
+ *
+ * Objetivo: aplicar o visual do mockup aprovado (kanban dark, cards
+ * com borda esquerda colorida por etapa, botões dourados, FAB dourado
+ * de ligação, footer com contadores por etapa) SEM mexer em JS,
+ * SEM renomear classes/ids/data-attributes usados pelo runtime, e
+ * SEM afetar mobile (<=768px) ou o tema claro.
+ *
+ * ESTE ARQUIVO DEVE SER O ÚLTIMO CSS DE TEMA CARREGADO NO <head>,
+ * depois de css/style.css, para vencer a cascata do redesign anterior
+ * (lf-kanban-desktop-redesign-v1-20260901.css) — este arquivo já foi
+ * descarregado do index.html; ficou no disco só para rollback rápido.
+ *
+ * Regra !important: usada nas propriedades que o redesign anterior
+ * marcava com !important (background, border, radius, colors) e nas
+ * que os arquivos de "jitter" ainda tocam por questão de estabilidade
+ * (mantemos overflow-y/scrollbar-gutter/scroll-behavior deles intactos).
+ *
+ * Escopo TOTAL do arquivo: @media (min-width:769px) + body.theme-classic
+ * ===================================================================== */
+
+@media (min-width:769px){
+
+/* -------------------------------------------------------------------
+ * 0. TOKENS LOCAIS (não expostos globalmente para não vazar tema)
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-leads,
+body.theme-classic #leads-kanban-wrap{
+  --lfv-bg:            #0B131E;
+  --lfv-panel:         #131C2E;
+  --lfv-panel-2:       #1E293B;
+  --lfv-card:          #111927;
+  --lfv-card-hover:    #172234;
+  --lfv-hairline:      rgba(148,163,184,.14);
+  --lfv-hairline-2:    rgba(148,163,184,.22);
+  --lfv-tx:            #FFFFFF;
+  --lfv-mu:            #94A3B8;
+  --lfv-mu-2:          #64748B;
+
+  --lfv-gold:          #F9A825;
+  --lfv-gold-2:        #D98F0A;
+  --lfv-gold-soft:     rgba(249,168,37,.14);
+  --lfv-gold-ring:     rgba(249,168,37,.35);
+  --lfv-green:         #10B981;
+  --lfv-green-soft:    rgba(16,185,129,.14);
+  --lfv-blue-info:     #1E88E5;
+
+  /* Cores por etapa (dot do header + borda esquerda do card) */
+  --lfv-col-novo:      #3B82F6;
+  --lfv-col-tent:      #F59E0B;
+  --lfv-col-whats:     #10B981;
+  --lfv-col-livre:     #EF4444;   /* rotulado no mockup como "Lead Quente" */
+  --lfv-col-conv:      #06B6D4;
+  --lfv-col-desc:      #F43F5E;
+}
+
+/* -------------------------------------------------------------------
+ * 1. SUB-HEADER DA PÁGINA (título + subtítulo + busca + ações)
+ *    Seletor real observado no index.html: .kb-header dentro de #pg-leads.
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-leads .kb-header{
+  background: linear-gradient(180deg, var(--lfv-bg) 0%, var(--lfv-bg) 100%) !important;
+  border-bottom: 1px solid var(--lfv-hairline) !important;
+  padding: 14px 20px !important;
+}
+body.theme-classic #pg-leads .kb-title{
+  color: var(--lfv-tx) !important;
+  font-weight: 700 !important;
+  font-size: 1.5rem !important;    /* ~24px */
+  letter-spacing: .1px !important;
+}
+body.theme-classic #pg-leads .kb-header p,
+body.theme-classic #pg-leads .kb-header .aline + p{
+  color: var(--lfv-mu) !important;
+}
+/* underline dourada sob o título */
+body.theme-classic #pg-leads .kb-header .aline{
+  background: linear-gradient(90deg, var(--lfv-gold), transparent) !important;
+  height: 2px !important;
+  border-radius: 2px !important;
+  opacity: .9 !important;
+}
+
+/* -------------------------------------------------------------------
+ * 2. BARRA DE BUSCA ("Buscar lead...")
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-leads .kb-search-wrap{
+  background: rgba(255,255,255,.03) !important;
+  border: 1px solid var(--lfv-hairline) !important;
+  border-radius: 10px !important;
+  transition: border-color .15s ease, box-shadow .15s ease !important;
+}
+body.theme-classic #pg-leads .kb-search-wrap:focus-within{
+  border-color: var(--lfv-gold-ring) !important;
+  box-shadow: 0 0 0 3px rgba(249,168,37,.08) !important;
+}
+body.theme-classic #pg-leads .kb-search{
+  background: transparent !important;
+  color: var(--lfv-tx) !important;
+  font-size: .85rem !important;
+}
+body.theme-classic #pg-leads .kb-search::placeholder{ color: var(--lfv-mu-2) !important; }
+body.theme-classic #pg-leads .kb-search-ic{
+  color: var(--lfv-mu) !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+/* -------------------------------------------------------------------
+ * 3. BOTÕES DE AÇÃO DA SUB-HEADER
+ *    "+ Criar Lead" (dourado sólido), "Importar em lote" (azul outline),
+ *    "Duplicatas" (laranja outline), "Todos" (verde outline + seta).
+ *    Todos usam a classe .btn-kb-new; o HTML mistura estilos inline,
+ *    então vencemos com especificidade + !important pontual.
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-leads .kb-actions{
+  gap: 8px !important;
+}
+body.theme-classic #pg-leads .kb-actions .btn-kb-new{
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  font-size: .8rem !important;
+  padding: 8px 14px !important;
+  border: 1px solid var(--lfv-hairline) !important;
+  transition: transform .12s ease, box-shadow .15s ease, background .15s ease !important;
+}
+/* "+ Criar Lead" — o primeiro .btn-kb-new sem style inline no HTML */
+body.theme-classic #pg-leads .kb-actions .btn-kb-new:not([style]){
+  background: var(--lfv-gold) !important;
+  color: #1A1206 !important;
+  border-color: var(--lfv-gold-2) !important;
+  box-shadow: 0 6px 14px rgba(249,168,37,.22) !important;
+}
+body.theme-classic #pg-leads .kb-actions .btn-kb-new:not([style]):hover{
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 18px rgba(249,168,37,.32) !important;
+}
+/* "Importar em lote" (usa style inline com var(--bl)) — apenas re-arredonda */
+body.theme-classic #pg-leads .kb-actions .btn-kb-new[onclick^="openBatchImport"]{
+  color: #60A5FA !important;
+  background: rgba(30,136,229,.10) !important;
+  border-color: rgba(30,136,229,.30) !important;
+}
+/* "Duplicatas" */
+body.theme-classic #pg-leads #dup-scan-btn{
+  color: #F59E0B !important;
+  background: rgba(224,138,58,.10) !important;
+  border-color: rgba(224,138,58,.28) !important;
+}
+/* Wrap "Todos" (bulk stage) */
+body.theme-classic #pg-leads .bulk-stage-wrap{
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(16,185,129,.30) !important;
+  background: var(--lfv-green-soft) !important;
+}
+body.theme-classic #pg-leads .bulk-stage-main{
+  background: transparent !important;
+  color: #34D399 !important;
+  border: 0 !important;
+}
+body.theme-classic #pg-leads .bulk-stage-arrow{
+  background: transparent !important;
+  color: #34D399 !important;
+  border: 0 !important;
+  border-left: 1px solid rgba(16,185,129,.30) !important;
+  padding: 0 10px !important;
+}
+
+/* -------------------------------------------------------------------
+ * 4. COLUNAS DO KANBAN
+ *    Estrutura: #leads-kanban-wrap .kb-wrap > .kb-col[data-col] >
+ *    .kb-col-hd (dot + título + contagem + botão +) + .kb-cards
+ *    IDs reais de coluna: novo, tent, whats, livre, conv, desc.
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-leads .kb-wrap{
+  padding: 12px 14px 8px !important;
+  gap: 14px !important;
+}
+body.theme-classic #pg-leads .kb-col{
+  background: linear-gradient(180deg, var(--lfv-panel) 0%, var(--lfv-panel-2) 100%) !important;
+  border: 1px solid var(--lfv-hairline) !important;
+  border-radius: 16px !important;
+  padding: 8px !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.02) !important;
+}
+body.theme-classic #pg-leads .kb-col.drag-over{
+  border-color: var(--lfv-gold-ring) !important;
+  box-shadow: 0 0 0 1px var(--lfv-gold-ring), 0 12px 28px rgba(0,0,0,.45) !important;
+}
+
+/* Cabeçalho da coluna */
+body.theme-classic #pg-leads .kb-col-hd{
+  padding: 10px 10px !important;
+  border-bottom: 1px solid var(--lfv-hairline) !important;
+  background: transparent !important;
+}
+body.theme-classic #pg-leads .kb-col-title{
+  color: var(--lfv-tx) !important;
+  font-weight: 700 !important;
+  font-size: .88rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+/* Dot colorido antes do título (::before) */
+body.theme-classic #pg-leads .kb-col-title::before{
+  content: "" !important;
+  display: inline-block !important;
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 50% !important;
+  background: var(--lfv-mu) !important;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.04) !important;
+}
+body.theme-classic #pg-leads .kb-col[data-col="novo"]  .kb-col-title::before{ background: var(--lfv-col-novo)  !important; box-shadow: 0 0 0 3px rgba(59,130,246,.14) !important; }
+body.theme-classic #pg-leads .kb-col[data-col="tent"]  .kb-col-title::before{ background: var(--lfv-col-tent)  !important; box-shadow: 0 0 0 3px rgba(245,158,11,.14) !important; }
+body.theme-classic #pg-leads .kb-col[data-col="whats"] .kb-col-title::before{ background: var(--lfv-col-whats) !important; box-shadow: 0 0 0 3px rgba(16,185,129,.14) !important; }
+body.theme-classic #pg-leads .kb-col[data-col="livre"] .kb-col-title::before{ background: var(--lfv-col-livre) !important; box-shadow: 0 0 0 3px rgba(239,68,68,.14) !important; }
+body.theme-classic #pg-leads .kb-col[data-col="conv"]  .kb-col-title::before{ background: var(--lfv-col-conv)  !important; box-shadow: 0 0 0 3px rgba(6,182,212,.14) !important; }
+body.theme-classic #pg-leads .kb-col[data-col="desc"]  .kb-col-title::before{ background: var(--lfv-col-desc)  !important; box-shadow: 0 0 0 3px rgba(244,63,94,.14) !important; }
+
+/* Badge de contagem */
+body.theme-classic #pg-leads .kb-col-cnt{
+  background: rgba(255,255,255,.06) !important;
+  border: 1px solid var(--lfv-hairline) !important;
+  color: var(--lfv-mu) !important;
+  border-radius: 999px !important;
+  padding: 1px 8px !important;
+  font-size: .7rem !important;
+  font-weight: 600 !important;
+}
+
+/* Botão "+" para adicionar na coluna */
+body.theme-classic #pg-leads .kb-add-btn{
+  background: rgba(255,255,255,.04) !important;
+  border: 1px solid var(--lfv-hairline) !important;
+  color: var(--lfv-mu) !important;
+  border-radius: 8px !important;
+  width: 26px !important;
+  height: 26px !important;
+  transition: color .12s ease, border-color .12s ease, background .12s ease !important;
+}
+body.theme-classic #pg-leads .kb-add-btn:hover{
+  color: var(--lfv-gold) !important;
+  border-color: var(--lfv-gold-ring) !important;
+  background: var(--lfv-gold-soft) !important;
+}
+
+/* -------------------------------------------------------------------
+ * 5. CARDS DE LEAD
+ *    - .kb-card fundo #111927, raio 12px, borda esquerda 3-4px por etapa
+ *    - .kb-card-num (#hash), .kb-card-name, .kb-card-tel
+ *    - .kb-call-btn / .kb-wa-btn, .kb-convert-btn (rodapé dourado)
+ *    NÃO tocar em overflow/altura da .kb-cards (jitter-stabilizer manda).
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-leads .kb-card{
+  position: relative !important;
+  background: var(--lfv-card) !important;
+  border: 1px solid var(--lfv-hairline) !important;
+  border-radius: 12px !important;
+  padding: 12px 12px 10px 16px !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.30) !important;
+  transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease, background .14s ease !important;
+}
+body.theme-classic #pg-leads .kb-card:hover{
+  background: var(--lfv-card-hover) !important;
+  border-color: var(--lfv-hairline-2) !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,.40) !important;
+  /* Sem translateY: o jitter-stabilizer neutraliza deslocamento; mantemos escala mínima */
+  transform: none !important;
+}
+
+/* Borda esquerda colorida por etapa (::before já existe no CSS antigo) */
+body.theme-classic #pg-leads .kb-card::before{
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 10px !important;
+  bottom: 10px !important;
+  width: 4px !important;
+  border-radius: 4px !important;
+  background: var(--lfv-mu) !important;
+}
+body.theme-classic #pg-leads .kb-col[data-col="novo"]  .kb-card::before{ background: var(--lfv-col-novo)  !important; }
+body.theme-classic #pg-leads .kb-col[data-col="tent"]  .kb-card::before{ background: var(--lfv-col-tent)  !important; }
+body.theme-classic #pg-leads .kb-col[data-col="whats"] .kb-card::before{ background: var(--lfv-col-whats) !important; }
+body.theme-classic #pg-leads .kb-col[data-col="livre"] .kb-card::before{ background: var(--lfv-col-livre) !important; }
+body.theme-classic #pg-leads .kb-col[data-col="conv"]  .kb-card::before{ background: var(--lfv-col-conv)  !important; }
+body.theme-classic #pg-leads .kb-col[data-col="desc"]  .kb-card::before{ background: var(--lfv-col-desc)  !important; }
+
+/* Tipografia interna do card */
+body.theme-classic #pg-leads .kb-card-num{
+  font-family: ui-monospace,'SF Mono',Consolas,monospace !important;
+  font-size: .66rem !important;
+  color: var(--lfv-mu-2) !important;
+  letter-spacing: .3px !important;
+}
+body.theme-classic #pg-leads .kb-card-name{
+  font-weight: 700 !important;
+  font-size: .9rem !important;
+  color: var(--lfv-tx) !important;
+}
+body.theme-classic #pg-leads .kb-card-tel{
+  font-family: ui-monospace,'SF Mono',Consolas,monospace !important;
+  font-size: .76rem !important;
+  color: #A7F3D0 !important;   /* verde-claro legível como no mockup */
+}
+body.theme-classic #pg-leads .kb-card-obs{
+  font-size: .72rem !important;
+  color: var(--lfv-mu) !important;
+  line-height: 1.4 !important;
+}
+body.theme-classic #pg-leads .kb-card-date{
+  font-size: .68rem !important;
+  color: var(--lfv-mu) !important;
+}
+
+/* Pills "Ligar" / "WhatsApp" dentro do card */
+body.theme-classic #pg-leads .kb-call-btn,
+body.theme-classic #pg-leads .kb-wa-btn{
+  border-radius: 8px !important;
+  border: 1px solid var(--lfv-hairline) !important;
+  background: rgba(255,255,255,.02) !important;
+  color: var(--lfv-mu) !important;
+  font-size: .72rem !important;
+  padding: 4px 10px !important;
+  transition: color .12s ease, border-color .12s ease, background .12s ease !important;
+}
+body.theme-classic #pg-leads .kb-call-btn:hover{
+  color: #FCA5A5 !important;
+  border-color: rgba(239,68,68,.45) !important;
+  background: rgba(239,68,68,.08) !important;
+}
+body.theme-classic #pg-leads .kb-wa-btn:hover{
+  color: #6EE7B7 !important;
+  border-color: rgba(16,185,129,.45) !important;
+  background: rgba(16,185,129,.08) !important;
+}
+
+/* Botão "Converter em Negócio" — outline dourado full-width */
+body.theme-classic #pg-leads .kb-convert-btn{
+  display: block !important;
+  width: 100% !important;
+  margin-top: 8px !important;
+  padding: 7px 10px !important;
+  background: transparent !important;
+  color: var(--lfv-gold) !important;
+  border: 1px solid var(--lfv-gold-ring) !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  font-size: .76rem !important;
+  cursor: pointer !important;
+  transition: background .12s ease, color .12s ease, border-color .12s ease !important;
+}
+body.theme-classic #pg-leads .kb-convert-btn:hover{
+  background: var(--lfv-gold-soft) !important;
+  border-color: var(--lfv-gold) !important;
+  color: #FFD98C !important;
+}
+
+/* -------------------------------------------------------------------
+ * 6. NEUTRALIZAÇÕES PONTUAIS
+ *    Os arquivos de "jitter" desligam o translateY(-2px) do hover que
+ *    o redesign antigo trazia; nós apenas garantimos que o hover novo
+ *    fique consistente com aquela decisão (sem deslocamento sob o cursor).
+ *    NÃO tocamos em: overflow-y, scrollbar-gutter, scroll-behavior,
+ *    alturas calc() — tudo isso é preservado.
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-leads .kb-card.dragging{
+  opacity: .55 !important;
+  transform: rotate(-1.2deg) scale(1.02) !important;
+  box-shadow: 0 18px 40px rgba(0,0,0,.55) !important;
+}
+
+/* -------------------------------------------------------------------
+ * 7. FAB DE LIGAÇÃO (contador de ligações) — dourado, canto inferior
+ *    Já existe no DOM como #lig-fab; só re-estiliza a cor pra dourada.
+ * ----------------------------------------------------------------- */
+body.theme-classic #pg-leads #lig-fab.lig-fab{
+  background: var(--lfv-gold) !important;
+  color: #1A1206 !important;
+  border: 1px solid var(--lfv-gold-2) !important;
+  box-shadow: 0 10px 24px rgba(249,168,37,.35) !important;
+}
+body.theme-classic #pg-leads #lig-fab.lig-fab .lig-fab-count{
+  background: #1A1206 !important;
+  color: var(--lfv-gold) !important;
+}
+
+}  /* fim @media (min-width:769px) */
